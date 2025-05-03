@@ -19,7 +19,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Global configuration variables
 var apiKey string
 var apiURL string
 var resetStacks bool
