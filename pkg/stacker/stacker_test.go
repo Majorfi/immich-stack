@@ -62,6 +62,7 @@ func TestSortStack(t *testing.T) {
 				"IMG_2482.abc",
 				"IMG_2482.xyz",
 			},
+			promoteExt: ".jpeg,.jpg,.png",
 		},
 		{
 			name: "promote override",
