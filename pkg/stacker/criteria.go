@@ -39,22 +39,37 @@ func getCriteriaConfig() ([]utils.TCriteria, error) {
 ** @return error - Any error that occurred during criteria application
 **************************************************************************************************/
 func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, error) {
+	extractors := map[string]func(asset utils.TAsset, c utils.TCriteria) (string, error){
+		"id":               func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.ID, nil },
+		"deviceAssetId":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceAssetID, nil },
+		"deviceId":         func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceID, nil },
+		"duration":         func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Duration, nil },
+		"fileCreatedAt":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.FileCreatedAt, nil },
+		"fileModifiedAt":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.FileModifiedAt, nil },
+		"hasMetadata":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.HasMetadata), nil },
+		"isArchived":       func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsArchived), nil },
+		"isFavorite":       func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsFavorite), nil },
+		"isOffline":        func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsOffline), nil },
+		"isTrashed":        func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsTrashed), nil },
+		"localDateTime":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.LocalDateTime, nil },
+		"originalFileName": extractOriginalFileName,
+		"originalPath":     func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OriginalPath, nil },
+		"ownerId":          func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OwnerID, nil },
+		"type":             func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Type, nil },
+		"updatedAt":        func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.UpdatedAt, nil },
+		"checksum":         func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Checksum, nil },
+	}
+
 	result := make([]string, 0, len(criteria))
 
 	for _, c := range criteria {
-		var value string
-		switch c.Key {
-		case "originalFileName":
-			baseName := asset.OriginalFileName
-			if c.Split != nil {
-				parts := strings.Split(baseName, c.Split.Key)
-				if len(parts) > c.Split.Index {
-					baseName = parts[c.Split.Index]
-				}
-			}
-			value = baseName
-		case "localDateTime":
-			value = asset.LocalDateTime
+		extractor, ok := extractors[c.Key]
+		if !ok {
+			return nil, fmt.Errorf("unknown criteria key: %s", c.Key)
+		}
+		value, err := extractor(asset, c)
+		if err != nil {
+			return nil, err
 		}
 		if value != "" {
 			result = append(result, value)
@@ -62,4 +77,30 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 	}
 
 	return result, nil
+}
+
+/**************************************************************************************************
+** extractOriginalFileName extracts the base name from the asset's original file name,
+** applying split logic if specified in the criteria.
+**************************************************************************************************/
+func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, error) {
+	baseName := asset.OriginalFileName
+	if c.Split != nil {
+		parts := strings.Split(baseName, c.Split.Key)
+		if c.Split.Index < 0 || c.Split.Index >= len(parts) {
+			return "", fmt.Errorf("split index %d out of range for %q", c.Split.Index, baseName)
+		}
+		baseName = parts[c.Split.Index]
+	}
+	return baseName, nil
+}
+
+/**************************************************************************************************
+** boolToString converts a boolean value to its string representation ("true" or "false").
+**************************************************************************************************/
+func boolToString(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
 }

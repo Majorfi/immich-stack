@@ -8,7 +8,7 @@ package utils
 var DefaultCriteria = []TCriteria{
 	{
 		Key: "originalFileName",
-		Split: &TSplit{
+		Split: &TSplit{ // We only want the first part, so we want to avoid all stuff like img.edit.jpg
 			Key:   ".",
 			Index: 0,
 		},
