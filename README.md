@@ -73,12 +73,14 @@ This project is heavily inspired by [immich-auto-stack](github.com/tenekev/immic
 
    ```sh
    # Example with flags
-   ./immich-stack run --dry-run --parent-filename-promote=edit --parent-ext-promote=.jpg,.dng
+   ./immich-stack run --dry-run --parent-filename-promote=edit --parent-ext-promote=.jpg,.dng --with-archived --with-deleted
 
    # Or using environment variables
    export DRY_RUN=true
    export PARENT_FILENAME_PROMOTE=edit
    export PARENT_EXT_PROMOTE=.jpg,.dng
+   export WITH_ARCHIVED=true
+   export WITH_DELETED=true
    ./immich-stack run
    ```
 
@@ -117,6 +119,8 @@ go run ./cmd/main.go run --api-key <API_KEY> --api-url <API_URL> [flags]
 | `--criteria`                | `CRITERIA`                | Custom grouping criteria                     |
 | `--parent-filename-promote` | `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames    |
 | `--parent-ext-promote`      | `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files        |
+| `--with-archived`           | `WITH_ARCHIVED`           | Include archived assets in processing        |
+| `--with-deleted`            | `WITH_DELETED`            | Include deleted assets in processing         |
 
 - Flags take precedence over environment variables.
 - If `--reset-stacks` is set, user confirmation is required.

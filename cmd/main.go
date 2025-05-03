@@ -27,6 +27,8 @@ var replaceStacks bool
 var criteria string
 var parentFilenamePromote string
 var parentExtPromote string
+var withArchived bool
+var withDeleted bool
 
 /**************************************************************************************************
 ** Loads environment variables and command-line flags, with flags taking precedence over env
@@ -69,6 +71,12 @@ func loadEnv(logger *logrus.Logger) {
 	}
 	if !replaceStacks {
 		replaceStacks = os.Getenv("REPLACE_STACKS") == "true"
+	}
+	if !withArchived {
+		withArchived = os.Getenv("WITH_ARCHIVED") == "true"
+	}
+	if !withDeleted {
+		withDeleted = os.Getenv("WITH_DELETED") == "true"
 	}
 }
 
@@ -196,7 +204,7 @@ func runStacker(cmd *cobra.Command, args []string) {
 	/**********************************************************************************************
 	** Initialize clients and stacker.
 	**********************************************************************************************/
-	client := immich.NewClient(apiURL, apiKey, resetStacks, replaceStacks, dryRun, logger)
+	client := immich.NewClient(apiURL, apiKey, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, logger)
 
 	/**********************************************************************************************
 	** Fetch all the assets from Immich.
@@ -277,11 +285,13 @@ func main() {
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key (or set API_KEY env var)")
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "API URL (or set API_URL env var)")
 	rootCmd.PersistentFlags().BoolVar(&resetStacks, "reset-stacks", false, "Delete all existing stacks (or set RESET_STACKS=true)")
-	rootCmd.PersistentFlags().BoolVar(&replaceStacks, "replace-stacks", false, "Replace stacks for new groups (or set REPLACE_STACKS=true)")
+	rootCmd.PersistentFlags().BoolVar(&replaceStacks, "replace-stacks", true, "Replace stacks for new groups (or set REPLACE_STACKS=true)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Dry run (or set DRY_RUN=true)")
 	rootCmd.PersistentFlags().StringVar(&criteria, "criteria", "", "Criteria (or set CRITERIA env var)")
-	rootCmd.PersistentFlags().StringVar(&parentFilenamePromote, "parent-filename-promote", "", "Parent filename promote (or set PARENT_FILENAME_PROMOTE env var)")
-	rootCmd.PersistentFlags().StringVar(&parentExtPromote, "parent-ext-promote", "", "Parent ext promote (or set PARENT_EXT_PROMOTE env var)")
+	rootCmd.PersistentFlags().StringVar(&parentFilenamePromote, "parent-filename-promote", utils.DefaultParentFilenamePromoteString, "Parent filename promote (or set PARENT_FILENAME_PROMOTE env var)")
+	rootCmd.PersistentFlags().StringVar(&parentExtPromote, "parent-ext-promote", utils.DefaultParentExtPromoteString, "Parent ext promote (or set PARENT_EXT_PROMOTE env var)")
+	rootCmd.PersistentFlags().BoolVar(&withArchived, "with-archived", false, "Include archived assets (or set WITH_ARCHIVED=true)")
+	rootCmd.PersistentFlags().BoolVar(&withDeleted, "with-deleted", false, "Include deleted assets (or set WITH_DELETED=true)")
 
 	var runCmd = &cobra.Command{
 		Use:   "run",

@@ -26,6 +26,8 @@ type Client struct {
 	resetStacks   bool
 	replaceStacks bool
 	dryRun        bool
+	withArchived  bool
+	withDeleted   bool
 	logger        *logrus.Logger
 }
 
@@ -38,10 +40,12 @@ type Client struct {
 ** @param resetStacks - Whether to reset all existing stacks
 ** @param replaceStacks - Whether to replace existing stacks
 ** @param dryRun - Whether to perform a dry run without making changes
+** @param withArchived - Whether to include archived assets
+** @param withDeleted - Whether to include deleted assets
 ** @param logger - Logger instance for output
 ** @return *Client - Configured Immich client instance
 **************************************************************************************************/
-func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, logger *logrus.Logger) *Client {
+func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, logger *logrus.Logger) *Client {
 	if apiKey == "" {
 		return nil
 	}
@@ -77,6 +81,8 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 		resetStacks:   resetStacks,
 		replaceStacks: replaceStacks,
 		dryRun:        dryRun,
+		withArchived:  withArchived,
+		withDeleted:   withDeleted,
 		logger:        logger,
 	}
 }
@@ -215,8 +221,10 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 			"page":         page,
 			"order":        "asc",
 			"type":         "IMAGE",
+			"isVisible":    true,
 			"withStacked":  true,
-			"withArchived": false,
+			"withArchived": c.withArchived,
+			"withDeleted":  c.withDeleted,
 		}, &response); err != nil {
 			c.logger.Errorf("Error fetching assets: %v", err)
 			return nil, fmt.Errorf("error fetching assets: %w", err)
