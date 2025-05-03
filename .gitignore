@@ -1,3 +1,4 @@
 .env
 .docs
 .DS_Store
+.cursor
