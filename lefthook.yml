@@ -1,0 +1,11 @@
+pre-commit:
+  commands:
+    goTest:
+      glob: "*.{go}"
+      run: go test ./...
+
+pre-push:
+  commands:
+    goTest:
+      glob: "*.{go}"
+      run: go test ./...

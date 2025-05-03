@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/majorfi/immich-stack/pkg/stacker"
+	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -149,8 +149,8 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 ** @return map[string]stacker.Stack - Map of stacks indexed by primary asset ID
 ** @return error - Any error that occurred during the fetch
 **************************************************************************************************/
-func (c *Client) FetchAllStacks() (map[string]stacker.Stack, error) {
-	var stacks []stacker.Stack
+func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
+	var stacks []utils.TStack
 	if err := c.doRequest(http.MethodGet, "/stacks", nil, &stacks); err != nil {
 		return nil, fmt.Errorf("error fetching stacks: %w", err)
 	}
@@ -184,7 +184,7 @@ func (c *Client) FetchAllStacks() (map[string]stacker.Stack, error) {
 	}
 
 	// Create lookup map
-	stacksMap := make(map[string]stacker.Stack)
+	stacksMap := make(map[string]utils.TStack)
 	for _, stack := range stacks {
 		stacksMap[stack.PrimaryAssetID] = stack
 	}
@@ -202,15 +202,14 @@ func (c *Client) FetchAllStacks() (map[string]stacker.Stack, error) {
 ** @return []stacker.Asset - List of all assets
 ** @return error - Any error that occurred during the fetch
 **************************************************************************************************/
-func (c *Client) FetchAssets(size int, stacksMap map[string]stacker.Stack) ([]stacker.Asset, error) {
-	var allAssets []stacker.Asset
+func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]utils.TAsset, error) {
+	var allAssets []utils.TAsset
 	page := 1
 
 	c.logger.Infof("⬇️  Fetching assets:")
-	c.logger.Infof("   Page size: %d", size)
 
 	for {
-		var response stacker.SearchResponse
+		var response utils.TSearchResponse
 		if err := c.doRequest(http.MethodPost, "/search/metadata", map[string]interface{}{
 			"size":         size,
 			"page":         page,
@@ -243,19 +242,7 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]stacker.Stack) ([]st
 		}
 		page = nextPageInt
 	}
-	c.logger.Infof("   Assets: %d", len(allAssets))
-
-	// DEBUG_LIST := []stacker.Asset{}
-	// for _, asset := range allAssets {
-	// 	if strings.Contains(asset.OriginalFileName, "DSC_0405") {
-	// 		DEBUG_LIST = append(DEBUG_LIST, asset)
-	// 	}
-	// }
-	// utils.Pretty(DEBUG_LIST)
-
-	// if err := c.ListDuplicates(allAssets); err != nil {
-	// 	c.logger.Errorf("Error listing duplicates: %v", err)
-	// }
+	c.logger.Infof("🌄 %d assets fetched", len(allAssets))
 
 	return allAssets, nil
 }
@@ -315,14 +302,14 @@ func (c *Client) ModifyStack(assetIDs []string) error {
 ** @param allAssets - List of assets to check for duplicates
 ** @return error - Any error that occurred during the check
 **************************************************************************************************/
-func (c *Client) ListDuplicates(allAssets []stacker.Asset) error {
+func (c *Client) ListDuplicates(allAssets []utils.TAsset) error {
 	if len(allAssets) == 0 {
 		c.logger.Warn("No assets provided for duplicate check.")
 		return nil
 	}
 
 	// Map to group assets by OriginalFileName + LocalDateTime
-	groups := make(map[string][]stacker.Asset)
+	groups := make(map[string][]utils.TAsset)
 	for _, asset := range allAssets {
 		key := asset.OriginalFileName + "|" + asset.LocalDateTime
 		groups[key] = append(groups[key], asset)

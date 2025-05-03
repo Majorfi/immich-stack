@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/majorfi/immich-stack/pkg/stacker"
+	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,7 +77,7 @@ func TestFetchAssets(t *testing.T) {
 		name      string
 		client    *Client
 		size      int
-		stacksMap map[string]stacker.Stack
+		stacksMap map[string]utils.TStack
 		wantErr   bool
 	}{
 		{
@@ -89,7 +89,7 @@ func TestFetchAssets(t *testing.T) {
 				client: &http.Client{},
 			},
 			size:      10,
-			stacksMap: make(map[string]stacker.Stack),
+			stacksMap: make(map[string]utils.TStack),
 			wantErr:   true,
 		},
 	}

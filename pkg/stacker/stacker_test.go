@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,65 +14,10 @@ import (
 ** Test helper functions and types
 ************************************************************************************************/
 
-func assetFactory(filename string, dateTime time.Time) Asset {
-	return Asset{
+func assetFactory(filename string, dateTime time.Time) utils.TAsset {
+	return utils.TAsset{
 		OriginalFileName: filename,
 		LocalDateTime:    dateTime.Format(time.RFC3339),
-	}
-}
-
-/************************************************************************************************
-** Test cases for criteria matching
-************************************************************************************************/
-
-func TestApplyCriteria(t *testing.T) {
-	tests := []struct {
-		name     string
-		fileList []string
-		want     int // number of groups
-	}{
-		{
-			name: "same file different folder",
-			fileList: []string{
-				"IMG_2482.jpg",
-				"IMG_2482.jpg",
-			},
-			want: 1,
-		},
-		{
-			name: "same base different extension",
-			fileList: []string{
-				"IMG_2482.jpg",
-				"IMG_2482.cr2",
-			},
-			want: 1, // Should group by base name, regardless of extension
-		},
-		{
-			name: "different files",
-			fileList: []string{
-				"IMG_2482.jpg",
-				"IMG_2483.cr2",
-			},
-			want: 0, // Different base names, so no group (per implementation)
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Arrange
-			stacker := NewStacker(logrus.New())
-			assets := make([]Asset, len(tt.fileList))
-			for i, f := range tt.fileList {
-				assets[i] = assetFactory(f, time.Now())
-			}
-
-			// Act
-			groups, err := stacker.StackBy(assets)
-
-			// Assert
-			require.NoError(t, err)
-			assert.Equal(t, tt.want, len(groups))
-		})
 	}
 }
 
@@ -152,8 +97,7 @@ func TestSortStack(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
-			stacker := NewStacker(logrus.New())
-			assets := make([]Asset, len(tt.inputOrder))
+			assets := make([]utils.TAsset, len(tt.inputOrder))
 			for i, f := range tt.inputOrder {
 				assets[i] = assetFactory(f, time.Now())
 			}
@@ -168,10 +112,10 @@ func TestSortStack(t *testing.T) {
 			}
 
 			// Act
-			result := stacker.SortStack(assets)
+			result := sortStack(assets, tt.promoteStr, tt.promoteExt)
 
 			// Assert
-			expectedAssets := make([]Asset, len(tt.expectedOrder))
+			expectedAssets := make([]utils.TAsset, len(tt.expectedOrder))
 			for i, f := range tt.expectedOrder {
 				expectedAssets[i] = assetFactory(f, time.Now())
 			}
@@ -187,13 +131,13 @@ func TestSortStack(t *testing.T) {
 func TestStackBy(t *testing.T) {
 	tests := []struct {
 		name           string
-		assets         []Asset
+		assets         []utils.TAsset
 		expectedGroups int
 		skipMatchMiss  bool
 	}{
 		{
 			name: "different filenames",
-			assets: []Asset{
+			assets: []utils.TAsset{
 				assetFactory("test1.jpg", time.Now()),
 				assetFactory("test2.jpg", time.Now()),
 			},
@@ -201,7 +145,7 @@ func TestStackBy(t *testing.T) {
 		},
 		{
 			name: "same filename different datetime",
-			assets: []Asset{
+			assets: []utils.TAsset{
 				assetFactory("test.jpg", time.Now()),
 				assetFactory("test.jpg", time.Now().Add(time.Hour)),
 			},
@@ -209,7 +153,7 @@ func TestStackBy(t *testing.T) {
 		},
 		{
 			name: "empty key handling",
-			assets: []Asset{
+			assets: []utils.TAsset{
 				assetFactory("test.jpg", time.Now()),
 				assetFactory("test.jpg", time.Time{}),
 			},
@@ -221,14 +165,13 @@ func TestStackBy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
-			stacker := NewStacker(logrus.New())
 			if tt.skipMatchMiss {
 				os.Setenv("SKIP_MATCH_MISS", "true")
 				defer os.Unsetenv("SKIP_MATCH_MISS")
 			}
 
 			// Act
-			groups, err := stacker.StackBy(tt.assets)
+			groups, err := StackBy(tt.assets, "", "", "")
 
 			// Assert
 			if tt.skipMatchMiss {

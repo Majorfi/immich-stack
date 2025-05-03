@@ -25,6 +25,9 @@ var apiURL string
 var resetStacks bool
 var dryRun bool
 var replaceStacks bool
+var criteria string
+var parentFilenamePromote string
+var parentExtPromote string
 
 /**************************************************************************************************
 ** Loads environment variables and command-line flags, with flags taking precedence over env
@@ -80,7 +83,7 @@ func loadEnv(logger *logrus.Logger) {
 ** @return childrenIDs - Array of child asset IDs
 ** @return newStackIDs - Combined array of parent and child IDs
 **************************************************************************************************/
-func getParentAndChildrenIDs(stack []stacker.Asset) (string, []string, []string) {
+func getParentAndChildrenIDs(stack []utils.TAsset) (string, []string, []string) {
 	parentID := stack[0].ID
 	childrenIDs := make([]string, len(stack)-1)
 	for i, asset := range stack[1:] {
@@ -101,7 +104,7 @@ func getParentAndChildrenIDs(stack []stacker.Asset) (string, []string, []string)
 ** @return childrenIDs - Array of child asset IDs in existing stack
 ** @return originalStackIDs - Combined array of existing parent and child IDs
 **************************************************************************************************/
-func getOriginalStackIDs(stack []stacker.Asset) (string, []string, []string) {
+func getOriginalStackIDs(stack []utils.TAsset) (string, []string, []string) {
 	if len(stack) == 0 || stack[0].Stack == nil {
 		return "", nil, nil
 	}
@@ -165,7 +168,7 @@ func needsStackUpdate(originalStack, expectedStack []string) bool {
 ** @return []string - Array of stack IDs where conflicts were found
 ** @return bool - True if any conflicts were found
 **************************************************************************************************/
-func getChildrenWithStack(stack []stacker.Asset) ([]string, bool) {
+func getChildrenWithStack(stack []utils.TAsset) ([]string, bool) {
 	childrenWithStack := make([]string, 0)
 	for _, asset := range stack[1:] {
 		if asset.Stack != nil {
@@ -195,7 +198,6 @@ func runStacker(cmd *cobra.Command, args []string) {
 	** Initialize clients and stacker.
 	**********************************************************************************************/
 	client := immich.NewClient(apiURL, apiKey, resetStacks, replaceStacks, dryRun, logger)
-	stacker := stacker.NewStacker(logger)
 
 	/**********************************************************************************************
 	** Fetch all the assets from Immich.
@@ -212,13 +214,12 @@ func runStacker(cmd *cobra.Command, args []string) {
 	/**********************************************************************************************
 	** Group the assets into stacks.
 	**********************************************************************************************/
-	stacks, err := stacker.StackBy(assets)
+	stacks, err := stacker.StackBy(assets, criteria, parentFilenamePromote, parentExtPromote)
 	if err != nil {
 		logger.Fatalf("Error stacking assets: %v", err)
 	}
 
 	for i, stack := range stacks {
-		stack = stacker.SortStack(stack)
 		_, _, newStackIDs := getParentAndChildrenIDs(stack)
 		_, _, originalStackIDs := getOriginalStackIDs(stack)
 		if !isValidStack(newStackIDs) {
@@ -269,8 +270,8 @@ func runStacker(cmd *cobra.Command, args []string) {
 **************************************************************************************************/
 func main() {
 	var rootCmd = &cobra.Command{
-		Use:   "immich-auto-stack",
-		Short: "Immich Auto Stack CLI",
+		Use:   "immich-stack",
+		Short: "Immich Stack CLI",
 		Long:  "A tool to automatically stack Immich assets.",
 	}
 
@@ -279,6 +280,9 @@ func main() {
 	rootCmd.PersistentFlags().BoolVar(&resetStacks, "reset-stacks", false, "Delete all existing stacks (or set RESET_STACKS=true)")
 	rootCmd.PersistentFlags().BoolVar(&replaceStacks, "replace-stacks", false, "Replace stacks for new groups (or set REPLACE_STACKS=true)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Dry run (or set DRY_RUN=true)")
+	rootCmd.PersistentFlags().StringVar(&criteria, "criteria", "", "Criteria (or set CRITERIA env var)")
+	rootCmd.PersistentFlags().StringVar(&parentFilenamePromote, "parent-filename-promote", "", "Parent filename promote (or set PARENT_FILENAME_PROMOTE env var)")
+	rootCmd.PersistentFlags().StringVar(&parentExtPromote, "parent-ext-promote", "", "Parent ext promote (or set PARENT_EXT_PROMOTE env var)")
 
 	var runCmd = &cobra.Command{
 		Use:   "run",
