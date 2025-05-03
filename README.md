@@ -17,6 +17,73 @@ This project is heavily inspired by [immich-auto-stack](github.com/tenekev/immic
 
 ---
 
+## Installation
+
+### Prerequisites
+
+- [Go](https://golang.org/doc/install) (version 1.21 or later)
+- [Git](https://git-scm.com/downloads)
+
+### From Source
+
+1. Clone the repository:
+
+   ```sh
+   git clone https://github.com/majorfi/immich-stack.git
+   cd immich-stack
+   ```
+
+2. Build the binary:
+
+   ```sh
+   go build -o immich-stack ./cmd/main.go
+   ```
+
+3. Move the binary to your PATH (optional):
+   ```sh
+   sudo mv immich-stack /usr/local/bin/
+   ```
+
+### Using Pre-built Binaries
+
+1. Download the latest release from the [Releases page](https://github.com/majorfi/immich-stack/releases)
+2. Extract the archive
+3. Move the binary to your PATH (optional)
+
+## Running
+
+1. Create a `.env` file in your working directory with your Immich credentials:
+
+   ```sh
+   API_KEY=your_immich_api_key
+   API_URL=http://your_immich_server:3001/api
+   ```
+
+2. Run the stacker:
+
+   ```sh
+   # Using the binary
+   ./immich-stack run
+
+   # Or if installed in PATH
+   immich-stack run
+   ```
+
+3. Optional: Configure additional options via environment variables or flags:
+
+   ```sh
+   # Example with flags
+   ./immich-stack run --dry-run --parent-filename-promote=edit --parent-ext-promote=.jpg,.dng
+
+   # Or using environment variables
+   export DRY_RUN=true
+   export PARENT_FILENAME_PROMOTE=edit
+   export PARENT_EXT_PROMOTE=.jpg,.dng
+   ./immich-stack run
+   ```
+
+---
+
 ## Directory Structure
 
 ```
