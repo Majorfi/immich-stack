@@ -15,8 +15,12 @@ type TCriteria struct {
 ** and selects a specific part by index.
 **************************************************************************************************/
 type TSplit struct {
-	Key   string `json:"key"`   // Delimiter to split by
-	Index int    `json:"index"` // Index of part to select after split
+	/**********************************************************************************************
+	** Delimiters is a list of delimiters to split the string sequentially (e.g., ["~", "."]).
+	** Index is the part to select after all splits.
+	**********************************************************************************************/
+	Delimiters []string `json:"delimiters"`
+	Index      int      `json:"index"`
 }
 
 /**************************************************************************************************

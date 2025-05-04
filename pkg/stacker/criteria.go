@@ -85,8 +85,15 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 **************************************************************************************************/
 func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, error) {
 	baseName := asset.OriginalFileName
-	if c.Split != nil {
-		parts := strings.Split(baseName, c.Split.Key)
+	if c.Split != nil && len(c.Split.Delimiters) > 0 {
+		parts := []string{baseName}
+		for _, delim := range c.Split.Delimiters {
+			temp := []string{}
+			for _, part := range parts {
+				temp = append(temp, strings.Split(part, delim)...)
+			}
+			parts = temp
+		}
 		if c.Split.Index < 0 || c.Split.Index >= len(parts) {
 			return "", fmt.Errorf("split index %d out of range for %q", c.Split.Index, baseName)
 		}

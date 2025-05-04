@@ -10,9 +10,9 @@ import "strings"
 var DefaultCriteria = []TCriteria{
 	{
 		Key: "originalFileName",
-		Split: &TSplit{ // We only want the first part, so we want to avoid all stuff like img.edit.jpg
-			Key:   ".",
-			Index: 0,
+		Split: &TSplit{ // We want to split sequentially on "~" and then "."
+			Delimiters: []string{"~", "."},
+			Index:      0,
 		},
 	},
 	{
