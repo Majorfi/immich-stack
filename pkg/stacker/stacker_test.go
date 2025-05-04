@@ -113,7 +113,7 @@ func TestSortStack(t *testing.T) {
 			}
 
 			// Act
-			result := sortStack(assets, tt.promoteStr, tt.promoteExt)
+			result := sortStack(assets, tt.promoteStr, tt.promoteExt, []string{"~", "."})
 
 			// Assert
 			expectedAssets := make([]utils.TAsset, len(tt.expectedOrder))

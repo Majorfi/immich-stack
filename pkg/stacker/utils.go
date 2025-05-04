@@ -30,7 +30,13 @@ func getPromoteIndex(value string, promoteList []string) int {
 		if promote == "" {
 			continue
 		}
-		if strings.Contains(value, promote) {
+		if strings.Contains(strings.ToLower(value), strings.ToLower(promote)) {
+			return idx
+		}
+	}
+	// If 'biggestNumber' is in the promote list, assign its index to unmatched files
+	for idx, promote := range promoteList {
+		if promote == "biggestNumber" {
 			return idx
 		}
 	}

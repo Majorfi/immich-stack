@@ -75,3 +75,19 @@ func RemoveEmptyStrings(arr []string) []string {
 
 	return result
 }
+
+/**************************************************************************************************
+** Contains checks if a string is present in a slice of strings.
+**
+** @param list - Slice of strings to search
+** @param s - String to search for
+** @return bool - True if string is present in slice, false otherwise
+**************************************************************************************************/
+func Contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}

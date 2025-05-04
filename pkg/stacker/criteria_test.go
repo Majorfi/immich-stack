@@ -123,3 +123,25 @@ func TestExtractOriginalFileNameMultiDelimiter(t *testing.T) {
 		})
 	}
 }
+
+/************************************************************************************************
+** Test sortStack with 'biggestNumber' in promote list prioritizes the largest numeric suffix.
+************************************************************************************************/
+func TestSortStackBiggestNumber(t *testing.T) {
+	assets := []utils.TAsset{
+		{OriginalFileName: "PXL_20250503_152823814.jpg"},
+		{OriginalFileName: "PXL_20250503_152823814~2.jpg"},
+		{OriginalFileName: "PXL_20250503_152823814~3.jpg"},
+		{OriginalFileName: "PXL_20250503_152823814.7.jpg"},
+		{OriginalFileName: "PXL_20250503_152823814.edit99.jpg"},
+	}
+	// Promote list includes 'biggestNumber' only
+	promote := "edit,biggestNumber"
+	result := sortStack(assets, promote, "", []string{"~", "."})
+	// The first asset should be the one with the largest number (edit99)
+	assert.Equal(t, "PXL_20250503_152823814.edit99.jpg", result[0].OriginalFileName)
+	assert.Equal(t, "PXL_20250503_152823814.7.jpg", result[1].OriginalFileName)
+	assert.Equal(t, "PXL_20250503_152823814~3.jpg", result[2].OriginalFileName)
+	assert.Equal(t, "PXL_20250503_152823814~2.jpg", result[3].OriginalFileName)
+	assert.Equal(t, "PXL_20250503_152823814.jpg", result[4].OriginalFileName)
+}

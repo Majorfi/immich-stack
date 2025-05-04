@@ -24,7 +24,7 @@ var DefaultCriteria = []TCriteria{
 ** DefaultParentFilenamePromote is the default parent filename promote for grouping photos.
 ** It promotes the filename of the original filename.
 **************************************************************************************************/
-var DefaultParentFilenamePromote = []string{"edit", "crop", "hdr"}
+var DefaultParentFilenamePromote = []string{"edit", "crop", "hdr", "biggestNumber"}
 var DefaultParentFilenamePromoteString = strings.Join(DefaultParentFilenamePromote, ",")
 
 /**************************************************************************************************
