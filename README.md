@@ -22,19 +22,20 @@ docker run -d  --name immich-stack --env-file .env -v ./logs:/app/logs ghcr.io/m
 
 ## Environment Variables
 
-| Variable                  | Description                       | Default                         |
-| ------------------------- | --------------------------------- | ------------------------------- |
-| `API_KEY`                 | Your Immich API key               | (required)                      |
-| `API_URL`                 | Immich API URL                    | `http://immich-server:2283/api` |
-| `RUN_MODE`                | Run mode (`once` or `cron`)       | `once`                          |
-| `CRON_INTERVAL`           | Interval in seconds for cron mode | `86400`                         |
-| `DRY_RUN`                 | Don't apply changes               | `false`                         |
-| `RESET_STACKS`            | Delete all existing stacks        | `false`                         |
-| `REPLACE_STACKS`          | Replace stacks for new groups     | `false`                         |
-| `PARENT_FILENAME_PROMOTE` | Parent filename promote           | `edit`                          |
-| `PARENT_EXT_PROMOTE`      | Parent extension promote          | `.jpg,.dng`                     |
-| `WITH_ARCHIVED`           | Include archived assets           | `false`                         |
-| `WITH_DELETED`            | Include deleted assets            | `false`                         |
+| Variable                  | Description                                                                                                                  | Default                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `API_KEY`                 | Your Immich API key                                                                                                          | (required)                      |
+| `API_URL`                 | Immich API URL                                                                                                               | `http://immich-server:2283/api` |
+| `RUN_MODE`                | Run mode (`once` or `cron`)                                                                                                  | `once`                          |
+| `CRON_INTERVAL`           | Interval in seconds for cron mode                                                                                            | `86400`                         |
+| `DRY_RUN`                 | Don't apply changes                                                                                                          | `false`                         |
+| `RESET_STACKS`            | Delete all existing stacks                                                                                                   | `false`                         |
+| `CONFIRM_RESET_STACK`     | Required for RESET_STACKS. Must be set to: 'I acknowledge all my current stacks will be deleted and new one will be created' | (required for RESET_STACKS)     |
+| `REPLACE_STACKS`          | Replace stacks for new groups                                                                                                | `false`                         |
+| `PARENT_FILENAME_PROMOTE` | Parent filename promote                                                                                                      | `edit`                          |
+| `PARENT_EXT_PROMOTE`      | Parent extension promote                                                                                                     | `.jpg,.dng`                     |
+| `WITH_ARCHIVED`           | Include archived assets                                                                                                      | `false`                         |
+| `WITH_DELETED`            | Include deleted assets                                                                                                       | `false`                         |
 
 ## Docker Compose
 
@@ -53,6 +54,7 @@ services:
       - API_URL=${API_URL:-http://immich-server:2283/api}
       - DRY_RUN=${DRY_RUN:-false}
       - RESET_STACKS=${RESET_STACKS:-false}
+      - CONFIRM_RESET_STACK=${CONFIRM_RESET_STACK}
       - REPLACE_STACKS=${REPLACE_STACKS:-false}
       - PARENT_FILENAME_PROMOTE=${PARENT_FILENAME_PROMOTE:-edit}
       - PARENT_EXT_PROMOTE=${PARENT_EXT_PROMOTE:-.jpg,.dng}
@@ -219,6 +221,7 @@ To integrate with an existing Immich installation:
        - API_URL=${API_URL:-http://immich-server:2283/api}
        - DRY_RUN=${DRY_RUN:-false}
        - RESET_STACKS=${RESET_STACKS:-false}
+       - CONFIRM_RESET_STACK=${CONFIRM_RESET_STACK}
        - REPLACE_STACKS=${REPLACE_STACKS:-false}
        - PARENT_FILENAME_PROMOTE=${PARENT_FILENAME_PROMOTE:-edit}
        - PARENT_EXT_PROMOTE=${PARENT_EXT_PROMOTE:-.jpg,.dng}
@@ -299,23 +302,28 @@ go run ./cmd/main.go --api-key <API_KEY> --api-url <API_URL> [flags]
 
 ### Flags and Environment Variables
 
-| Flag                        | Env Var                   | Description                                  |
-| --------------------------- | ------------------------- | -------------------------------------------- |
-| `--api-key`                 | `API_KEY`                 | Immich API key                               |
-| `--api-url`                 | `API_URL`                 | Immich API base URL                          |
-| `--reset-stacks`            | `RESET_STACKS`            | Delete all existing stacks before processing |
-| `--replace-stacks`          | `REPLACE_STACKS`          | Replace stacks for new groups                |
-| `--dry-run`                 | `DRY_RUN`                 | Simulate actions without making changes      |
-| `--criteria`                | `CRITERIA`                | Custom grouping criteria                     |
-| `--parent-filename-promote` | `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames    |
-| `--parent-ext-promote`      | `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files        |
-| `--with-archived`           | `WITH_ARCHIVED`           | Include archived assets in processing        |
-| `--with-deleted`            | `WITH_DELETED`            | Include deleted assets in processing         |
-| `--run-mode`                | `RUN_MODE`                | Run mode: "once" (default) or "cron"         |
-| `--cron-interval`           | `CRON_INTERVAL`           | Interval in seconds for cron mode            |
+| Flag                        | Env Var                   | Description                                                                                                                  |
+| --------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `--api-key`                 | `API_KEY`                 | Immich API key                                                                                                               |
+| `--api-url`                 | `API_URL`                 | Immich API base URL                                                                                                          |
+| `--reset-stacks`            | `RESET_STACKS`            | Delete all existing stacks before processing                                                                                 |
+| `--confirm-reset-stack`     | `CONFIRM_RESET_STACK`     | Required for RESET_STACKS. Must be set to: 'I acknowledge all my current stacks will be deleted and new one will be created' |
+| `--replace-stacks`          | `REPLACE_STACKS`          | Replace stacks for new groups                                                                                                |
+| `--dry-run`                 | `DRY_RUN`                 | Simulate actions without making changes                                                                                      |
+| `--criteria`                | `CRITERIA`                | Custom grouping criteria                                                                                                     |
+| `--parent-filename-promote` | `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames                                                                                    |
+| `--parent-ext-promote`      | `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files                                                                                        |
+| `--with-archived`           | `WITH_ARCHIVED`           | Include archived assets in processing                                                                                        |
+| `--with-deleted`            | `WITH_DELETED`            | Include deleted assets in processing                                                                                         |
+| `--run-mode`                | `RUN_MODE`                | Run mode: "once" (default) or "cron"                                                                                         |
+| `--cron-interval`           | `CRON_INTERVAL`           | Interval in seconds for cron mode                                                                                            |
 
 - Flags take precedence over environment variables.
-- If `--reset-stacks` is set, user confirmation is required.
+- If `--reset-stacks` is set, it is only allowed in 'once' mode and requires the environment variable `CONFIRM_RESET_STACK` to be set to:
+
+  I acknowledge all my current stacks will be deleted and new one will be created
+
+Otherwise, the program will fail with a clear error.
 
 ---
 

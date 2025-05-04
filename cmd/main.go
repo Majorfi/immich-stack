@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -73,14 +72,15 @@ func loadEnv(logger *logrus.Logger) {
 		resetStacks = os.Getenv("RESET_STACKS") == "true"
 	}
 	if resetStacks {
-		logger.Info("RESET_STACKS is set to true, all existing stacks will be deleted")
-		fmt.Print("Are you sure you want to delete all existing stacks? (y/N): ")
-		var response string
-		fmt.Scanln(&response)
-		if strings.ToLower(response) != "y" {
-			logger.Info("Operation cancelled by user")
-			os.Exit(0)
+		if runMode != "once" {
+			logger.Fatal("RESET_STACKS can only be used in 'once' run mode. Aborting.")
 		}
+		confirmReset := os.Getenv("CONFIRM_RESET_STACK")
+		const requiredConfirm = "I acknowledge all my current stacks will be deleted and new one will be created"
+		if confirmReset != requiredConfirm {
+			logger.Fatalf("To use RESET_STACKS, you must set CONFIRM_RESET_STACK to: '%s'", requiredConfirm)
+		}
+		logger.Info("RESET_STACKS is set to true, all existing stacks will be deleted")
 	}
 	if !dryRun {
 		dryRun = os.Getenv("DRY_RUN") == "true"
