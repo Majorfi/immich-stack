@@ -62,3 +62,64 @@ func TestApplyCriteria(t *testing.T) {
 		})
 	}
 }
+
+/************************************************************************************************
+** Test extractOriginalFileName extension removal edge cases
+************************************************************************************************/
+func TestExtractOriginalFileNameExtensionRemoval(t *testing.T) {
+	type testCase struct {
+		filename string
+		expected string
+	}
+	tests := []testCase{
+		{"1234.jpg", "1234"},
+		{"1234.edit.jpg", "1234.edit"},
+	}
+
+	criteria := utils.TCriteria{
+		Key:   "originalFileName",
+		Split: nil, // Only test extension removal
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.filename, func(t *testing.T) {
+			asset := utils.TAsset{OriginalFileName: tc.filename}
+			result, err := extractOriginalFileName(asset, criteria)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+/************************************************************************************************
+** Test extractOriginalFileName with multi-delimiter split (Delimiters: ["~", "."]).
+************************************************************************************************/
+func TestExtractOriginalFileNameMultiDelimiter(t *testing.T) {
+	type testCase struct {
+		filename string
+		expected string
+	}
+	tests := []testCase{
+		{"PXL_20250503_152823814.jpg", "PXL_20250503_152823814"},
+		{"PXL_20250503_152823814~2.jpg", "PXL_20250503_152823814"},
+		{"PXL_20250503_152823814~3.jpg", "PXL_20250503_152823814"},
+		{"PXL_20250503_152823814.edit.jpg", "PXL_20250503_152823814"},
+	}
+
+	criteria := utils.TCriteria{
+		Key: "originalFileName",
+		Split: &utils.TSplit{
+			Delimiters: []string{"~", "."},
+			Index:      0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.filename, func(t *testing.T) {
+			asset := utils.TAsset{OriginalFileName: tc.filename}
+			result, err := extractOriginalFileName(asset, criteria)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
