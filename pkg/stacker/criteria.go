@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
@@ -81,10 +82,15 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 
 /**************************************************************************************************
 ** extractOriginalFileName extracts the base name from the asset's original file name,
-** applying split logic if specified in the criteria.
+** discarding the extension first, then applying split logic if specified in the criteria.
 **************************************************************************************************/
 func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, error) {
 	baseName := asset.OriginalFileName
+	ext := filepath.Ext(baseName)
+	if ext != "" {
+		baseName = baseName[:len(baseName)-len(ext)]
+	}
+
 	if c.Split != nil && len(c.Split.Delimiters) > 0 {
 		parts := []string{baseName}
 		for _, delim := range c.Split.Delimiters {
