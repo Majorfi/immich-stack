@@ -1,4 +1,4 @@
-# Immich Auto Stack
+# Immich Stack
 
 Automatically groups similar photos into stacks within the Immich photo management system.
 
