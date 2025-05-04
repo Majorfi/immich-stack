@@ -11,6 +11,7 @@ services:
       - API_URL=${API_URL:-http://immich-server:2283/api}
       - DRY_RUN=${DRY_RUN:-false}
       - RESET_STACKS=${RESET_STACKS:-false}
+      - CONFIRM_RESET_STACK=${CONFIRM_RESET_STACK} # Required for RESET_STACKS. Must be set to: 'I acknowledge all my current stacks will be deleted and new one will be created'
       - REPLACE_STACKS=${REPLACE_STACKS:-false}
       - PARENT_FILENAME_PROMOTE=${PARENT_FILENAME_PROMOTE:-edit}
       - PARENT_EXT_PROMOTE=${PARENT_EXT_PROMOTE:-.jpg,.dng}

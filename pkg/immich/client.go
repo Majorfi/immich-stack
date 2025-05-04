@@ -176,6 +176,9 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 	}
 
 	if c.resetStacks {
+		if c.dryRun {
+			return nil, nil
+		}
 		return c.FetchAllStacks()
 	}
 
