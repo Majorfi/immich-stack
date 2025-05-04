@@ -320,8 +320,7 @@ go run ./cmd/main.go --api-key <API_KEY> --api-url <API_URL> [flags]
 
 - Flags take precedence over environment variables.
 - If `--reset-stacks` is set, it is only allowed in 'once' mode and requires the environment variable `CONFIRM_RESET_STACK` to be set to:
-
-  I acknowledge all my current stacks will be deleted and new one will be created
+  `I acknowledge all my current stacks will be deleted and new one will be created`
 
 Otherwise, the program will fail with a clear error.
 
