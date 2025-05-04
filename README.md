@@ -45,7 +45,7 @@ services:
   immich-stack:
     container_name: immich_stack
     # Use Docker Hub image (recommended for Portainer)
-    image: majorfi/immich-stack:latest
+    image: majorfi/immich-stack:main # or :latest after next release
     # Or use GitHub Container Registry
     # image: ghcr.io/majorfi/immich-stack:latest
     environment:
