@@ -13,12 +13,11 @@ RUN_MODE=cron
 CRON_INTERVAL=60
 EOL
 
-# Run with Docker
-docker run -d \
-  --name immich-stack \
-  --env-file .env \
-  -v ./logs:/app/logs \
-  ghcr.io/majorfi/immich-stack:latest
+# Run with Docker (using Docker Hub)
+docker run -d --name immich-stack --env-file .env -v ./logs:/app/logs majorfi/immich-stack:latest
+
+# Or using GitHub Container Registry
+docker run -d  --name immich-stack --env-file .env -v ./logs:/app/logs ghcr.io/majorfi/immich-stack:latest
 ```
 
 ## Environment Variables
@@ -45,7 +44,10 @@ version: "3.8"
 services:
   immich-stack:
     container_name: immich_stack
-    image: ghcr.io/majorfi/immich-stack:latest
+    # Use Docker Hub image (recommended for Portainer)
+    image: majorfi/immich-stack:latest
+    # Or use GitHub Container Registry
+    # image: ghcr.io/majorfi/immich-stack:latest
     environment:
       - API_KEY=${API_KEY}
       - API_URL=${API_URL:-http://immich-server:2283/api}
