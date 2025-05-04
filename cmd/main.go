@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,13 +22,15 @@ import (
 
 var apiKey string
 var apiURL string
-var resetStacks bool
-var dryRun bool
-var replaceStacks bool
 var criteria string
 var parentFilenamePromote string
 var parentExtPromote string
+var runMode string
+var cronInterval int
 var withArchived bool
+var resetStacks bool
+var dryRun bool
+var replaceStacks bool
 var withDeleted bool
 
 /**************************************************************************************************
@@ -49,6 +52,22 @@ func loadEnv(logger *logrus.Logger) {
 	}
 	if apiURL == "" {
 		apiURL = "http://immich_server:3001/api"
+	}
+	if runMode == "" {
+		runMode = os.Getenv("RUN_MODE")
+	}
+	if runMode == "" {
+		runMode = "once"
+	}
+	if cronInterval == 0 {
+		if val := os.Getenv("CRON_INTERVAL"); val != "" {
+			if intVal, err := strconv.Atoi(val); err == nil {
+				cronInterval = intVal
+			}
+		}
+	}
+	if cronInterval == 0 && runMode == "cron" {
+		cronInterval = 86400
 	}
 	if !resetStacks {
 		resetStacks = os.Getenv("RESET_STACKS") == "true"
@@ -207,6 +226,26 @@ func runStacker(cmd *cobra.Command, args []string) {
 	client := immich.NewClient(apiURL, apiKey, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, logger)
 
 	/**********************************************************************************************
+	** Handle run mode.
+	**********************************************************************************************/
+	if runMode == "cron" {
+		logger.Infof("Running in cron mode with interval of %d seconds", cronInterval)
+		runCronLoop(client, logger)
+	} else {
+		logger.Info("Running in once mode")
+		runStackerOnce(client, logger)
+	}
+}
+
+/**************************************************************************************************
+** Runs the stacker process once, handling all the core functionality of fetching assets,
+** grouping them into stacks, and applying updates to Immich.
+**
+** @param client - Immich client instance
+** @param logger - Logger instance for outputting status and errors
+**************************************************************************************************/
+func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
+	/**********************************************************************************************
 	** Fetch all the assets from Immich.
 	**********************************************************************************************/
 	existingStacks, err := client.FetchAllStacks()
@@ -271,6 +310,21 @@ func runStacker(cmd *cobra.Command, args []string) {
 }
 
 /**************************************************************************************************
+** Runs the stacker process in a loop with the specified interval. Handles graceful shutdown
+** and error recovery between runs.
+**
+** @param client - Immich client instance
+** @param logger - Logger instance for outputting status and errors
+**************************************************************************************************/
+func runCronLoop(client *immich.Client, logger *logrus.Logger) {
+	for {
+		runStackerOnce(client, logger)
+		logger.Infof("Sleeping for %d seconds until next run", cronInterval)
+		time.Sleep(time.Duration(cronInterval) * time.Second)
+	}
+}
+
+/**************************************************************************************************
 ** Application entry point. Sets up the CLI command structure using Cobra, including all
 ** available commands and their associated flags. Handles command execution and error
 ** reporting.
@@ -280,6 +334,7 @@ func main() {
 		Use:   "immich-stack",
 		Short: "Immich Stack CLI",
 		Long:  "A tool to automatically stack Immich assets.",
+		Run:   runStacker,
 	}
 
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key (or set API_KEY env var)")
@@ -292,14 +347,8 @@ func main() {
 	rootCmd.PersistentFlags().StringVar(&parentExtPromote, "parent-ext-promote", utils.DefaultParentExtPromoteString, "Parent ext promote (or set PARENT_EXT_PROMOTE env var)")
 	rootCmd.PersistentFlags().BoolVar(&withArchived, "with-archived", false, "Include archived assets (or set WITH_ARCHIVED=true)")
 	rootCmd.PersistentFlags().BoolVar(&withDeleted, "with-deleted", false, "Include deleted assets (or set WITH_DELETED=true)")
-
-	var runCmd = &cobra.Command{
-		Use:   "run",
-		Short: "Run the stacker process",
-		Run:   runStacker,
-	}
-
-	rootCmd.AddCommand(runCmd)
+	rootCmd.PersistentFlags().StringVar(&runMode, "run-mode", os.Getenv("RUN_MODE"), "Run mode (or set RUN_MODE env var)")
+	rootCmd.PersistentFlags().IntVar(&cronInterval, "cron-interval", 0, "Cron interval (or set CRON_INTERVAL env var)")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

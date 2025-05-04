@@ -1,3 +1,82 @@
+# Immich Auto Stack
+
+Automatically groups similar photos into stacks within the Immich photo management system.
+
+## Quick Start
+
+```bash
+# Create a .env file
+cat > .env << EOL
+API_KEY=your_immich_api_key
+API_URL=http://immich-server:2283/api
+RUN_MODE=cron
+CRON_INTERVAL=60
+EOL
+
+# Run with Docker
+docker run -d \
+  --name immich-stack \
+  --env-file .env \
+  -v ./logs:/app/logs \
+  ghcr.io/majorfi/immich-stack:latest
+```
+
+## Environment Variables
+
+| Variable                  | Description                       | Default                         |
+| ------------------------- | --------------------------------- | ------------------------------- |
+| `API_KEY`                 | Your Immich API key               | (required)                      |
+| `API_URL`                 | Immich API URL                    | `http://immich-server:2283/api` |
+| `RUN_MODE`                | Run mode (`once` or `cron`)       | `once`                          |
+| `CRON_INTERVAL`           | Interval in seconds for cron mode | `86400`                         |
+| `DRY_RUN`                 | Don't apply changes               | `false`                         |
+| `RESET_STACKS`            | Delete all existing stacks        | `false`                         |
+| `REPLACE_STACKS`          | Replace stacks for new groups     | `false`                         |
+| `PARENT_FILENAME_PROMOTE` | Parent filename promote           | `edit`                          |
+| `PARENT_EXT_PROMOTE`      | Parent extension promote          | `.jpg,.dng`                     |
+| `WITH_ARCHIVED`           | Include archived assets           | `false`                         |
+| `WITH_DELETED`            | Include deleted assets            | `false`                         |
+
+## Docker Compose
+
+```yaml
+version: "3.8"
+
+services:
+  immich-stack:
+    container_name: immich_stack
+    image: ghcr.io/majorfi/immich-stack:latest
+    environment:
+      - API_KEY=${API_KEY}
+      - API_URL=${API_URL:-http://immich-server:2283/api}
+      - DRY_RUN=${DRY_RUN:-false}
+      - RESET_STACKS=${RESET_STACKS:-false}
+      - REPLACE_STACKS=${REPLACE_STACKS:-false}
+      - PARENT_FILENAME_PROMOTE=${PARENT_FILENAME_PROMOTE:-edit}
+      - PARENT_EXT_PROMOTE=${PARENT_EXT_PROMOTE:-.jpg,.dng}
+      - WITH_ARCHIVED=${WITH_ARCHIVED:-false}
+      - WITH_DELETED=${WITH_DELETED:-false}
+      - RUN_MODE=${RUN_MODE:-once}
+      - CRON_INTERVAL=${CRON_INTERVAL:-86400}
+    volumes:
+      - ./logs:/app/logs
+    restart: on-failure
+```
+
+## Development
+
+```bash
+# Build locally
+docker build -t immich-stack .
+
+# Run locally
+docker run -d \
+  --name immich-stack \
+  --env-file .env \
+  -v ./logs:/app/logs \
+  immich-stack
+```
+
 # Immich Stack
 
 Immich Stack is a Go CLI tool and library for automatically grouping ("stacking") similar photos in the [Immich](https://github.com/immich-app/immich) photo management system. It provides configurable, robust, and extensible logic for grouping, sorting, and managing photo stacks via the Immich API.
@@ -50,6 +129,117 @@ This project is heavily inspired by [immich-auto-stack](github.com/tenekev/immic
 2. Extract the archive
 3. Move the binary to your PATH (optional)
 
+## Docker Installation
+
+1. Clone the repository:
+
+   ```sh
+   git clone https://github.com/majorfi/immich-stack.git
+   cd immich-stack
+   ```
+
+2. Create a `.env` file from the example:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+3. Edit the `.env` file with your Immich credentials and preferences:
+
+   ```sh
+   # Required
+   API_KEY=your_immich_api_key
+   API_URL=http://your_immich_server:3001/api
+
+   # Optional - Default values shown
+   DRY_RUN=false
+   RESET_STACKS=false
+   REPLACE_STACKS=false
+   PARENT_FILENAME_PROMOTE=edit
+   PARENT_EXT_PROMOTE=.jpg,.dng
+   WITH_ARCHIVED=false
+   WITH_DELETED=false
+
+   # Run mode settings
+   RUN_MODE=once  # Options: once, cron
+   CRON_INTERVAL=86400  # in seconds, only used if RUN_MODE=cron
+   ```
+
+4. Start the service:
+
+   ```sh
+   docker compose up -d
+   ```
+
+5. To run in cron mode, set `RUN_MODE=cron` in your `.env` file and restart:
+
+   ```sh
+   docker compose down
+   docker compose up -d
+   ```
+
+6. To view logs:
+
+   ```sh
+   docker compose logs -f
+   ```
+
+7. To stop the service:
+
+   ```sh
+   docker compose down
+   ```
+
+## Integration with Immich Docker Compose
+
+To integrate with an existing Immich installation:
+
+1. Copy the `immich-stack` service from our `docker-compose.yml` into your Immich's `docker-compose.yml`
+
+2. Add these environment variables to your Immich's `.env` file (you can also add the optional ones):
+
+   ```sh
+   # Immich Stack settings
+   API_KEY=your_immich_api_key
+   API_URL=http://immich-server:2283/api  # Use internal Docker network
+   RUN_MODE=once  # Options: once, cron
+   CRON_INTERVAL=86400  # in seconds, only used if RUN_MODE=cron
+   ```
+
+3. Add the service dependency in Immich's `docker-compose.yml`:
+
+   ```yaml
+   immich-stack:
+     container_name: immich_stack
+     build:
+       context: .
+       dockerfile: Dockerfile
+     environment:
+       - API_KEY=${API_KEY}
+       - API_URL=${API_URL:-http://immich-server:2283/api}
+       - DRY_RUN=${DRY_RUN:-false}
+       - RESET_STACKS=${RESET_STACKS:-false}
+       - REPLACE_STACKS=${REPLACE_STACKS:-false}
+       - PARENT_FILENAME_PROMOTE=${PARENT_FILENAME_PROMOTE:-edit}
+       - PARENT_EXT_PROMOTE=${PARENT_EXT_PROMOTE:-.jpg,.dng}
+       - WITH_ARCHIVED=${WITH_ARCHIVED:-false}
+       - WITH_DELETED=${WITH_DELETED:-false}
+       - RUN_MODE=${RUN_MODE:-once}
+       - CRON_INTERVAL=${CRON_INTERVAL:-86400}
+     volumes:
+       - ./logs:/app/logs
+     restart: on-failure
+     depends_on:
+       immich-server:
+         condition: service_healthy
+   ```
+
+4. Restart your Immich stack:
+   ```sh
+   docker compose down
+   docker compose up -d
+   ```
+
 ## Running
 
 1. Create a `.env` file in your working directory with your Immich credentials:
@@ -63,17 +253,17 @@ This project is heavily inspired by [immich-auto-stack](github.com/tenekev/immic
 
    ```sh
    # Using the binary
-   ./immich-stack run
+   ./immich-stack
 
    # Or if installed in PATH
-   immich-stack run
+   immich-stack
    ```
 
 3. Optional: Configure additional options via environment variables or flags:
 
    ```sh
    # Example with flags
-   ./immich-stack run --dry-run --parent-filename-promote=edit --parent-ext-promote=.jpg,.dng --with-archived --with-deleted
+   ./immich-stack --dry-run --parent-filename-promote=edit --parent-ext-promote=.jpg,.dng --with-archived --with-deleted
 
    # Or using environment variables
    export DRY_RUN=true
@@ -81,7 +271,7 @@ This project is heavily inspired by [immich-auto-stack](github.com/tenekev/immic
    export PARENT_EXT_PROMOTE=.jpg,.dng
    export WITH_ARCHIVED=true
    export WITH_DELETED=true
-   ./immich-stack run
+   ./immich-stack
    ```
 
 ---
@@ -104,7 +294,7 @@ immich-auto-stack/
 The main entrypoint is `cmd/main.go`, which provides a Cobra-based CLI:
 
 ```sh
-go run ./cmd/main.go run --api-key <API_KEY> --api-url <API_URL> [flags]
+go run ./cmd/main.go --api-key <API_KEY> --api-url <API_URL> [flags]
 ```
 
 ### Flags and Environment Variables
@@ -121,6 +311,8 @@ go run ./cmd/main.go run --api-key <API_KEY> --api-url <API_URL> [flags]
 | `--parent-ext-promote`      | `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files        |
 | `--with-archived`           | `WITH_ARCHIVED`           | Include archived assets in processing        |
 | `--with-deleted`            | `WITH_DELETED`            | Include deleted assets in processing         |
+| `--run-mode`                | `RUN_MODE`                | Run mode: "once" (default) or "cron"         |
+| `--cron-interval`           | `CRON_INTERVAL`           | Interval in seconds for cron mode            |
 
 - Flags take precedence over environment variables.
 - If `--reset-stacks` is set, user confirmation is required.
