@@ -211,9 +211,7 @@ To integrate with an existing Immich installation:
    ```yaml
    immich-stack:
      container_name: immich_stack
-     build:
-       context: .
-       dockerfile: Dockerfile
+     image: ghcr.io/majorfi/immich-stack:latest
      environment:
        - API_KEY=${API_KEY}
        - API_URL=${API_URL:-http://immich-server:2283/api}
