@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -221,19 +222,42 @@ func runStacker(cmd *cobra.Command, args []string) {
 	loadEnv(logger)
 
 	/**********************************************************************************************
-	** Initialize clients and stacker.
+	** Support multiple API keys (comma-separated).
 	**********************************************************************************************/
-	client := immich.NewClient(apiURL, apiKey, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, logger)
+	apiKeys := utils.RemoveEmptyStrings(func(keys []string) []string {
+		for i, key := range keys {
+			keys[i] = strings.TrimSpace(key)
+		}
+		return keys
+	}(strings.Split(apiKey, ",")))
+	if len(apiKeys) == 0 {
+		logger.Fatalf("No API key(s) provided.")
+	}
 
-	/**********************************************************************************************
-	** Handle run mode.
-	**********************************************************************************************/
-	if runMode == "cron" {
-		logger.Infof("Running in cron mode with interval of %d seconds", cronInterval)
-		runCronLoop(client, logger)
-	} else {
-		logger.Info("Running in once mode")
-		runStackerOnce(client, logger)
+	for i, key := range apiKeys {
+		if i > 0 {
+			logger.Infof("\n")
+		}
+		client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, logger)
+		if client == nil {
+			logger.Errorf("Invalid client for API key: %s", key)
+			continue
+		}
+		user, err := client.GetCurrentUser()
+		if err != nil {
+			logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
+			continue
+		}
+		logger.Infof("=====================================================================================")
+		logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
+		logger.Infof("=====================================================================================")
+		if runMode == "cron" {
+			logger.Infof("Running in cron mode with interval of %d seconds", cronInterval)
+			runCronLoop(client, logger)
+		} else {
+			logger.Info("Running in once mode")
+			runStackerOnce(client, logger)
+		}
 	}
 }
 

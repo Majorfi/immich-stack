@@ -24,7 +24,7 @@ docker run -d  --name immich-stack --env-file .env -v ./logs:/app/logs ghcr.io/m
 
 | Variable                  | Description                                                                                                                  | Default                         |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `API_KEY`                 | Your Immich API key                                                                                                          | (required)                      |
+| `API_KEY`                 | Your Immich API key(s), comma-separated for multiple users                                                                   | (required)                      |
 | `API_URL`                 | Immich API URL                                                                                                               | `http://immich-server:2283/api` |
 | `RUN_MODE`                | Run mode (`once` or `cron`)                                                                                                  | `once`                          |
 | `CRON_INTERVAL`           | Interval in seconds for cron mode                                                                                            | `86400`                         |
@@ -50,7 +50,7 @@ services:
     # Or use GitHub Container Registry
     # image: ghcr.io/majorfi/immich-stack:latest
     environment:
-      - API_KEY=${API_KEY}
+      - API_KEY=${API_KEY} # Can be a single key or comma-separated for multiple users
       - API_URL=${API_URL:-http://immich-server:2283/api}
       - DRY_RUN=${DRY_RUN:-false}
       - RESET_STACKS=${RESET_STACKS:-false}
@@ -91,6 +91,7 @@ This project is heavily inspired by [immich-auto-stack](github.com/tenekev/immic
 ## Features
 
 - **Automatic Stacking:** Groups similar photos into stacks based on filename, date, and custom criteria.
+- **Multi-User Support:** Accepts multiple API keys (comma-separated) in `API_KEY` to process multiple users sequentially. Each user's name and email are logged before running.
 - **Configurable Grouping:** Supports custom grouping logic via environment variables and command-line flags.
 - **Parent/Child Promotion:** Fine-grained control over which files are promoted as stack parents (by substring or extension).
 - **CLI Tool:** Command-line interface for batch processing and automation.
@@ -304,7 +305,7 @@ go run ./cmd/main.go --api-key <API_KEY> --api-url <API_URL> [flags]
 
 | Flag                        | Env Var                   | Description                                                                                                                  |
 | --------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `--api-key`                 | `API_KEY`                 | Immich API key                                                                                                               |
+| `--api-key`                 | `API_KEY`                 | Immich API key (comma-separated for multiple users)                                                                          |
 | `--api-url`                 | `API_URL`                 | Immich API base URL                                                                                                          |
 | `--reset-stacks`            | `RESET_STACKS`            | Delete all existing stacks before processing                                                                                 |
 | `--confirm-reset-stack`     | `CONFIRM_RESET_STACK`     | Required for RESET_STACKS. Must be set to: 'I acknowledge all my current stacks will be deleted and new one will be created' |
@@ -415,3 +416,5 @@ L1010229.DNG
 ## License
 
 MIT
+
+# Note: API_KEY can be a single key or a comma-separated list of keys for multiple users. The stacker will process each user sequentially, logging the user's name and email before processing.
