@@ -78,3 +78,16 @@ type TSearchResponse struct {
 		NextPage string   `json:"nextPage"` // Next page token or empty if last page
 	} `json:"assets"`
 }
+
+/**************************************************************************************************
+** TUserResponse represents a user as returned by the Immich API (UserResponseDto).
+** This structure matches the Immich API response format for /users/me.
+**************************************************************************************************/
+type TUserResponse struct {
+	AvatarColor      string `json:"avatarColor"`
+	Email            string `json:"email"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	ProfileChangedAt string `json:"profileChangedAt"`
+	ProfileImagePath string `json:"profileImagePath"`
+}

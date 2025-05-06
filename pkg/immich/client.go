@@ -342,3 +342,16 @@ func (c *Client) ListDuplicates(allAssets []utils.TAsset) error {
 	}
 	return nil
 }
+
+/**************************************************************************************************
+** GetCurrentUser fetches the current user info using the API key (GET /users/me).
+** Returns the user as utils.TUserResponse or an error.
+**************************************************************************************************/
+func (c *Client) GetCurrentUser() (utils.TUserResponse, error) {
+	var user utils.TUserResponse
+	if err := c.doRequest(http.MethodGet, "/users/me", nil, &user); err != nil {
+		c.logger.Errorf("Error fetching current user: %v", err)
+		return user, fmt.Errorf("error fetching current user: %w", err)
+	}
+	return user, nil
+}
