@@ -224,7 +224,12 @@ func runStacker(cmd *cobra.Command, args []string) {
 	/**********************************************************************************************
 	** Support multiple API keys (comma-separated).
 	**********************************************************************************************/
-	apiKeys := utils.RemoveEmptyStrings(strings.Split(apiKey, ","))
+	apiKeys := utils.RemoveEmptyStrings(func(keys []string) []string {
+		for i, key := range keys {
+			keys[i] = strings.TrimSpace(key)
+		}
+		return keys
+	}(strings.Split(apiKey, ",")))
 	if len(apiKeys) == 0 {
 		logger.Fatalf("No API key(s) provided.")
 	}
