@@ -36,6 +36,7 @@ docker run -d  --name immich-stack --env-file .env -v ./logs:/app/logs ghcr.io/m
 | `PARENT_EXT_PROMOTE`      | Parent extension promote                                                                                                     | `.jpg,.dng`                     |
 | `WITH_ARCHIVED`           | Include archived assets                                                                                                      | `false`                         |
 | `WITH_DELETED`            | Include deleted assets                                                                                                       | `false`                         |
+| `CRITERIA`                | JSON array of custom criteria for grouping photos (see Default Configuration section)                                        | See Default Configuration       |
 
 ## Docker Compose
 
@@ -351,6 +352,70 @@ L1010229.edit.jpg
 L1010229.JPG
 L1010229.DNG
 ```
+
+## Default Configuration
+
+### Default Criteria
+
+By default, Immich Stack groups photos based on two criteria:
+
+1. Original filename (before extension)
+   - Splits the filename on "~" and "." delimiters
+   - Uses the first part (index 0) for grouping
+2. Local capture time (localDateTime)
+   - By default, no delta is applied (exact time matching)
+   - Can be configured with a delta for flexible time matching
+
+### Time Delta Feature
+
+The delta feature allows for flexible time matching when grouping photos. It's particularly useful when dealing with burst photos or photos taken in quick succession that might have slight time differences.
+
+For example, these two timestamps would normally be considered different:
+
+```
+2023-08-24T17:00:15.915Z
+2023-08-24T17:00:15.810Z
+```
+
+By setting a delta of 1000ms (1 second), both timestamps would be rounded to the nearest second and considered the same for grouping purposes:
+
+```
+2023-08-24T17:00:15.000Z
+```
+
+Delta can be configured for any time-based field:
+
+- `localDateTime`
+- `fileCreatedAt`
+- `fileModifiedAt`
+- `updatedAt`
+
+### Custom Criteria Configuration
+
+You can override the default criteria by setting the `CRITERIA` environment variable with a JSON array. Example:
+
+```json
+[
+  {
+    "key": "originalFileName",
+    "split": {
+      "delimiters": ["~", "."],
+      "index": 0
+    }
+  },
+  {
+    "key": "localDateTime",
+    "delta": {
+      "milliseconds": 1000
+    }
+  }
+]
+```
+
+This configuration would:
+
+1. Group by the base filename (before any "~" or "." in the name)
+2. Allow a 1-second (1000ms) difference in capture times when grouping
 
 ---
 

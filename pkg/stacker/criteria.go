@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
 )
@@ -31,6 +32,33 @@ func getCriteriaConfig() ([]utils.TCriteria, error) {
 }
 
 /**************************************************************************************************
+** extractTimeWithDelta extracts a time value and applies delta if configured.
+** Returns a string representation of the time, adjusted by the delta if specified.
+**************************************************************************************************/
+func extractTimeWithDelta(timeStr string, delta *utils.TDelta) (string, error) {
+	if timeStr == "" {
+		return "", nil
+	}
+
+	t, err := time.Parse(time.RFC3339Nano, timeStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse time %s: %w", timeStr, err)
+	}
+
+	if delta == nil || delta.Milliseconds == 0 {
+		return t.UTC().Format(utils.TimeFormat), nil
+	}
+
+	// Round to the nearest delta interval
+	ms := t.UnixNano() / int64(time.Millisecond)
+	interval := int64(delta.Milliseconds)
+	roundedMs := (ms / interval) * interval
+
+	roundedTime := time.Unix(0, roundedMs*int64(time.Millisecond)).UTC()
+	return roundedTime.Format(utils.TimeFormat), nil
+}
+
+/**************************************************************************************************
 ** applyCriteria applies the configured criteria to an asset.
 ** Returns a list of strings that uniquely identify the asset based on the criteria.
 **
@@ -41,24 +69,32 @@ func getCriteriaConfig() ([]utils.TCriteria, error) {
 **************************************************************************************************/
 func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, error) {
 	extractors := map[string]func(asset utils.TAsset, c utils.TCriteria) (string, error){
-		"id":               func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.ID, nil },
-		"deviceAssetId":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceAssetID, nil },
-		"deviceId":         func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceID, nil },
-		"duration":         func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Duration, nil },
-		"fileCreatedAt":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.FileCreatedAt, nil },
-		"fileModifiedAt":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.FileModifiedAt, nil },
-		"hasMetadata":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.HasMetadata), nil },
-		"isArchived":       func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsArchived), nil },
-		"isFavorite":       func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsFavorite), nil },
-		"isOffline":        func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsOffline), nil },
-		"isTrashed":        func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsTrashed), nil },
-		"localDateTime":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.LocalDateTime, nil },
+		"id":            func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.ID, nil },
+		"deviceAssetId": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceAssetID, nil },
+		"deviceId":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceID, nil },
+		"duration":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Duration, nil },
+		"fileCreatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.FileCreatedAt, c.Delta)
+		},
+		"fileModifiedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.FileModifiedAt, c.Delta)
+		},
+		"hasMetadata": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.HasMetadata), nil },
+		"isArchived":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsArchived), nil },
+		"isFavorite":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsFavorite), nil },
+		"isOffline":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsOffline), nil },
+		"isTrashed":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsTrashed), nil },
+		"localDateTime": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.LocalDateTime, c.Delta)
+		},
 		"originalFileName": extractOriginalFileName,
 		"originalPath":     func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OriginalPath, nil },
 		"ownerId":          func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OwnerID, nil },
 		"type":             func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Type, nil },
-		"updatedAt":        func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.UpdatedAt, nil },
-		"checksum":         func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Checksum, nil },
+		"updatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.UpdatedAt, c.Delta)
+		},
+		"checksum": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Checksum, nil },
 	}
 
 	result := make([]string, 0, len(criteria))

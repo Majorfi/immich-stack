@@ -3,9 +3,15 @@ package utils
 import "strings"
 
 /**************************************************************************************************
+** TimeFormat is the standard format for all time values in the application.
+** It uses RFC3339Nano format to ensure consistent precision across all time operations.
+**************************************************************************************************/
+const TimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
+
+/**************************************************************************************************
 ** DefaultCriteria is the default criteria for grouping photos. It groups photos by:
 ** 1. Original filename (before extension)
-** 2. Local capture time
+** 2. Local capture time (with no delta as default)
 **************************************************************************************************/
 var DefaultCriteria = []TCriteria{
 	{
@@ -17,6 +23,9 @@ var DefaultCriteria = []TCriteria{
 	},
 	{
 		Key: "localDateTime",
+		Delta: &TDelta{
+			Milliseconds: 0, // No delta by default
+		},
 	},
 }
 
