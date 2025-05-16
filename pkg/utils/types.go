@@ -1,6 +1,14 @@
 package utils
 
 /**************************************************************************************************
+** TDelta represents a time delta configuration for comparing time-based values.
+** It allows for a buffer when comparing timestamps.
+**************************************************************************************************/
+type TDelta struct {
+	Milliseconds int `json:"milliseconds"` // Number of milliseconds to allow as difference
+}
+
+/**************************************************************************************************
 ** TCriteria represents a single criterion for grouping photos. It defines how to extract
 ** and process values from assets for comparison and grouping.
 **************************************************************************************************/
@@ -8,6 +16,7 @@ type TCriteria struct {
 	Key   string  `json:"key"`             // Field name to extract from asset
 	Split *TSplit `json:"split,omitempty"` // Optional split operation
 	Regex *TRegex `json:"regex,omitempty"` // Optional regex operation
+	Delta *TDelta `json:"delta,omitempty"` // Optional time delta for time-based fields
 }
 
 /**************************************************************************************************

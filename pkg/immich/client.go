@@ -66,7 +66,7 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 	baseURL := fmt.Sprintf("%s://%s/api", parsedURL.Scheme, parsedURL.Host)
 
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
 			MaxIdleConns:        100,
 			MaxIdleConnsPerHost: 100,
