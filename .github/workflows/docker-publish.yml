@@ -1,11 +1,12 @@
 name: Docker Build and Publish
 
 on:
-  push:
-    branches: ["main"]
-    tags: ["v*.*.*"]
-  pull_request:
-    branches: ["main"]
+  # push:
+  #   branches: ["main"]
+  #   tags: ["v*.*.*"]
+  # pull_request:
+  #   branches: ["main"]
+  workflow_dispatch:
 
 env:
   GHCR_REGISTRY: ghcr.io

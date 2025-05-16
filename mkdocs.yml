@@ -58,6 +58,10 @@ nav:
   - API Reference:
       - Environment Variables: api-reference/environment-variables.md
       - CLI Usage: api-reference/cli-usage.md
+      - Asset Operations: api-reference/asset-operations.md
+      - Stack Operations: api-reference/stack-operations.md
+      - Grouping: api-reference/grouping.md
   - Contributing:
       - Development: contributing/development.md
       - Testing: contributing/testing.md
+      - Troubleshooting: troubleshooting.md
