@@ -1,54 +1,116 @@
 # Environment Variables
 
-| Variable                  | Description                                                                                                                  | Default                         |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `API_KEY`                 | Your Immich API key(s), comma-separated for multiple users                                                                   | (required)                      |
-| `API_URL`                 | Immich API URL                                                                                                               | `http://immich-server:2283/api` |
-| `RUN_MODE`                | Run mode (`once` or `cron`)                                                                                                  | `once`                          |
-| `CRON_INTERVAL`           | Interval in seconds for cron mode                                                                                            | `86400`                         |
-| `DRY_RUN`                 | Don't apply changes                                                                                                          | `false`                         |
-| `RESET_STACKS`            | Delete all existing stacks                                                                                                   | `false`                         |
-| `CONFIRM_RESET_STACK`     | Required for RESET_STACKS. Must be set to: 'I acknowledge all my current stacks will be deleted and new one will be created' | (required for RESET_STACKS)     |
-| `REPLACE_STACKS`          | Replace stacks for new groups                                                                                                | `false`                         |
-| `PARENT_FILENAME_PROMOTE` | Parent filename promote                                                                                                      | `edit`                          |
-| `PARENT_EXT_PROMOTE`      | Parent extension promote                                                                                                     | `.jpg,.dng`                     |
-| `WITH_ARCHIVED`           | Include archived assets                                                                                                      | `false`                         |
-| `WITH_DELETED`            | Include deleted assets                                                                                                       | `false`                         |
-| `CRITERIA`                | JSON array of custom criteria for grouping photos (see [Custom Criteria](features/custom-criteria.md))                       | See Default Configuration       |
+This document provides a complete reference of all environment variables supported by Immich Stack.
 
-## Default Configuration
+## Required Variables
 
-### Default Criteria
+| Variable  | Description         | Example                          |
+| --------- | ------------------- | -------------------------------- |
+| `API_KEY` | Immich API key(s)   | `API_KEY=key1,key2`              |
+| `API_URL` | Immich API base URL | `API_URL=http://immich:2283/api` |
 
-By default, Immich Stack groups photos based on two criteria:
+## Run Mode Configuration
 
-1. Original filename (before extension)
-   - Splits the filename on "~" and "." delimiters
-   - Uses the first part (index 0) for grouping
-2. Local capture time (localDateTime)
-   - By default, no delta is applied (exact time matching)
-   - Can be configured with a delta for flexible time matching
+| Variable        | Description                  | Default | Example |
+| --------------- | ---------------------------- | ------- | ------- |
+| `RUN_MODE`      | Run mode: "once" or "cron"   | "once"  | `cron`  |
+| `CRON_INTERVAL` | Interval in seconds for cron | 60      | `3600`  |
 
-### Time Delta Feature
+## Stack Management
 
-The delta feature allows for flexible time matching when grouping photos. It's particularly useful when dealing with burst photos or photos taken in quick succession that might have slight time differences.
+| Variable              | Description                                  | Default | Example              |
+| --------------------- | -------------------------------------------- | ------- | -------------------- |
+| `RESET_STACKS`        | Delete all existing stacks before processing | false   | `true`               |
+| `CONFIRM_RESET_STACK` | Confirmation message for reset               | -       | `"I acknowledge..."` |
+| `REPLACE_STACKS`      | Replace stacks for new groups                | false   | `true`               |
+| `DRY_RUN`             | Simulate actions without making changes      | false   | `true`               |
 
-For example, these two timestamps would normally be considered different:
+## Parent Selection
 
+| Variable                  | Description                               | Default | Example     |
+| ------------------------- | ----------------------------------------- | ------- | ----------- |
+| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames | -       | `edit,raw`  |
+| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files     | -       | `.jpg,.dng` |
+
+## Asset Inclusion
+
+| Variable        | Description                           | Default | Example |
+| --------------- | ------------------------------------- | ------- | ------- |
+| `WITH_ARCHIVED` | Include archived assets in processing | false   | `true`  |
+| `WITH_DELETED`  | Include deleted assets in processing  | false   | `true`  |
+
+## Custom Criteria
+
+| Variable   | Description                   | Default | Example                                               |
+| ---------- | ----------------------------- | ------- | ----------------------------------------------------- |
+| `CRITERIA` | Custom grouping criteria JSON | -       | See [Custom Criteria](../features/custom-criteria.md) |
+
+## Logging
+
+| Variable     | Description                       | Default | Example |
+| ------------ | --------------------------------- | ------- | ------- |
+| `LOG_LEVEL`  | Log level (debug,info,warn,error) | info    | `debug` |
+| `LOG_FORMAT` | Log format (json,text)            | text    | `json`  |
+
+## Examples
+
+### Basic Configuration
+
+```sh
+API_KEY=your_key
+API_URL=http://immich:2283/api
 ```
-2023-08-24T17:00:15.915Z
-2023-08-24T17:00:15.810Z
+
+### Cron Mode
+
+```sh
+RUN_MODE=cron
+CRON_INTERVAL=3600
 ```
 
-By setting a delta of 1000ms (1 second), both timestamps would be rounded to the nearest second and considered the same for grouping purposes:
+### Stack Management
 
+```sh
+RESET_STACKS=true
+CONFIRM_RESET_STACK="I acknowledge all my current stacks will be deleted and new one will be created"
+REPLACE_STACKS=true
+DRY_RUN=false
 ```
-2023-08-24T17:00:15.000Z
+
+### Parent Selection
+
+```sh
+PARENT_FILENAME_PROMOTE=edit,raw
+PARENT_EXT_PROMOTE=.jpg,.dng
 ```
 
-Delta can be configured for any time-based field:
+### Custom Criteria
 
-- `localDateTime`
-- `fileCreatedAt`
-- `fileModifiedAt`
-- `updatedAt`
+```sh
+CRITERIA='[{"key":"originalFileName","split":{"delimiters":["~","."],"index":0}},{"key":"localDateTime","delta":{"milliseconds":1000}}]'
+```
+
+## Best Practices
+
+1. **Security**
+
+   - Never commit API keys to version control
+   - Use environment-specific .env files
+   - Rotate API keys regularly
+
+2. **Configuration**
+
+   - Use specific versions in production
+   - Document all custom configurations
+   - Test changes in development first
+
+3. **Monitoring**
+
+   - Enable debug logging when needed
+   - Monitor cron job execution
+   - Check stack operation results
+
+4. **Maintenance**
+   - Review and update configurations regularly
+   - Clean up old stacks periodically
+   - Monitor API usage and limits
