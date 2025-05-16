@@ -1,0 +1,63 @@
+site_name: Immich Stack
+site_description: Automatically groups similar photos into stacks within the Immich photo management system
+site_author: MajorFi
+repo_url: https://github.com/majorfi/immich-stack
+repo_name: majorfi/immich-stack
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - search.share
+    - search.suggest
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.arithmatex:
+      generic: true
+  - admonition
+  - footnotes
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - git-revision-date-localized
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+      - Configuration: getting-started/configuration.md
+  - Features:
+      - Stacking Logic: features/stacking-logic.md
+      - Multi-User Support: features/multi-user.md
+      - Custom Criteria: features/custom-criteria.md
+  - Integration:
+      - Docker: integration/docker.md
+      - Docker Compose: integration/docker-compose.md
+  - API Reference:
+      - Environment Variables: api-reference/environment-variables.md
+      - CLI Usage: api-reference/cli-usage.md
+  - Contributing:
+      - Development: contributing/development.md
+      - Testing: contributing/testing.md
