@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -55,7 +56,7 @@ func TestApplyCriteria(t *testing.T) {
 			}
 
 			// Act
-			groups, err := StackBy(assets, "", "", "")
+			groups, err := StackBy(assets, "", "", "", logrus.New())
 
 			// Assert
 			require.NoError(t, err)
@@ -332,7 +333,7 @@ func TestApplyCriteriaWithTimeDelta(t *testing.T) {
 			// Set up test criteria in environment
 			t.Setenv("CRITERIA", mustMarshalJSON(t, tt.criteria))
 
-			groups, err := StackBy(tt.assets, "", "", "")
+			groups, err := StackBy(tt.assets, "", "", "", logrus.New())
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, len(groups), "Expected %d groups but got %d", tt.want, len(groups))
 

@@ -6,7 +6,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -34,13 +33,52 @@ var replaceStacks bool
 var withDeleted bool
 
 /**************************************************************************************************
+** Configures the logger based on environment variables. Sets up the log level and format
+** according to LOG_LEVEL and LOG_FORMAT environment variables.
+**
+** @return *logrus.Logger - Configured logger instance
+**************************************************************************************************/
+func configureLogger() *logrus.Logger {
+	logger := logrus.New()
+
+	// Set log level from environment variable
+	if level := os.Getenv("LOG_LEVEL"); level != "" {
+		if parsedLevel, err := logrus.ParseLevel(level); err == nil {
+			logger.SetLevel(parsedLevel)
+		} else {
+			logger.Warnf("Invalid LOG_LEVEL '%s', using default 'info'", level)
+			logger.SetLevel(logrus.InfoLevel)
+		}
+	} else {
+		utils.Pretty(`hello`)
+		logger.SetLevel(logrus.InfoLevel)
+	}
+
+	// Set log format from environment variable
+	if format := os.Getenv("LOG_FORMAT"); format == "json" {
+		logger.SetFormatter(&logrus.JSONFormatter{
+			TimestampFormat: time.RFC3339,
+		})
+	} else {
+		logger.SetFormatter(&logrus.TextFormatter{
+			DisableTimestamp: true,
+			FullTimestamp:    false,
+			TimestampFormat:  time.RFC3339,
+		})
+	}
+
+	return logger
+}
+
+/**************************************************************************************************
 ** Loads environment variables and command-line flags, with flags taking precedence over env
 ** variables. Handles critical configuration like API credentials and operation modes.
 **
 ** @param logger - Logger instance for outputting configuration status and errors
 **************************************************************************************************/
-func loadEnv(logger *logrus.Logger) {
+func loadEnv() *logrus.Logger {
 	_ = godotenv.Load()
+	logger := configureLogger()
 	if apiKey == "" {
 		apiKey = os.Getenv("API_KEY")
 	}
@@ -98,6 +136,7 @@ func loadEnv(logger *logrus.Logger) {
 	if !withDeleted {
 		withDeleted = os.Getenv("WITH_DELETED") == "true"
 	}
+	return logger
 }
 
 /**************************************************************************************************
@@ -214,12 +253,7 @@ func getChildrenWithStack(stack []utils.TAsset) ([]string, bool) {
 ** @param args - Command line arguments
 **************************************************************************************************/
 func runStacker(cmd *cobra.Command, args []string) {
-	logger := logrus.New()
-	logger.SetFormatter(&logrus.TextFormatter{
-		DisableTimestamp: true,
-		FullTimestamp:    false,
-	})
-	loadEnv(logger)
+	logger := loadEnv()
 
 	/**********************************************************************************************
 	** Support multiple API keys (comma-separated).
@@ -284,43 +318,84 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 	/**********************************************************************************************
 	** Group the assets into stacks.
 	**********************************************************************************************/
-	stacks, err := stacker.StackBy(assets, criteria, parentFilenamePromote, parentExtPromote)
+	stacks, err := stacker.StackBy(assets, criteria, parentFilenamePromote, parentExtPromote, logger)
 	if err != nil {
 		logger.Fatalf("Error stacking assets: %v", err)
 	}
 
+	os.Exit(1)
 	for i, stack := range stacks {
 		_, _, newStackIDs := getParentAndChildrenIDs(stack)
 		_, _, originalStackIDs := getOriginalStackIDs(stack)
+
+		/******************************************************************************************
+		** Adding debug logs
+		******************************************************************************************/
+		{
+			logger.Debugf("--------------------------------")
+			logger.Debugf("%d/%d Key: %s", i+1, len(stacks), stack[0].OriginalFileName)
+			logger.WithFields(logrus.Fields{
+				"Name": stack[0].OriginalFileName,
+				"ID":   stack[0].ID,
+				"Time": stack[0].LocalDateTime,
+			}).Debugf("\tParent")
+			for _, child := range stack[1:] {
+				logger.WithFields(logrus.Fields{
+					"Name": child.OriginalFileName,
+					"ID":   child.ID,
+					"Time": child.LocalDateTime,
+				}).Debugf("\tChild")
+			}
+		}
+
+		/******************************************************************************************
+		** Doing standard stacker checks.
+		******************************************************************************************/
 		if !isValidStack(newStackIDs) {
+			logger.Debugf("\t⚠️ Invalid stack: %s", stack[0].OriginalFileName)
 			continue
 		}
 		if !needsStackUpdate(originalStackIDs, newStackIDs) {
+			logger.Debugf("\tℹ️ No update needed for stack: %s", stack[0].OriginalFileName)
 			continue
 		}
 		childrenWithStack, hasChildrenWithStack := getChildrenWithStack(stack)
 		if hasChildrenWithStack && !replaceStacks {
+			logger.Debugf("\tℹ️ No replaceStacks, skipping stack: %s", stack[0].OriginalFileName)
 			continue
 		}
 
-		logger.Infof("--------------------------------")
-		logger.Infof("%d/%d Key: %s", i+1, len(stacks), stack[0].OriginalFileName)
+		/******************************************************************************************
+		** Adding info logs, bug only if we are not in debug mode.
+		******************************************************************************************/
+		{
+			if logger.Level != logrus.DebugLevel {
+				logger.Infof("--------------------------------")
+				logger.Infof("%d/%d Key: %s", i+1, len(stacks), stack[0].OriginalFileName)
+			}
+			if logger.Level != logrus.DebugLevel {
+				logger.WithFields(logrus.Fields{
+					"Name": stack[0].OriginalFileName,
+					"ID":   stack[0].ID,
+					"Time": stack[0].LocalDateTime,
+				}).Infof("\tParent")
+				for _, child := range stack[1:] {
+					logger.WithFields(logrus.Fields{
+						"Name": child.OriginalFileName,
+						"ID":   child.ID,
+						"Time": child.LocalDateTime,
+					}).Infof("\tChild")
+				}
+			}
+		}
 
 		/******************************************************************************************
 		** Delete children stacks if replaceStacks is true.
 		******************************************************************************************/
 		if replaceStacks {
 			for _, childID := range childrenWithStack {
-				client.DeleteStack(childID, "replacing child stack with new one")
+				client.DeleteStack(childID, utils.REASON_REPLACE_CHILD_STACK_WITH_NEW_ONE)
 			}
-		}
-
-		/******************************************************************************************
-		** Create the new stack.
-		******************************************************************************************/
-		logger.Infof("   Parent name: %-15s AT: %-32s (ID: %s)", stack[0].OriginalFileName, stack[0].LocalDateTime, stack[0].ID)
-		for _, child := range stack[1:] {
-			logger.Infof("   Child name: %-16s AT: %-32s (ID: %s)", child.OriginalFileName, child.LocalDateTime, child.ID)
 		}
 
 		/******************************************************************************************
@@ -375,7 +450,6 @@ func main() {
 	rootCmd.PersistentFlags().IntVar(&cronInterval, "cron-interval", 0, "Cron interval (or set CRON_INTERVAL env var)")
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
+	"github.com/sirupsen/logrus"
 )
 
 /**************************************************************************************************
@@ -124,7 +125,7 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 ** @return [][]Asset - List of stacks, where each stack is a list of assets
 ** @return error - Any error that occurred during stacking
 **************************************************************************************************/
-func StackBy(assets []utils.TAsset, criteria string, parentFilenamePromote string, parentExtPromote string) ([][]utils.TAsset, error) {
+func StackBy(assets []utils.TAsset, criteria string, parentFilenamePromote string, parentExtPromote string, logger *logrus.Logger) ([][]utils.TAsset, error) {
 	if len(assets) == 0 {
 		return nil, nil
 	}
@@ -143,6 +144,18 @@ func StackBy(assets []utils.TAsset, criteria string, parentFilenamePromote strin
 		}
 	}
 
+	// Debugging
+	{
+		listOfCriteria := []string{}
+		for _, c := range stackingCriteria {
+			listOfCriteria = append(listOfCriteria, c.Key)
+		}
+		logger.Debugf("Stacking assets with criteria: %s", listOfCriteria)
+		logger.Debugf("Parent filename promote: %s", parentFilenamePromote)
+		logger.Debugf("Parent extension promote: %s", parentExtPromote)
+		logger.Debugf("Delimiters: %v", delimiters)
+	}
+
 	groups := make(map[string][]utils.TAsset, len(assets)/2)
 	for _, asset := range assets {
 		values, err := applyCriteria(asset, stackingCriteria)
@@ -154,6 +167,9 @@ func StackBy(assets []utils.TAsset, criteria string, parentFilenamePromote strin
 		if key == "" {
 			continue
 		}
+
+		// Debugging
+		logger.WithFields(logrus.Fields{"stack": key}).Debugf("Asset %s", asset.OriginalFileName)
 
 		groups[key] = append(groups[key], asset)
 	}

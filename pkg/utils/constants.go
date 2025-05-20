@@ -42,3 +42,10 @@ var DefaultParentFilenamePromoteString = strings.Join(DefaultParentFilenamePromo
 **************************************************************************************************/
 var DefaultParentExtPromote = []string{".jpg", ".png", ".jpeg", ".dng"}
 var DefaultParentExtPromoteString = strings.Join(DefaultParentExtPromote, ",")
+
+/**************************************************************************************************
+** Reason messages
+**************************************************************************************************/
+var REASON_DELETE_STACK_WITH_ONE_ASSET = "deleting stack with only one asset"
+var REASON_REPLACE_CHILD_STACK_WITH_NEW_ONE = "replacing child stack with new one"
+var REASON_RESET_STACK = "resetting stack"

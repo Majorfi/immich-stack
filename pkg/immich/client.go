@@ -165,11 +165,11 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 	for _, stack := range stacks {
 		if c.resetStacks {
 			c.logger.Infof("🔄 Resetting stack %s", stack.PrimaryAssetID)
-			if err := c.DeleteStack(stack.ID, "resetting stack"); err != nil {
+			if err := c.DeleteStack(stack.ID, utils.REASON_RESET_STACK); err != nil {
 				c.logger.Errorf("Error deleting stack: %v", err)
 			}
 		} else if len(stack.Assets) <= 1 {
-			if err := c.DeleteStack(stack.ID, "deleting stack with only one asset"); err != nil {
+			if err := c.DeleteStack(stack.ID, utils.REASON_DELETE_STACK_WITH_ONE_ASSET); err != nil {
 				c.logger.Errorf("Error deleting stack: %v", err)
 			}
 		}
@@ -216,8 +216,8 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 	page := 1
 
 	c.logger.Infof("⬇️  Fetching assets:")
-
 	for {
+		c.logger.Debugf("Fetching page %d", page)
 		var response utils.TSearchResponse
 		if err := c.doRequest(http.MethodPost, "/search/metadata", map[string]interface{}{
 			"size":         size,
@@ -267,8 +267,14 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 ** @return error - Any error that occurred during deletion
 **************************************************************************************************/
 func (c *Client) DeleteStack(stackID string, reason string) error {
+	reasonMsg := ""
+	if reason != utils.REASON_DELETE_STACK_WITH_ONE_ASSET {
+		reasonMsg = "\t"
+	}
+
 	if c.dryRun {
-		c.logger.Infof("  🟢 Success! Stack %s deleted (dry run) - %s", stackID, reason)
+
+		c.logger.Warnf("%sDeleted Stack %s (dry run) - %s", reasonMsg, stackID, reason)
 		return nil
 	}
 
@@ -277,7 +283,7 @@ func (c *Client) DeleteStack(stackID string, reason string) error {
 		return fmt.Errorf("error deleting stack: %w", err)
 	}
 
-	c.logger.Infof("  🟢 Success! Stack %s deleted - %s", stackID, reason)
+	c.logger.Infof("%sDeleted Stack %s - %s", reasonMsg, stackID, reason)
 	return nil
 }
 
@@ -290,7 +296,7 @@ func (c *Client) DeleteStack(stackID string, reason string) error {
 **************************************************************************************************/
 func (c *Client) ModifyStack(assetIDs []string) error {
 	if c.dryRun {
-		c.logger.Infof("  🟢 Success! Stack created (dry run)")
+		c.logger.Infof("\t🟢 Success! Stack created (dry run)")
 		return nil
 	}
 
@@ -301,7 +307,7 @@ func (c *Client) ModifyStack(assetIDs []string) error {
 		return fmt.Errorf("error modifying stack: %w", err)
 	}
 
-	c.logger.Info("  🟢 Success! Stack created")
+	c.logger.Info("\t🟢 Success! Stack created")
 	return nil
 }
 
