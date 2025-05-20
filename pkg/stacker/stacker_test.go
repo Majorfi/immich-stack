@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -172,7 +173,7 @@ func TestStackBy(t *testing.T) {
 			}
 
 			// Act
-			groups, err := StackBy(tt.assets, "", "", "")
+			groups, err := StackBy(tt.assets, "", "", "", logrus.New())
 
 			// Assert
 			if tt.skipMatchMiss {
