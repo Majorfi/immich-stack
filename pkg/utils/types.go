@@ -37,8 +37,8 @@ type TSplit struct {
 ** and selects a specific capture group by index.
 **************************************************************************************************/
 type TRegex struct {
-	Key   string `json:"key"`   // Regular expression pattern
-	Index int    `json:"index"` // Index of capture group to select
+	Key   string `json:"key"`   // Regular expression pattern to match against the value
+	Index int    `json:"index"` // Index of capture group to select (0 = full match, 1+ = capture groups)
 }
 
 /**************************************************************************************************

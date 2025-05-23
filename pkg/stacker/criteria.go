@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -145,13 +146,14 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 ** according to the provided criteria. First, it removes the file extension from the
 ** asset's OriginalFileName. If the criteria include split parameters (delimiters and
 ** an index), the base name is further split by those delimiters, and the part at the
-** specified index is returned.
+** specified index is returned. Alternatively, if regex parameters are provided, the
+** base name is processed using regular expressions to extract specific capture groups.
 **
 ** @param asset - The utils.TAsset from which to extract the original file name.
-** @param c - The utils.TCriteria containing potential split parameters.
-** @return string - The processed original file name (base name, potentially split).
+** @param c - The utils.TCriteria containing potential split or regex parameters.
+** @return string - The processed original file name (base name, potentially split or matched).
 ** @return error - An error if the split index is out of range for the resulting parts,
-**                 or nil otherwise.
+**                 if regex compilation fails, or if the regex index is out of range.
 **************************************************************************************************/
 func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, error) {
 	baseName := asset.OriginalFileName
@@ -160,6 +162,27 @@ func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, err
 		baseName = baseName[:len(baseName)-len(ext)]
 	}
 
+	// Handle regex processing if configured
+	if c.Regex != nil && c.Regex.Key != "" {
+		regex, err := regexp.Compile(c.Regex.Key)
+		if err != nil {
+			return "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
+		}
+
+		matches := regex.FindStringSubmatch(baseName)
+		if matches == nil {
+			return "", nil // No match found, return empty string
+		}
+
+		if c.Regex.Index < 0 || c.Regex.Index >= len(matches) {
+			return "", fmt.Errorf("regex capture group index %d out of range for %q (found %d groups)",
+				c.Regex.Index, baseName, len(matches)-1)
+		}
+
+		return matches[c.Regex.Index], nil
+	}
+
+	// Handle delimiter-based split processing if configured
 	if c.Split != nil && len(c.Split.Delimiters) > 0 {
 		parts := []string{baseName}
 		for _, delim := range c.Split.Delimiters {
@@ -174,6 +197,7 @@ func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, err
 		}
 		baseName = parts[c.Split.Index]
 	}
+
 	return baseName, nil
 }
 
@@ -181,19 +205,42 @@ func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, err
 ** extractOriginalPath extracts and processes the original path from an asset according
 ** to the provided criteria. If the criteria include split parameters (delimiters and an
 ** index), the path is split by those delimiters, and the part at the specified index
-** is returned. The function handles both forward slashes and backslashes as path
-** separators by always normalizing them to forward slashes.
+** is returned. Alternatively, if regex parameters are provided, the path is processed
+** using regular expressions to extract specific capture groups. The function handles
+** both forward slashes and backslashes as path separators by always normalizing them
+** to forward slashes.
 **
 ** @param asset - The utils.TAsset from which to extract the original path.
-** @param c - The utils.TCriteria containing potential split parameters.
-** @return string - The processed original path (potentially split).
+** @param c - The utils.TCriteria containing potential split or regex parameters.
+** @return string - The processed original path (potentially split or matched).
 ** @return error - An error if the split index is out of range for the resulting parts,
-**                 or nil otherwise.
+**                 if regex compilation fails, or if the regex index is out of range.
 **************************************************************************************************/
 func extractOriginalPath(asset utils.TAsset, c utils.TCriteria) (string, error) {
 	// Always normalize path separators to forward slashes
 	path := strings.ReplaceAll(asset.OriginalPath, "\\", "/")
 
+	// Handle regex processing if configured
+	if c.Regex != nil && c.Regex.Key != "" {
+		regex, err := regexp.Compile(c.Regex.Key)
+		if err != nil {
+			return "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
+		}
+
+		matches := regex.FindStringSubmatch(path)
+		if matches == nil {
+			return "", nil // No match found, return empty string
+		}
+
+		if c.Regex.Index < 0 || c.Regex.Index >= len(matches) {
+			return "", fmt.Errorf("regex capture group index %d out of range for %q (found %d groups)",
+				c.Regex.Index, path, len(matches)-1)
+		}
+
+		return matches[c.Regex.Index], nil
+	}
+
+	// Handle delimiter-based split processing if configured
 	if c.Split != nil && len(c.Split.Delimiters) > 0 {
 		parts := []string{path}
 		for _, delim := range c.Split.Delimiters {

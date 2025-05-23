@@ -732,6 +732,489 @@ func TestApplyCriteriaWithOriginalPath(t *testing.T) {
 	}
 }
 
+/************************************************************************************************
+** Test extractOriginalFileName with regex functionality
+************************************************************************************************/
+func TestExtractOriginalFileNameRegex(t *testing.T) {
+	type testCase struct {
+		name     string
+		filename string
+		criteria utils.TCriteria
+		expected string
+		wantErr  bool
+	}
+
+	tests := []testCase{
+		{
+			name:     "simple regex capture group 0 (full match)",
+			filename: "PXL_20230503_152823814.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `PXL_(\d{8})_(\d{9})`,
+					Index: 0, // Full match
+				},
+			},
+			expected: "PXL_20230503_152823814",
+			wantErr:  false,
+		},
+		{
+			name:     "regex capture group 1 (date)",
+			filename: "PXL_20230503_152823814.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `PXL_(\d{8})_(\d{9})`,
+					Index: 1, // First capture group (date)
+				},
+			},
+			expected: "20230503",
+			wantErr:  false,
+		},
+		{
+			name:     "regex capture group 2 (time)",
+			filename: "PXL_20230503_152823814.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `PXL_(\d{8})_(\d{9})`,
+					Index: 2, // Second capture group (time)
+				},
+			},
+			expected: "152823814",
+			wantErr:  false,
+		},
+		{
+			name:     "regex with named groups",
+			filename: "IMG_20230503_152823.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `IMG_(?P<date>\d{8})_(?P<time>\d{6})`,
+					Index: 1, // First capture group (date)
+				},
+			},
+			expected: "20230503",
+			wantErr:  false,
+		},
+		{
+			name:     "regex no match returns empty",
+			filename: "different_format.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `PXL_(\d{8})_(\d{9})`,
+					Index: 1,
+				},
+			},
+			expected: "",
+			wantErr:  false,
+		},
+		{
+			name:     "regex index out of range",
+			filename: "PXL_20230503_152823814.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `PXL_(\d{8})_(\d{9})`,
+					Index: 5, // Only 2 capture groups available (plus full match)
+				},
+			},
+			expected: "",
+			wantErr:  true,
+		},
+		{
+			name:     "invalid regex pattern",
+			filename: "test.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `[invalid regex`,
+					Index: 0,
+				},
+			},
+			expected: "",
+			wantErr:  true,
+		},
+		{
+			name:     "complex regex with alternation",
+			filename: "DSC01234.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `(IMG|PXL|DSC)(\d+)`,
+					Index: 2, // Number part
+				},
+			},
+			expected: "01234",
+			wantErr:  false,
+		},
+		{
+			name:     "regex with special characters",
+			filename: "photo-2023.05.03-15:28:23.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `photo-(\d{4})\.(\d{2})\.(\d{2})-(\d{2}):(\d{2}):(\d{2})`,
+					Index: 1, // Year
+				},
+			},
+			expected: "2023",
+			wantErr:  false,
+		},
+		{
+			name:     "extension already removed before regex",
+			filename: "test.edit.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `(.+)\.edit$`,
+					Index: 1,
+				},
+			},
+			expected: "test",
+			wantErr:  false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			asset := utils.TAsset{OriginalFileName: tc.filename}
+			result, err := extractOriginalFileName(asset, tc.criteria)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, result)
+			}
+		})
+	}
+}
+
+/************************************************************************************************
+** Test extractOriginalPath with regex functionality
+************************************************************************************************/
+func TestExtractOriginalPathRegex(t *testing.T) {
+	type testCase struct {
+		name     string
+		path     string
+		criteria utils.TCriteria
+		expected string
+		wantErr  bool
+	}
+
+	tests := []testCase{
+		{
+			name: "regex extract year from path",
+			path: "photos/2023/vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Regex: &utils.TRegex{
+					Key:   `photos/(\d{4})/([^/]+)/`,
+					Index: 1, // Year
+				},
+			},
+			expected: "2023",
+			wantErr:  false,
+		},
+		{
+			name: "regex extract folder name",
+			path: "photos/2023/vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Regex: &utils.TRegex{
+					Key:   `photos/(\d{4})/([^/]+)/`,
+					Index: 2, // Folder name
+				},
+			},
+			expected: "vacation",
+			wantErr:  false,
+		},
+		{
+			name: "windows path normalized before regex",
+			path: "photos\\2023\\vacation\\IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Regex: &utils.TRegex{
+					Key:   `photos/(\d{4})/([^/]+)/`,
+					Index: 1,
+				},
+			},
+			expected: "2023",
+			wantErr:  false,
+		},
+		{
+			name: "complex path structure with regex",
+			path: "camera_uploads/2023-05-03/DCIM/Camera/IMG_20230503_152823.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Regex: &utils.TRegex{
+					Key:   `camera_uploads/(\d{4}-\d{2}-\d{2})/DCIM/([^/]+)/`,
+					Index: 1, // Date part
+				},
+			},
+			expected: "2023-05-03",
+			wantErr:  false,
+		},
+		{
+			name: "regex no match returns empty",
+			path: "photos/random/path/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Regex: &utils.TRegex{
+					Key:   `archive/(\d{4})/`,
+					Index: 1,
+				},
+			},
+			expected: "",
+			wantErr:  false,
+		},
+		{
+			name: "regex index out of range",
+			path: "photos/2023/vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Regex: &utils.TRegex{
+					Key:   `photos/(\d{4})/`,
+					Index: 3, // Only 1 capture group available
+				},
+			},
+			expected: "",
+			wantErr:  true,
+		},
+		{
+			name: "regex extract filename from path",
+			path: "photos/2023/vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Regex: &utils.TRegex{
+					Key:   `([^/]+)\.jpg$`,
+					Index: 1, // Filename without extension
+				},
+			},
+			expected: "IMG_001",
+			wantErr:  false,
+		},
+		{
+			name: "regex full path match",
+			path: "photos/2023/vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Regex: &utils.TRegex{
+					Key:   `photos/\d{4}/vacation/.*`,
+					Index: 0, // Full match
+				},
+			},
+			expected: "photos/2023/vacation/IMG_001.jpg",
+			wantErr:  false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			asset := utils.TAsset{OriginalPath: tc.path}
+			result, err := extractOriginalPath(asset, tc.criteria)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, result)
+			}
+		})
+	}
+}
+
+/************************************************************************************************
+** Test applyCriteria with regex-based grouping
+************************************************************************************************/
+func TestApplyCriteriaWithRegex(t *testing.T) {
+	tests := []struct {
+		name     string
+		assets   []utils.TAsset
+		criteria []utils.TCriteria
+		want     int // number of groups
+	}{
+		{
+			name: "group by date extracted with regex",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "PXL_20230503_152823814.jpg",
+					OriginalPath:     "photos/2023/vacation/PXL_20230503_152823814.jpg",
+				},
+				{
+					OriginalFileName: "PXL_20230503_152830456.jpg",
+					OriginalPath:     "photos/2023/vacation/PXL_20230503_152830456.jpg",
+				},
+				{
+					OriginalFileName: "PXL_20230504_091234567.jpg",
+					OriginalPath:     "photos/2023/vacation/PXL_20230504_091234567.jpg",
+				},
+				{
+					OriginalFileName: "PXL_20230504_091240789.jpg",
+					OriginalPath:     "photos/2023/vacation/PXL_20230504_091240789.jpg",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+					Regex: &utils.TRegex{
+						Key:   `PXL_(\d{8})_\d{9}`,
+						Index: 1, // Extract date
+					},
+				},
+			},
+			want: 2, // Two groups: 20230503 (2 files) and 20230504 (2 files)
+		},
+		{
+			name: "group by path year with regex",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+				},
+				{
+					OriginalFileName: "IMG_002.jpg",
+					OriginalPath:     "photos/2023/work/IMG_002.jpg",
+				},
+				{
+					OriginalFileName: "IMG_003.jpg",
+					OriginalPath:     "photos/2024/family/IMG_003.jpg",
+				},
+				{
+					OriginalFileName: "IMG_004.jpg",
+					OriginalPath:     "photos/2024/vacation/IMG_004.jpg",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalPath",
+					Regex: &utils.TRegex{
+						Key:   `photos/(\d{4})/`,
+						Index: 1, // Extract year
+					},
+				},
+			},
+			want: 2, // Two groups: 2023 (2 files) and 2024 (2 files)
+		},
+		{
+			name: "complex grouping with filename regex and path regex",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "PXL_20230503_152823814.jpg",
+					OriginalPath:     "photos/2023/vacation/PXL_20230503_152823814.jpg",
+				},
+				{
+					OriginalFileName: "PXL_20230503_152830456.jpg",
+					OriginalPath:     "photos/2023/vacation/PXL_20230503_152830456.jpg",
+				},
+				{
+					OriginalFileName: "PXL_20230503_091234567.jpg",
+					OriginalPath:     "photos/2023/work/PXL_20230503_091234567.jpg",
+				},
+				{
+					OriginalFileName: "PXL_20230503_091240789.jpg",
+					OriginalPath:     "photos/2023/work/PXL_20230503_091240789.jpg",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+					Regex: &utils.TRegex{
+						Key:   `PXL_(\d{8})_\d{9}`,
+						Index: 1, // Extract date
+					},
+				},
+				{
+					Key: "originalPath",
+					Regex: &utils.TRegex{
+						Key:   `photos/\d{4}/([^/]+)/`,
+						Index: 1, // Extract folder name (vacation/work)
+					},
+				},
+			},
+			want: 2, // Two groups: (20230503, vacation) and (20230503, work)
+		},
+		{
+			name: "regex no match results in no grouping",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "random_file_001.jpg",
+					OriginalPath:     "photos/random/random_file_001.jpg",
+				},
+				{
+					OriginalFileName: "random_file_002.jpg",
+					OriginalPath:     "photos/random/random_file_002.jpg",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+					Regex: &utils.TRegex{
+						Key:   `PXL_(\d{8})_\d{9}`,
+						Index: 1, // No match for this pattern
+					},
+				},
+			},
+			want: 0, // No groups since regex doesn't match
+		},
+		{
+			name: "mixed regex success and failure",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "PXL_20230503_152823814.jpg",
+					OriginalPath:     "photos/2023/vacation/PXL_20230503_152823814.jpg",
+				},
+				{
+					OriginalFileName: "PXL_20230503_152830456.jpg",
+					OriginalPath:     "photos/2023/vacation/PXL_20230503_152830456.jpg",
+				},
+				{
+					OriginalFileName: "random_file.jpg",
+					OriginalPath:     "photos/2023/vacation/random_file.jpg",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+					Regex: &utils.TRegex{
+						Key:   `PXL_(\d{8})_\d{9}`,
+						Index: 1, // Extract date, but won't match random_file.jpg
+					},
+				},
+			},
+			want: 1, // Only one group with the two PXL files (same date: 20230503)
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set up test criteria in environment
+			t.Setenv("CRITERIA", mustMarshalJSON(t, tt.criteria))
+
+			groups, err := StackBy(tt.assets, "", "", "", logrus.New())
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, len(groups), "Expected %d groups but got %d", tt.want, len(groups))
+
+			// Additional validation for specific test cases
+			if tt.name == "group by date extracted with regex" && len(groups) == 2 {
+				// Verify groups are correctly formed
+				dates := make(map[string]int)
+				for _, group := range groups {
+					// All files in a group should have the same extracted date
+					firstAsset := group[0]
+					extractedDate, err := extractOriginalFileName(firstAsset, tt.criteria[0])
+					require.NoError(t, err)
+					dates[extractedDate] = len(group)
+				}
+				assert.Contains(t, dates, "20230503")
+				assert.Contains(t, dates, "20230504")
+				assert.Equal(t, 2, dates["20230503"]) // Two files with date 20230503
+				assert.Equal(t, 2, dates["20230504"]) // Two files with date 20230504
+			}
+		})
+	}
+}
+
 // Helper function to marshal criteria to JSON for environment variable
 func mustMarshalJSON(t *testing.T, v interface{}) string {
 	data, err := json.Marshal(v)
