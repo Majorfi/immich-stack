@@ -323,7 +323,6 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 		logger.Fatalf("Error stacking assets: %v", err)
 	}
 
-	os.Exit(1)
 	for i, stack := range stacks {
 		_, _, newStackIDs := getParentAndChildrenIDs(stack)
 		_, _, originalStackIDs := getOriginalStackIDs(stack)
