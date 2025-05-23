@@ -112,7 +112,7 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 			return extractTimeWithDelta(a.LocalDateTime, c.Delta)
 		},
 		"originalFileName": extractOriginalFileName,
-		"originalPath":     func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OriginalPath, nil },
+		"originalPath":     extractOriginalPath,
 		"ownerId":          func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OwnerID, nil },
 		"type":             func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Type, nil },
 		"updatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
@@ -175,6 +175,40 @@ func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, err
 		baseName = parts[c.Split.Index]
 	}
 	return baseName, nil
+}
+
+/**************************************************************************************************
+** extractOriginalPath extracts and processes the original path from an asset according
+** to the provided criteria. If the criteria include split parameters (delimiters and an
+** index), the path is split by those delimiters, and the part at the specified index
+** is returned. The function handles both forward slashes and backslashes as path
+** separators by always normalizing them to forward slashes.
+**
+** @param asset - The utils.TAsset from which to extract the original path.
+** @param c - The utils.TCriteria containing potential split parameters.
+** @return string - The processed original path (potentially split).
+** @return error - An error if the split index is out of range for the resulting parts,
+**                 or nil otherwise.
+**************************************************************************************************/
+func extractOriginalPath(asset utils.TAsset, c utils.TCriteria) (string, error) {
+	// Always normalize path separators to forward slashes
+	path := strings.ReplaceAll(asset.OriginalPath, "\\", "/")
+
+	if c.Split != nil && len(c.Split.Delimiters) > 0 {
+		parts := []string{path}
+		for _, delim := range c.Split.Delimiters {
+			temp := []string{}
+			for _, part := range parts {
+				temp = append(temp, strings.Split(part, delim)...)
+			}
+			parts = temp
+		}
+		if c.Split.Index < 0 || c.Split.Index >= len(parts) {
+			return "", fmt.Errorf("split index %d out of range for %q", c.Split.Index, path)
+		}
+		path = parts[c.Split.Index]
+	}
+	return path, nil
 }
 
 /**************************************************************************************************

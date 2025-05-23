@@ -36,6 +36,7 @@ You can use any of these keys in your criteria:
 | Key                | Description                    |
 | ------------------ | ------------------------------ |
 | `originalFileName` | Original filename of the asset |
+| `originalPath`     | Original path of the asset     |
 | `localDateTime`    | Local capture time             |
 | `fileCreatedAt`    | File creation time             |
 | `fileModifiedAt`   | File modification time         |
@@ -59,6 +60,25 @@ For example, with a file named `IMG_1234~edit.jpg`:
 
 1. Split on `~` and `.` gives `["IMG_1234", "edit", "jpg"]`
 2. Using `index: 0` selects `"IMG_1234"`
+
+For paths, you can split by directory separators:
+
+```json
+{
+  "key": "originalPath",
+  "split": {
+    "delimiters": ["/"],
+    "index": 2
+  }
+}
+```
+
+For a path like `photos/2023/vacation/IMG_001.jpg`:
+
+1. Split on `/` gives `["photos", "2023", "vacation", "IMG_001.jpg"]`
+2. Using `index: 2` selects `"vacation"`
+
+Note: The `originalPath` splitter automatically normalizes Windows-style backslashes (`\`) to forward slashes (`/`).
 
 ## Delta Configuration
 
@@ -109,15 +129,31 @@ This is useful for:
 ]
 ```
 
-### Combined Criteria
+### Directory-Based Grouping
 
 ```json
 [
   {
-    "key": "originalFileName",
+    "key": "originalPath",
     "split": {
-      "delimiters": ["~", "."],
-      "index": 0
+      "delimiters": ["/"],
+      "index": 2
+    }
+  }
+]
+```
+
+This will group photos by their directory name (e.g., all photos in the "vacation" directory will be grouped together).
+
+### Combined Path and Time Criteria
+
+```json
+[
+  {
+    "key": "originalPath",
+    "split": {
+      "delimiters": ["/"],
+      "index": 2
     }
   },
   {
@@ -125,15 +161,11 @@ This is useful for:
     "delta": {
       "milliseconds": 1000
     }
-  },
-  {
-    "key": "fileCreatedAt",
-    "delta": {
-      "milliseconds": 5000
-    }
   }
 ]
 ```
+
+This will group photos that are both in the same directory and taken within 1 second of each other.
 
 ## Best Practices
 

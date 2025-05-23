@@ -393,6 +393,345 @@ func TestApplyCriteriaWithTimeDelta(t *testing.T) {
 	}
 }
 
+/************************************************************************************************
+** Test extractOriginalPath with various path formats and split configurations
+************************************************************************************************/
+func TestExtractOriginalPath(t *testing.T) {
+	type testCase struct {
+		name     string
+		path     string
+		criteria utils.TCriteria
+		expected string
+		wantErr  bool
+	}
+
+	tests := []testCase{
+		{
+			name: "simple path without split",
+			path: "photos/2023/vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+			},
+			expected: "photos/2023/vacation/IMG_001.jpg",
+			wantErr:  false,
+		},
+		{
+			name: "windows path without split",
+			path: "photos\\2023\\vacation\\IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+			},
+			expected: "photos/2023/vacation/IMG_001.jpg",
+			wantErr:  false,
+		},
+		{
+			name: "split by forward slash",
+			path: "photos/2023/vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Split: &utils.TSplit{
+					Delimiters: []string{"/"},
+					Index:      1,
+				},
+			},
+			expected: "2023",
+			wantErr:  false,
+		},
+		{
+			name: "split by multiple delimiters",
+			path: "photos/2023-vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Split: &utils.TSplit{
+					Delimiters: []string{"/", "-"},
+					Index:      2,
+				},
+			},
+			expected: "vacation",
+			wantErr:  false,
+		},
+		{
+			name: "split index out of range",
+			path: "photos/2023/vacation/IMG_001.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+				Split: &utils.TSplit{
+					Delimiters: []string{"/"},
+					Index:      10,
+				},
+			},
+			expected: "",
+			wantErr:  true,
+		},
+		{
+			name: "empty path",
+			path: "",
+			criteria: utils.TCriteria{
+				Key: "originalPath",
+			},
+			expected: "",
+			wantErr:  false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			asset := utils.TAsset{OriginalPath: tc.path}
+			result, err := extractOriginalPath(asset, tc.criteria)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, result)
+			}
+		})
+	}
+}
+
+/************************************************************************************************
+** Test applyCriteria with originalPath in criteria
+************************************************************************************************/
+func TestApplyCriteriaWithOriginalPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		assets   []utils.TAsset
+		criteria []utils.TCriteria
+		want     int // number of groups
+	}{
+		{
+			name: "group by path directory",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+				},
+				{
+					OriginalFileName: "IMG_002.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_002.jpg",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalPath",
+					Split: &utils.TSplit{
+						Delimiters: []string{"/"},
+						Index:      2,
+					},
+				},
+			},
+			want: 1, // Should group together as they're in the same directory
+		},
+		{
+			name: "different directories",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+				},
+				{
+					OriginalFileName: "IMG_002.jpg",
+					OriginalPath:     "photos/2023/work/IMG_002.jpg",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalPath",
+					Split: &utils.TSplit{
+						Delimiters: []string{"/"},
+						Index:      2,
+					},
+				},
+			},
+			want: 0, // Should not group together as they're in different directories
+		},
+		{
+			name: "same name in same directory regardless of date",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+					LocalDateTime:    "2023-01-02T15:30:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+					LocalDateTime:    "2023-01-03T09:45:00.000Z",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+				},
+				{
+					Key: "originalPath",
+				},
+			},
+			want: 1, // Should group together as they have same name and path, regardless of date
+		},
+		{
+			name: "same name in different directories",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/work/IMG_001.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/family/IMG_001.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+					Split: &utils.TSplit{
+						Delimiters: []string{"~", "."},
+						Index:      0,
+					},
+				},
+				{
+					Key: "originalPath",
+					Split: &utils.TSplit{
+						Delimiters: []string{"/"},
+						Index:      2,
+					},
+				},
+			},
+			want: 0, // Should create no stacks since files are in different directories
+		},
+		{
+			name: "different names in same directory",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_002.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_002.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_003.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_003.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+				},
+				{
+					Key: "originalPath",
+				},
+			},
+			want: 0, // Should create no stacks since files have different names
+		},
+		{
+			name: "mixed scenarios",
+			assets: []utils.TAsset{
+				// Group 1: Same name, same directory
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_001.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_001.jpg",
+					LocalDateTime:    "2023-01-02T12:00:00.000Z",
+				},
+				// Group 2: Same name, different directory
+				{
+					OriginalFileName: "IMG_002.jpg",
+					OriginalPath:     "photos/2023/work/IMG_002.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_002.jpg",
+					OriginalPath:     "photos/2023/family/IMG_002.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				// Group 3: Different name, same directory
+				{
+					OriginalFileName: "IMG_003.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_003.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+				{
+					OriginalFileName: "IMG_004.jpg",
+					OriginalPath:     "photos/2023/vacation/IMG_004.jpg",
+					LocalDateTime:    "2023-01-01T12:00:00.000Z",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+				},
+				{
+					Key: "originalPath",
+				},
+			},
+			want: 1, // Should create 1 stack:
+			// Only IMG_001.jpg files in vacation directory will be grouped (2 files)
+			// All other files have different names or paths, so no stacks formed
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set up test criteria in environment
+			t.Setenv("CRITERIA", mustMarshalJSON(t, tt.criteria))
+
+			groups, err := StackBy(tt.assets, "", "", "", logrus.New())
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, len(groups), "Expected %d groups but got %d", tt.want, len(groups))
+
+			if tt.want > 0 && len(groups) > 0 {
+				// For the "same name in same directory" test, verify all assets are in the group
+				if tt.name == "same name in same directory regardless of date" {
+					assert.Equal(t, len(tt.assets), len(groups[0]),
+						"Expected all %d assets to be in the same group", len(tt.assets))
+
+					// Verify all assets have the same name and path
+					firstAsset := groups[0][0]
+					for i, asset := range groups[0][1:] {
+						assert.Equal(t, firstAsset.OriginalFileName, asset.OriginalFileName,
+							"Asset %d should have same name as first asset", i+1)
+						assert.Equal(t, firstAsset.OriginalPath, asset.OriginalPath,
+							"Asset %d should have same path as first asset", i+1)
+					}
+				}
+
+				// For the "mixed scenarios" test, verify the correct grouping
+				if tt.name == "mixed scenarios" {
+					// Only one group should exist: IMG_001.jpg files in vacation directory
+					assert.Equal(t, 1, len(groups), "Should have exactly 1 group")
+					assert.Equal(t, 2, len(groups[0]), "Group should have 2 files")
+
+					// Verify both assets have the same name and path
+					for _, asset := range groups[0] {
+						assert.Equal(t, "IMG_001.jpg", asset.OriginalFileName)
+						assert.Equal(t, "photos/2023/vacation/IMG_001.jpg", asset.OriginalPath)
+					}
+				}
+			}
+		})
+	}
+}
+
 // Helper function to marshal criteria to JSON for environment variable
 func mustMarshalJSON(t *testing.T, v interface{}) string {
 	data, err := json.Marshal(v)
