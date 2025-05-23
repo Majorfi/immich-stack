@@ -13,10 +13,13 @@ import (
 
 /**************************************************************************************************
 ** getCriteriaConfig retrieves the criteria configuration from environment variables.
-** If CRITERIA env var is not set, returns the default criteria configuration.
+** If the CRITERIA environment variable is not set, it returns the default criteria
+** configuration. Otherwise, it parses the JSON string from the CRITERIA environment
+** variable.
 **
-** @return []Criteria - List of criteria to use for stacking
-** @return error - Any error that occurred during configuration retrieval
+** @return []utils.TCriteria - A slice of criteria to be used for stacking assets.
+** @return error - An error if parsing the CRITERIA environment variable fails, or nil
+**                 otherwise.
 **************************************************************************************************/
 func getCriteriaConfig() ([]utils.TCriteria, error) {
 	criteriaOverride := os.Getenv("CRITERIA")
@@ -32,8 +35,21 @@ func getCriteriaConfig() ([]utils.TCriteria, error) {
 }
 
 /**************************************************************************************************
-** extractTimeWithDelta extracts a time value and applies delta if configured.
-** Returns a string representation of the time, adjusted by the delta if specified.
+** extractTimeWithDelta parses a time string and applies a specified time delta if
+** configured. The input time string is expected to be in RFC3339Nano format. If a
+** delta is provided (non-nil and with non-zero milliseconds), the time is truncated
+** to the largest multiple of the delta interval that is less than or equal to the
+** original time. The result is returned as a string formatted according to
+** utils.TimeFormat in UTC. If the input time string is empty, an empty string is
+** returned.
+**
+** @param timeStr - The time string to parse (RFC3339Nano format).
+** @param delta - A pointer to a TDelta struct specifying the time delta to apply. Can be
+**                nil or have zero milliseconds, in which case the original time (after
+**                parsing and UTC conversion) is formatted and returned.
+** @return string - The formatted time string (UTC, utils.TimeFormat) after applying the
+**                  delta, or an empty string if the input was empty.
+** @return error - An error if parsing the time string fails, or nil otherwise.
 **************************************************************************************************/
 func extractTimeWithDelta(timeStr string, delta *utils.TDelta) (string, error) {
 	if timeStr == "" {
@@ -49,23 +65,31 @@ func extractTimeWithDelta(timeStr string, delta *utils.TDelta) (string, error) {
 		return t.UTC().Format(utils.TimeFormat), nil
 	}
 
-	// Round to the nearest delta interval
+	// Truncate to the nearest delta interval
 	ms := t.UnixNano() / int64(time.Millisecond)
 	interval := int64(delta.Milliseconds)
-	roundedMs := (ms / interval) * interval
+	truncatedMs := (ms / interval) * interval
 
-	roundedTime := time.Unix(0, roundedMs*int64(time.Millisecond)).UTC()
-	return roundedTime.Format(utils.TimeFormat), nil
+	truncatedTime := time.Unix(0, truncatedMs*int64(time.Millisecond)).UTC()
+	return truncatedTime.Format(utils.TimeFormat), nil
 }
 
 /**************************************************************************************************
-** applyCriteria applies the configured criteria to an asset.
-** Returns a list of strings that uniquely identify the asset based on the criteria.
+** applyCriteria generates a list of identifying strings for a given asset based on a
+** set of criteria. Each criterion specifies a key (e.g., "originalFileName",
+** "localDateTime") and optional parameters (like time delta or split rules). The
+** function iterates through the criteria, extracts the corresponding value from the
+** asset, applies any transformations, and collects non-empty values into a slice of
+** strings. This slice serves as a unique key for grouping the asset.
 **
-** @param asset - The asset to apply criteria to
-** @param criteria - List of criteria to apply
-** @return []string - List of strings that uniquely identify the asset
-** @return error - Any error that occurred during criteria application
+** @param asset - The utils.TAsset to apply criteria to.
+** @param criteria - A slice of utils.TCriteria defining how to extract and transform
+**                   asset properties.
+** @return []string - A slice of strings that collectively identify the asset based on
+**                    the applied criteria. Empty strings resulting from extractors are
+**                    omitted.
+** @return error - An error if an unknown criteria key is encountered or if any
+**                 extractor function returns an error.
 **************************************************************************************************/
 func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, error) {
 	extractors := map[string]func(asset utils.TAsset, c utils.TCriteria) (string, error){
@@ -117,8 +141,17 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 }
 
 /**************************************************************************************************
-** extractOriginalFileName extracts the base name from the asset's original file name,
-** discarding the extension first, then applying split logic if specified in the criteria.
+** extractOriginalFileName extracts and processes the original file name from an asset
+** according to the provided criteria. First, it removes the file extension from the
+** asset's OriginalFileName. If the criteria include split parameters (delimiters and
+** an index), the base name is further split by those delimiters, and the part at the
+** specified index is returned.
+**
+** @param asset - The utils.TAsset from which to extract the original file name.
+** @param c - The utils.TCriteria containing potential split parameters.
+** @return string - The processed original file name (base name, potentially split).
+** @return error - An error if the split index is out of range for the resulting parts,
+**                 or nil otherwise.
 **************************************************************************************************/
 func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, error) {
 	baseName := asset.OriginalFileName
@@ -145,7 +178,11 @@ func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, err
 }
 
 /**************************************************************************************************
-** boolToString converts a boolean value to its string representation ("true" or "false").
+** boolToString converts a boolean value to its string representation. It returns "true"
+** for a true input and "false" for a false input.
+**
+** @param b - The boolean value to convert.
+** @return string - The string "true" or "false".
 **************************************************************************************************/
 func boolToString(b bool) string {
 	if b {

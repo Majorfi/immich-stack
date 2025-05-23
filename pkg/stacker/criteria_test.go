@@ -253,7 +253,36 @@ func TestApplyCriteriaWithTimeDelta(t *testing.T) {
 			want: 1, // Should group together
 		},
 		{
-			name: "time difference within delta",
+			name: "time difference within delta 1/2",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "20150628_0173.JPG",
+					LocalDateTime:    "2015-06-28T12:55:31.000000000Z",
+				},
+				{
+					OriginalFileName: "20150628_0173.CR2",
+					LocalDateTime:    "2015-06-28T12:55:31.660000000Z",
+				},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+					Split: &utils.TSplit{
+						Delimiters: []string{"~", "."},
+						Index:      0,
+					},
+				},
+				{
+					Key: "localDateTime",
+					Delta: &utils.TDelta{
+						Milliseconds: 1000,
+					},
+				},
+			},
+			want: 1, // Should group together with 1s delta
+		},
+		{
+			name: "time difference within delta 2/2",
 			assets: []utils.TAsset{
 				{
 					OriginalFileName: "IMG_001.jpg",
@@ -341,11 +370,21 @@ func TestApplyCriteriaWithTimeDelta(t *testing.T) {
 				// Verify all assets in the group have the same rounded time
 				group := groups[0]
 				firstAsset := group[0]
-				firstTime, err := extractTimeWithDelta(firstAsset.LocalDateTime, tt.criteria[0].Delta)
+
+				// Find the localDateTime criteria with delta
+				var timeDelta *utils.TDelta
+				for _, c := range tt.criteria {
+					if c.Key == "localDateTime" && c.Delta != nil {
+						timeDelta = c.Delta
+						break
+					}
+				}
+
+				firstTime, err := extractTimeWithDelta(firstAsset.LocalDateTime, timeDelta)
 				require.NoError(t, err)
 
 				for _, asset := range group[1:] {
-					assetTime, err := extractTimeWithDelta(asset.LocalDateTime, tt.criteria[0].Delta)
+					assetTime, err := extractTimeWithDelta(asset.LocalDateTime, timeDelta)
 					require.NoError(t, err)
 					assert.Equal(t, firstTime, assetTime, "All times in group should round to same value")
 				}
