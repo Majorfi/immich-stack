@@ -751,11 +751,11 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `PXL_(\d{8})_(\d{9})`,
+					Key:   `PXL_(\d{8})_(\d{9})\.jpg`,
 					Index: 0, // Full match
 				},
 			},
-			expected: "PXL_20230503_152823814",
+			expected: "PXL_20230503_152823814.jpg",
 			wantErr:  false,
 		},
 		{
@@ -764,7 +764,7 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `PXL_(\d{8})_(\d{9})`,
+					Key:   `PXL_(\d{8})_(\d{9})\.jpg`,
 					Index: 1, // First capture group (date)
 				},
 			},
@@ -777,7 +777,7 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `PXL_(\d{8})_(\d{9})`,
+					Key:   `PXL_(\d{8})_(\d{9})\.jpg`,
 					Index: 2, // Second capture group (time)
 				},
 			},
@@ -790,7 +790,7 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `IMG_(?P<date>\d{8})_(?P<time>\d{6})`,
+					Key:   `IMG_(?P<date>\d{8})_(?P<time>\d{6})\.jpg`,
 					Index: 1, // First capture group (date)
 				},
 			},
@@ -803,7 +803,7 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `PXL_(\d{8})_(\d{9})`,
+					Key:   `PXL_(\d{8})_(\d{9})\.jpg`,
 					Index: 1,
 				},
 			},
@@ -816,7 +816,7 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `PXL_(\d{8})_(\d{9})`,
+					Key:   `PXL_(\d{8})_(\d{9})\.jpg`,
 					Index: 5, // Only 2 capture groups available (plus full match)
 				},
 			},
@@ -842,7 +842,7 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `(IMG|PXL|DSC)(\d+)`,
+					Key:   `(IMG|PXL|DSC)(\d+)\.jpg`,
 					Index: 2, // Number part
 				},
 			},
@@ -855,7 +855,7 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `photo-(\d{4})\.(\d{2})\.(\d{2})-(\d{2}):(\d{2}):(\d{2})`,
+					Key:   `photo-(\d{4})\.(\d{2})\.(\d{2})-(\d{2}):(\d{2}):(\d{2})\.jpg`,
 					Index: 1, // Year
 				},
 			},
@@ -863,16 +863,42 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:     "extension already removed before regex",
+			name:     "match specific extension",
 			filename: "test.edit.jpg",
 			criteria: utils.TCriteria{
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
-					Key:   `(.+)\.edit$`,
+					Key:   `(.+)\.edit\.jpg$`,
 					Index: 1,
 				},
 			},
 			expected: "test",
+			wantErr:  false,
+		},
+		{
+			name:     "match different extensions",
+			filename: "IMG_1234.JPG",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `IMG_(\d+)\.(jpg|JPG)$`,
+					Index: 1,
+				},
+			},
+			expected: "1234",
+			wantErr:  false,
+		},
+		{
+			name:     "case insensitive extension match",
+			filename: "IMG_1234.JPG",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `(?i)IMG_(\d+)\.jpg$`,
+					Index: 1,
+				},
+			},
+			expected: "1234",
 			wantErr:  false,
 		},
 	}

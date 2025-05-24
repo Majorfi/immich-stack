@@ -143,11 +143,9 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 
 /**************************************************************************************************
 ** extractOriginalFileName extracts and processes the original file name from an asset
-** according to the provided criteria. First, it removes the file extension from the
-** asset's OriginalFileName. If the criteria include split parameters (delimiters and
-** an index), the base name is further split by those delimiters, and the part at the
-** specified index is returned. Alternatively, if regex parameters are provided, the
-** base name is processed using regular expressions to extract specific capture groups.
+** according to the provided criteria. If using regex parameters, the regex is applied to
+** the full filename including extension. If using split parameters, the extension is
+** removed first, then the base name is split by the delimiters.
 **
 ** @param asset - The utils.TAsset from which to extract the original file name.
 ** @param c - The utils.TCriteria containing potential split or regex parameters.
@@ -156,30 +154,31 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 **                 if regex compilation fails, or if the regex index is out of range.
 **************************************************************************************************/
 func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, error) {
-	baseName := asset.OriginalFileName
-	ext := filepath.Ext(baseName)
-	if ext != "" {
-		baseName = baseName[:len(baseName)-len(ext)]
-	}
-
-	// Handle regex processing if configured
+	// Handle regex processing if configured - use full filename including extension
 	if c.Regex != nil && c.Regex.Key != "" {
 		regex, err := regexp.Compile(c.Regex.Key)
 		if err != nil {
 			return "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
 		}
 
-		matches := regex.FindStringSubmatch(baseName)
+		matches := regex.FindStringSubmatch(asset.OriginalFileName)
 		if matches == nil {
 			return "", nil // No match found, return empty string
 		}
 
 		if c.Regex.Index < 0 || c.Regex.Index >= len(matches) {
 			return "", fmt.Errorf("regex capture group index %d out of range for %q (found %d groups)",
-				c.Regex.Index, baseName, len(matches)-1)
+				c.Regex.Index, asset.OriginalFileName, len(matches)-1)
 		}
 
 		return matches[c.Regex.Index], nil
+	}
+
+	// For split mode, remove extension first
+	baseName := asset.OriginalFileName
+	ext := filepath.Ext(baseName)
+	if ext != "" {
+		baseName = baseName[:len(baseName)-len(ext)]
 	}
 
 	// Handle delimiter-based split processing if configured
