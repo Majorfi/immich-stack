@@ -179,7 +179,9 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 		if c.dryRun {
 			return nil, nil
 		}
-		return c.FetchAllStacks()
+		c.logger.Warningf(`⚠️ Done resetting stacks.`)
+		c.resetStacks = false
+		return map[string]utils.TStack{}, nil
 	}
 
 	// Log stack statistics
