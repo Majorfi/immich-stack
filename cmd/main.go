@@ -504,6 +504,70 @@ func runCronLoop(client *immich.Client, logger *logrus.Logger) {
 }
 
 /**************************************************************************************************
+** Main execution logic for duplicate detection. Fetches assets and calls the ListDuplicates
+** function to identify and display duplicate assets based on filename and timestamp.
+**
+** @param cmd - Cobra command instance
+** @param args - Command line arguments
+**************************************************************************************************/
+func runDuplicates(cmd *cobra.Command, args []string) {
+	logger := loadEnv()
+
+	/**********************************************************************************************
+	** Support multiple API keys (comma-separated).
+	**********************************************************************************************/
+	apiKeys := utils.RemoveEmptyStrings(func(keys []string) []string {
+		for i, key := range keys {
+			keys[i] = strings.TrimSpace(key)
+		}
+		return keys
+	}(strings.Split(apiKey, ",")))
+	if len(apiKeys) == 0 {
+		logger.Fatalf("No API key(s) provided.")
+	}
+
+	for i, key := range apiKeys {
+		if i > 0 {
+			logger.Infof("\n")
+		}
+		client := immich.NewClient(apiURL, key, false, false, true, withArchived, withDeleted, logger)
+		if client == nil {
+			logger.Errorf("Invalid client for API key: %s", key)
+			continue
+		}
+		user, err := client.GetCurrentUser()
+		if err != nil {
+			logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
+			continue
+		}
+		logger.Infof("=====================================================================================")
+		logger.Infof("Checking for duplicates for user: %s (%s)", user.Name, user.Email)
+		logger.Infof("=====================================================================================")
+
+		/**********************************************************************************************
+		** Fetch all assets and check for duplicates.
+		**********************************************************************************************/
+		existingStacks, err := client.FetchAllStacks()
+		if err != nil {
+			logger.Errorf("Error fetching stacks: %v", err)
+			continue
+		}
+		assets, err := client.FetchAssets(1000, existingStacks)
+		if err != nil {
+			logger.Errorf("Error fetching assets: %v", err)
+			continue
+		}
+
+		/**********************************************************************************************
+		** List duplicates using the existing function.
+		**********************************************************************************************/
+		if err := client.ListDuplicates(assets); err != nil {
+			logger.Errorf("Error listing duplicates: %v", err)
+		}
+	}
+}
+
+/**************************************************************************************************
 ** Application entry point. Sets up the CLI command structure using Cobra, including all
 ** available commands and their associated flags. Handles command execution and error
 ** reporting.
@@ -514,6 +578,13 @@ func main() {
 		Short: "Immich Stack CLI",
 		Long:  "A tool to automatically stack Immich assets.",
 		Run:   runStacker,
+	}
+
+	var duplicatesCmd = &cobra.Command{
+		Use:   "duplicates",
+		Short: "List duplicate assets",
+		Long:  "Scan your Immich library and list duplicate assets based on filename and timestamp.",
+		Run:   runDuplicates,
 	}
 
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key (or set API_KEY env var)")
@@ -528,6 +599,8 @@ func main() {
 	rootCmd.PersistentFlags().BoolVar(&withDeleted, "with-deleted", false, "Include deleted assets (or set WITH_DELETED=true)")
 	rootCmd.PersistentFlags().StringVar(&runMode, "run-mode", os.Getenv("RUN_MODE"), "Run mode (or set RUN_MODE env var)")
 	rootCmd.PersistentFlags().IntVar(&cronInterval, "cron-interval", 0, "Cron interval (or set CRON_INTERVAL env var)")
+
+	rootCmd.AddCommand(duplicatesCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
