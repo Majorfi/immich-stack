@@ -123,6 +123,25 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 }
 
 /**************************************************************************************************
+** buildGroupKey constructs a key from criteria values using a string builder for efficiency.
+** The key is built by joining values with '|' separator.
+**
+** @param values - List of values to join
+** @param builder - Pre-allocated string builder to reuse
+** @return string - The constructed key
+**************************************************************************************************/
+func buildGroupKey(values []string, builder *strings.Builder) string {
+	builder.Reset()
+	for i, v := range values {
+		if i > 0 {
+			builder.WriteByte('|')
+		}
+		builder.WriteString(v)
+	}
+	return builder.String()
+}
+
+/**************************************************************************************************
 ** StackBy groups photos into stacks based on configured criteria.
 ** Photos that match the same criteria values are grouped together.
 **
@@ -151,10 +170,10 @@ func StackBy(assets []utils.TAsset, criteria string, parentFilenamePromote strin
 	}
 
 	// Debugging
-	{
-		listOfCriteria := []string{}
-		for _, c := range stackingCriteria {
-			listOfCriteria = append(listOfCriteria, c.Key)
+	if logger.Level == logrus.DebugLevel {
+		listOfCriteria := make([]string, len(stackingCriteria))
+		for i, c := range stackingCriteria {
+			listOfCriteria[i] = c.Key
 		}
 		logger.Debugf("Stacking assets with criteria: %s", listOfCriteria)
 		logger.Debugf("Parent filename promote: %s", parentFilenamePromote)
@@ -163,24 +182,38 @@ func StackBy(assets []utils.TAsset, criteria string, parentFilenamePromote strin
 	}
 
 	groups := make(map[string][]utils.TAsset, len(assets)/2)
+
+	// Pre-allocate string builder for efficiency
+	var keyBuilder strings.Builder
+	keyBuilder.Grow(512) // Pre-allocate reasonable size for keys
+
 	for _, asset := range assets {
 		values, err := applyCriteria(asset, stackingCriteria)
 		if err != nil {
 			return nil, fmt.Errorf("failed to apply criteria to asset %s: %w", asset.OriginalFileName, err)
 		}
 
-		key := strings.Join(values, "|")
+		key := buildGroupKey(values, &keyBuilder)
 		if key == "" {
 			continue
 		}
 
-		// Debugging
-		logger.WithFields(logrus.Fields{"stack": key}).Debugf("Asset %s", asset.OriginalFileName)
+		if logger.Level == logrus.DebugLevel {
+			logger.WithFields(logrus.Fields{"stack": key}).Debugf("Asset %s", asset.OriginalFileName)
+		}
 
 		groups[key] = append(groups[key], asset)
 	}
 
-	var result [][]utils.TAsset
+	// Count how many valid stacks we'll have (groups with 2+ assets)
+	validStackCount := 0
+	for _, group := range groups {
+		if len(group) > 1 {
+			validStackCount++
+		}
+	}
+
+	result := make([][]utils.TAsset, 0, validStackCount)
 	for _, group := range groups {
 		if len(group) > 1 {
 			result = append(result, sortStack(group, parentFilenamePromote, parentExtPromote, delimiters))
