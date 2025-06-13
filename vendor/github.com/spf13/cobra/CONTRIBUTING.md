@@ -47,4 +47,5 @@ If you have questions regarding Cobra, feel free to ask it in the community
 1. Create new pull request
 
 <!-- Links -->
+
 [cobra-slack]: https://gophers.slack.com/archives/CD3LP1199

@@ -66,11 +66,13 @@ They must be called from within the docker container.
 
 The hand-written assembly file at `asm_${GOOS}_${GOARCH}.s` implements system
 call dispatch. There are three entry points:
+
 ```
   func Syscall(trap, a1, a2, a3 uintptr) (r1, r2, err uintptr)
   func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr)
   func RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2, err uintptr)
 ```
+
 The first and second are the standard ones; they differ only in how many
 arguments can be passed to the kernel. The third is for low-level use by the
 ForkExec wrapper. Unlike the first two, it does not call into the scheduler to
@@ -156,10 +158,10 @@ from the generated architecture-specific files listed below, and merge these
 into a common file for each OS.
 
 The merge is performed in the following steps:
+
 1. Construct the set of common code that is idential in all architecture-specific files.
 2. Write this common code to the merged file.
 3. Remove the common code from all architecture-specific files.
-
 
 ## Generated files
 

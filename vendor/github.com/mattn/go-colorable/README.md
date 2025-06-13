@@ -14,7 +14,6 @@ This package is possible to handle escape sequence for ansi color on windows.
 
 ![](https://raw.githubusercontent.com/mattn/go-colorable/gh-pages/bad.png)
 
-
 ## So Good!
 
 ![](https://raw.githubusercontent.com/mattn/go-colorable/gh-pages/good.png)
