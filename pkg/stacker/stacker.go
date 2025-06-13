@@ -78,11 +78,17 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 		promoteExtensions = utils.DefaultParentExtPromote
 	}
 
+	// Detect the best match mode based on promote list and filenames
+	matchMode := "contains"
+	if len(stack) > 0 {
+		matchMode = detectPromoteMatchMode(promoteSubstrings, stack[0].OriginalFileName)
+	}
+
 	sort.SliceStable(stack, func(i, j int) bool {
 		iOriginalFileNameNoExt := filepath.Base(stack[i].OriginalFileName)
 		jOriginalFileNameNoExt := filepath.Base(stack[j].OriginalFileName)
-		iPromoteIdx := getPromoteIndex(iOriginalFileNameNoExt, promoteSubstrings)
-		jPromoteIdx := getPromoteIndex(jOriginalFileNameNoExt, promoteSubstrings)
+		iPromoteIdx := getPromoteIndexWithMode(iOriginalFileNameNoExt, promoteSubstrings, matchMode)
+		jPromoteIdx := getPromoteIndexWithMode(jOriginalFileNameNoExt, promoteSubstrings, matchMode)
 		if iPromoteIdx != jPromoteIdx {
 			return iPromoteIdx < jPromoteIdx
 		}

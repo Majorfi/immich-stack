@@ -1,5 +1,8 @@
 pre-commit:
   commands:
+    prettier:
+      run: prettier . --write
+      stage_fixed: true
     goTest:
       glob: "*.{go}"
       run: go test ./...

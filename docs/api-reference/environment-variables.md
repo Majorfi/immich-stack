@@ -27,10 +27,41 @@ This document provides a complete reference of all environment variables support
 
 ## Parent Selection
 
-| Variable                  | Description                               | Default | Example     |
-| ------------------------- | ----------------------------------------- | ------- | ----------- |
-| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames | -       | `edit,raw`  |
-| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files     | -       | `.jpg,.dng` |
+| Variable                  | Description                                                                                                                   | Default | Example                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------- |
+| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames. Supports the `sequence` keyword and automatic sequence detection for burst photos. | -       | `edit,raw` or `COVER,sequence` or `0000,0001,0002,0003` |
+| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files                                                                                         | -       | `.jpg,.dng`                                             |
+
+### Sequence Keyword
+
+The `sequence` keyword provides flexible handling of sequential files (like burst photos):
+
+| Syntax          | Description                            | Example Files                                  | Result                                 |
+| --------------- | -------------------------------------- | ---------------------------------------------- | -------------------------------------- |
+| `sequence`      | Matches any numeric sequence           | `IMG_0001.jpg`, `IMG_0010.jpg`, `IMG_0100.jpg` | Orders by numeric value: 1, 10, 100    |
+| `sequence:4`    | Matches exactly 4-digit sequences      | `IMG_0001.jpg`, `IMG_0010.jpg`                 | Only matches 4-digit numbers           |
+| `sequence:IMG_` | Matches sequences with specific prefix | `IMG_001.jpg`, `PHOTO_001.jpg`                 | Only orders files starting with `IMG_` |
+
+**Mixed Promote Lists:**
+
+```sh
+# Prioritize COVER files, then order remaining by sequence
+PARENT_FILENAME_PROMOTE=COVER,sequence
+
+# Prioritize edited files, then 4-digit sequences
+PARENT_FILENAME_PROMOTE=edit,sequence:4
+```
+
+### Automatic Sequence Detection (Legacy)
+
+When `PARENT_FILENAME_PROMOTE` contains a numeric sequence pattern (e.g., `0000,0001,0002,0003`), the system automatically:
+
+- Detects the sequence pattern (prefix, number, suffix)
+- Matches files that follow the same pattern
+- Orders files by their numeric value, even beyond the listed values
+- Works with various formats: `IMG_0001`, `photo001`, `1a`, etc.
+
+**Note:** The `sequence` keyword is recommended over listing individual numbers for better flexibility.
 
 ## Asset Inclusion
 
