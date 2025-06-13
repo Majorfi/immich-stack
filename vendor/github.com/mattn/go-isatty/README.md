@@ -45,6 +45,6 @@ Yasuhiro Matsumoto (a.k.a mattn)
 
 ## Thanks
 
-* k-takata: base idea for IsCygwinTerminal
+- k-takata: base idea for IsCygwinTerminal
 
-    https://github.com/k-takata/go-iscygpty
+  https://github.com/k-takata/go-iscygpty

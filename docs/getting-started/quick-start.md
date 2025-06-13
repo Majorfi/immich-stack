@@ -58,3 +58,39 @@ export WITH_ARCHIVED=true
 export WITH_DELETED=true
 ./immich-stack
 ```
+
+## Burst Photo Example
+
+For burst photos from cameras like Sony, Canon, etc., you can use the flexible `sequence` keyword or numeric sequences:
+
+### Using the Sequence Keyword (Recommended)
+
+```sh
+# Order any burst photos by their numeric sequence
+export PARENT_FILENAME_PROMOTE=sequence
+
+# For Sony burst photos with COVER priority
+export PARENT_FILENAME_PROMOTE=COVER,sequence
+
+# For Canon burst photos with specific 4-digit format
+export PARENT_FILENAME_PROMOTE=sequence:4
+
+# For files with specific prefix
+export PARENT_FILENAME_PROMOTE=sequence:IMG_
+
+./immich-stack
+```
+
+### Using Numeric Sequences (Legacy)
+
+```sh
+# For Sony burst photos (DSCPDC_0000_BURST..., DSCPDC_0001_BURST..., etc.)
+export PARENT_FILENAME_PROMOTE=0000,0001,0002,0003
+
+# For Canon burst photos (IMG_0001, IMG_0002, etc.)
+export PARENT_FILENAME_PROMOTE=IMG_0001,IMG_0002,IMG_0003
+
+# The system automatically detects sequences and orders photos correctly
+# Even files beyond your list (e.g., 0999) will be sorted properly
+./immich-stack
+```

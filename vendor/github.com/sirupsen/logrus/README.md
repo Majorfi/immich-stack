@@ -72,6 +72,7 @@ time="2015-03-26T01:27:38-04:00" level=debug msg="Temperature changes" temperatu
 time="2015-03-26T01:27:38-04:00" level=panic msg="It's over 9000!" animal=orca size=9009
 time="2015-03-26T01:27:38-04:00" level=fatal msg="The ice breaks!" err=&{0x2082280c0 map[animal:orca size:9009] 2015-03-26 01:27:38.441574009 -0400 EDT panic It's over 9000!} number=100 omg=true
 ```
+
 To ensure this behaviour even if a TTY is attached, set your formatter as follows:
 
 ```go
@@ -84,26 +85,34 @@ To ensure this behaviour even if a TTY is attached, set your formatter as follow
 #### Logging Method Name
 
 If you wish to add the calling method as a field, instruct the logger via:
+
 ```go
 log.SetReportCaller(true)
 ```
+
 This adds the caller as 'method' like so:
 
 ```json
-{"animal":"penguin","level":"fatal","method":"github.com/sirupsen/arcticcreatures.migrate","msg":"a penguin swims by",
-"time":"2014-03-10 19:57:38.562543129 -0400 EDT"}
+{
+  "animal": "penguin",
+  "level": "fatal",
+  "method": "github.com/sirupsen/arcticcreatures.migrate",
+  "msg": "a penguin swims by",
+  "time": "2014-03-10 19:57:38.562543129 -0400 EDT"
+}
 ```
 
 ```text
 time="2015-03-26T01:27:38-04:00" level=fatal method=github.com/sirupsen/arcticcreatures.migrate msg="a penguin swims by" animal=penguin
 ```
+
 Note that this does add measurable overhead - the cost will depend on the version of Go, but is
-between 20 and 40% in recent tests with 1.6 and 1.7.  You can validate this in your
+between 20 and 40% in recent tests with 1.6 and 1.7. You can validate this in your
 environment via benchmarks:
+
 ```
 go test -bench=.*CallerTracing
 ```
-
 
 #### Case-sensitivity
 
@@ -285,10 +294,10 @@ func init() {
   }
 }
 ```
+
 Note: Syslog hook also support connecting to local syslog (Ex. "/dev/log" or "/var/run/syslog" or "/var/run/log"). For the detail, please check the [syslog hook README](hooks/syslog/README.md).
 
 A list of currently known service hooks can be found in this wiki [page](https://github.com/sirupsen/logrus/wiki/Hooks)
-
 
 #### Level logging
 
@@ -363,29 +372,29 @@ Splunk or Logstash.
 
 The built-in logging formatters are:
 
-* `logrus.TextFormatter`. Logs the event in colors if stdout is a tty, otherwise
+- `logrus.TextFormatter`. Logs the event in colors if stdout is a tty, otherwise
   without colors.
-  * *Note:* to force colored output when there is no TTY, set the `ForceColors`
-    field to `true`.  To force no colored output even if there is a TTY  set the
+  - _Note:_ to force colored output when there is no TTY, set the `ForceColors`
+    field to `true`. To force no colored output even if there is a TTY set the
     `DisableColors` field to `true`. For Windows, see
     [github.com/mattn/go-colorable](https://github.com/mattn/go-colorable).
-  * When colors are enabled, levels are truncated to 4 characters by default. To disable
+  - When colors are enabled, levels are truncated to 4 characters by default. To disable
     truncation set the `DisableLevelTruncation` field to `true`.
-  * When outputting to a TTY, it's often helpful to visually scan down a column where all the levels are the same width. Setting the `PadLevelText` field to `true` enables this behavior, by adding padding to the level text.
-  * All options are listed in the [generated docs](https://godoc.org/github.com/sirupsen/logrus#TextFormatter).
-* `logrus.JSONFormatter`. Logs fields as JSON.
-  * All options are listed in the [generated docs](https://godoc.org/github.com/sirupsen/logrus#JSONFormatter).
+  - When outputting to a TTY, it's often helpful to visually scan down a column where all the levels are the same width. Setting the `PadLevelText` field to `true` enables this behavior, by adding padding to the level text.
+  - All options are listed in the [generated docs](https://godoc.org/github.com/sirupsen/logrus#TextFormatter).
+- `logrus.JSONFormatter`. Logs fields as JSON.
+  - All options are listed in the [generated docs](https://godoc.org/github.com/sirupsen/logrus#JSONFormatter).
 
 Third party logging formatters:
 
-* [`FluentdFormatter`](https://github.com/joonix/log). Formats entries that can be parsed by Kubernetes and Google Container Engine.
-* [`GELF`](https://github.com/fabienm/go-logrus-formatters). Formats entries so they comply to Graylog's [GELF 1.1 specification](http://docs.graylog.org/en/2.4/pages/gelf.html).
-* [`logstash`](https://github.com/bshuster-repo/logrus-logstash-hook). Logs fields as [Logstash](http://logstash.net) Events.
-* [`prefixed`](https://github.com/x-cray/logrus-prefixed-formatter). Displays log entry source along with alternative layout.
-* [`zalgo`](https://github.com/aybabtme/logzalgo). Invoking the Power of Zalgo.
-* [`nested-logrus-formatter`](https://github.com/antonfisher/nested-logrus-formatter). Converts logrus fields to a nested structure.
-* [`powerful-logrus-formatter`](https://github.com/zput/zxcTool). get fileName, log's line number and the latest function's name when print log; Sava log to files.
-* [`caption-json-formatter`](https://github.com/nolleh/caption_json_formatter). logrus's message json formatter with human-readable caption added.
+- [`FluentdFormatter`](https://github.com/joonix/log). Formats entries that can be parsed by Kubernetes and Google Container Engine.
+- [`GELF`](https://github.com/fabienm/go-logrus-formatters). Formats entries so they comply to Graylog's [GELF 1.1 specification](http://docs.graylog.org/en/2.4/pages/gelf.html).
+- [`logstash`](https://github.com/bshuster-repo/logrus-logstash-hook). Logs fields as [Logstash](http://logstash.net) Events.
+- [`prefixed`](https://github.com/x-cray/logrus-prefixed-formatter). Displays log entry source along with alternative layout.
+- [`zalgo`](https://github.com/aybabtme/logzalgo). Invoking the Power of Zalgo.
+- [`nested-logrus-formatter`](https://github.com/antonfisher/nested-logrus-formatter). Converts logrus fields to a nested structure.
+- [`powerful-logrus-formatter`](https://github.com/zput/zxcTool). get fileName, log's line number and the latest function's name when print log; Sava log to files.
+- [`caption-json-formatter`](https://github.com/nolleh/caption_json_formatter). logrus's message json formatter with human-readable caption added.
 
 You can define your formatter by implementing the `Formatter` interface,
 requiring a `Format` method. `Format` takes an `*Entry`. `entry.Data` is a
@@ -448,17 +457,17 @@ entries. It should not be a feature of the application-level logger.
 
 #### Tools
 
-| Tool | Description |
-| ---- | ----------- |
-|[Logrus Mate](https://github.com/gogap/logrus_mate)|Logrus mate is a tool for Logrus to manage loggers, you can initial logger's level, hook and formatter by config file, the logger will be generated with different configs in different environments.|
-|[Logrus Viper Helper](https://github.com/heirko/go-contrib/tree/master/logrusHelper)|An Helper around Logrus to wrap with spf13/Viper to load configuration with fangs! And to simplify Logrus configuration use some behavior of [Logrus Mate](https://github.com/gogap/logrus_mate). [sample](https://github.com/heirko/iris-contrib/blob/master/middleware/logrus-logger/example) |
+| Tool                                                                                 | Description                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Logrus Mate](https://github.com/gogap/logrus_mate)                                  | Logrus mate is a tool for Logrus to manage loggers, you can initial logger's level, hook and formatter by config file, the logger will be generated with different configs in different environments.                                                                                           |
+| [Logrus Viper Helper](https://github.com/heirko/go-contrib/tree/master/logrusHelper) | An Helper around Logrus to wrap with spf13/Viper to load configuration with fangs! And to simplify Logrus configuration use some behavior of [Logrus Mate](https://github.com/gogap/logrus_mate). [sample](https://github.com/heirko/iris-contrib/blob/master/middleware/logrus-logger/example) |
 
 #### Testing
 
 Logrus has a built in facility for asserting the presence of log messages. This is implemented through the `test` hook and provides:
 
-* decorators for existing logger (`test.NewLocal` and `test.NewGlobal`) which basically just adds the `test` hook
-* a test logger (`test.NewNullLogger`) that just records log messages (and does not output any):
+- decorators for existing logger (`test.NewLocal` and `test.NewGlobal`) which basically just adds the `test` hook
+- a test logger (`test.NewNullLogger`) that just records log messages (and does not output any):
 
 ```go
 import(
@@ -504,12 +513,12 @@ If you are sure such locking is not needed, you can call logger.SetNoLock() to d
 
 Situation when locking is not needed includes:
 
-* You have no hooks registered, or hooks calling is already thread-safe.
+- You have no hooks registered, or hooks calling is already thread-safe.
 
-* Writing to logger.Out is already thread-safe, for example:
+- Writing to logger.Out is already thread-safe, for example:
 
-  1) logger.Out is protected by locks.
+  1. logger.Out is protected by locks.
 
-  2) logger.Out is an os.File handler opened with `O_APPEND` flag, and every write is smaller than 4k. (This allows multi-thread/multi-process writing)
+  2. logger.Out is an os.File handler opened with `O_APPEND` flag, and every write is smaller than 4k. (This allows multi-thread/multi-process writing)
 
      (Refer to http://www.notthewizard.com/2014/06/17/are-files-appends-really-atomic/)

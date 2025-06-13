@@ -27,9 +27,10 @@ For detailed documentation, please visit our [documentation site](https://majorf
 ## Features
 
 - **Automatic Stacking:** Groups similar photos into stacks based on filename, date, and custom criteria
+- **Smart Burst Photo Handling:** Automatically detects and properly orders burst photo sequences
 - **Multi-User Support:** Process multiple users sequentially with comma-separated API keys
 - **Configurable Grouping:** Custom grouping logic via environment variables and command-line flags
-- **Parent/Child Promotion:** Fine-grained control over stack parent selection
+- **Parent/Child Promotion:** Fine-grained control over stack parent selection with intelligent sequence detection
 - **Safe Operations:** Dry-run mode, stack replacement, and reset with confirmation
 - **Comprehensive Logging:** Colorful, structured logs for all operations
 - **Tested and Modular:** Table-driven tests and clear separation of concerns

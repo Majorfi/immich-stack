@@ -14,6 +14,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// HTTP client configuration constants
+const (
+	defaultHTTPTimeout      = 600 * time.Second
+	maxIdleConns           = 100
+	maxIdleConnsPerHost    = 100
+	idleConnTimeout        = 90 * time.Second
+	retryBaseDelay         = 500 * time.Millisecond
+	maxRetries             = 3
+)
+
 /**************************************************************************************************
 ** Client represents an Immich API client with standard http package implementation.
 ** It handles all API interactions with the Immich server including authentication,
@@ -66,11 +76,11 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 	baseURL := fmt.Sprintf("%s://%s/api", parsedURL.Scheme, parsedURL.Host)
 
 	client := &http.Client{
-		Timeout: 600 * time.Second,
+		Timeout: defaultHTTPTimeout,
 		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 100,
-			IdleConnTimeout:     90 * time.Second,
+			MaxIdleConns:        maxIdleConns,
+			MaxIdleConnsPerHost: maxIdleConnsPerHost,
+			IdleConnTimeout:     idleConnTimeout,
 		},
 	}
 
@@ -118,14 +128,13 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	maxRetries := 3
 	for i := 0; i < maxRetries; i++ {
 		resp, err := c.client.Do(req)
 		if err != nil {
 			if i == maxRetries-1 {
 				return fmt.Errorf("error making request after %d retries: %w", maxRetries, err)
 			}
-			time.Sleep(time.Duration(500*(i+1)) * time.Millisecond)
+			time.Sleep(retryBaseDelay * time.Duration(i+1))
 			continue
 		}
 

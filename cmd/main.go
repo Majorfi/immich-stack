@@ -6,6 +6,8 @@
 package main
 
 import (
+	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -50,7 +52,6 @@ func configureLogger() *logrus.Logger {
 			logger.SetLevel(logrus.InfoLevel)
 		}
 	} else {
-		utils.Pretty(`hello`)
 		logger.SetLevel(logrus.InfoLevel)
 	}
 
@@ -68,6 +69,37 @@ func configureLogger() *logrus.Logger {
 	}
 
 	return logger
+}
+
+/**************************************************************************************************
+** validateConfig validates the configuration parameters to ensure they are valid.
+**
+** @param apiURL - API URL to validate
+** @param runMode - Run mode to validate
+** @param cronInterval - Cron interval to validate
+** @return error - Any validation error
+**************************************************************************************************/
+func validateConfig(apiURL string, runMode string, cronInterval int) error {
+	if apiURL != "" {
+		parsedURL, err := url.Parse(apiURL)
+		if err != nil {
+			return fmt.Errorf("invalid API_URL: %w", err)
+		}
+		if parsedURL.Scheme == "" || parsedURL.Host == "" {
+			return fmt.Errorf("invalid API_URL: missing scheme or host")
+		}
+	}
+
+	validModes := map[string]bool{"once": true, "cron": true}
+	if !validModes[runMode] {
+		return fmt.Errorf("invalid RUN_MODE: %s (must be 'once' or 'cron')", runMode)
+	}
+
+	if runMode == "cron" && cronInterval <= 0 {
+		return fmt.Errorf("CRON_INTERVAL must be positive when RUN_MODE is 'cron'")
+	}
+
+	return nil
 }
 
 /**************************************************************************************************
@@ -101,12 +133,20 @@ func loadEnv() *logrus.Logger {
 		if val := os.Getenv("CRON_INTERVAL"); val != "" {
 			if intVal, err := strconv.Atoi(val); err == nil {
 				cronInterval = intVal
+			} else {
+				logger.Warnf("Invalid CRON_INTERVAL '%s', using default", val)
 			}
 		}
 	}
 	if cronInterval == 0 && runMode == "cron" {
 		cronInterval = 86400
 	}
+
+	// Validate configuration
+	if err := validateConfig(apiURL, runMode, cronInterval); err != nil {
+		logger.Fatalf("Configuration error: %v", err)
+	}
+
 	if !resetStacks {
 		resetStacks = os.Getenv("RESET_STACKS") == "true"
 	}
@@ -150,6 +190,9 @@ func loadEnv() *logrus.Logger {
 ** @return newStackIDs - Combined array of parent and child IDs
 **************************************************************************************************/
 func getParentAndChildrenIDs(stack []utils.TAsset) (string, []string, []string) {
+	if len(stack) == 0 {
+		return "", nil, nil
+	}
 	parentID := stack[0].ID
 	childrenIDs := make([]string, len(stack)-1)
 	for i, asset := range stack[1:] {
@@ -245,6 +288,41 @@ func getChildrenWithStack(stack []utils.TAsset) ([]string, bool) {
 }
 
 /**************************************************************************************************
+** processAPIKey processes a single API key, handling all operations for that user.
+** This function encapsulates all processing for a single API key to avoid state sharing.
+**
+** @param key - API key to process
+** @param index - Index of the API key (for logging)
+** @param logger - Logger instance
+**************************************************************************************************/
+func processAPIKey(key string, index int, logger *logrus.Logger) {
+	// Create client for this API key
+	client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, logger)
+	if client == nil {
+		logger.Errorf("Invalid client for API key at index %d", index)
+		return
+	}
+
+	user, err := client.GetCurrentUser()
+	if err != nil {
+		logger.Errorf("Failed to fetch user for API key at index %d: %v", index, err)
+		return
+	}
+
+	logger.Infof("=====================================================================================")
+	logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
+	logger.Infof("=====================================================================================")
+
+	if runMode == "cron" {
+		logger.Infof("Running in cron mode with interval of %d seconds", cronInterval)
+		runCronLoop(client, logger)
+	} else {
+		logger.Info("Running in once mode")
+		runStackerOnce(client, logger)
+	}
+}
+
+/**************************************************************************************************
 ** Main execution logic for the stacker process. Handles the core workflow of fetching assets,
 ** grouping them into stacks, and applying updates to Immich. Includes detailed logging and
 ** error handling throughout the process.
@@ -268,30 +346,16 @@ func runStacker(cmd *cobra.Command, args []string) {
 		logger.Fatalf("No API key(s) provided.")
 	}
 
+	// Process each API key sequentially
+	// NOTE: This implementation processes API keys sequentially. If concurrent processing
+	// is needed in the future, ensure proper synchronization of shared resources.
 	for i, key := range apiKeys {
 		if i > 0 {
 			logger.Infof("\n")
 		}
-		client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, logger)
-		if client == nil {
-			logger.Errorf("Invalid client for API key: %s", key)
-			continue
-		}
-		user, err := client.GetCurrentUser()
-		if err != nil {
-			logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
-			continue
-		}
-		logger.Infof("=====================================================================================")
-		logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
-		logger.Infof("=====================================================================================")
-		if runMode == "cron" {
-			logger.Infof("Running in cron mode with interval of %d seconds", cronInterval)
-			runCronLoop(client, logger)
-		} else {
-			logger.Info("Running in once mode")
-			runStackerOnce(client, logger)
-		}
+
+		// Process each API key in isolation to avoid state sharing issues
+		processAPIKey(key, i, logger)
 	}
 }
 
@@ -398,11 +462,24 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 		}
 
 		/******************************************************************************************
-		** Modify the stack after a little delay to avoid self-rekt.
+		** Modify the stack with retry logic for better reliability.
 		******************************************************************************************/
-		time.Sleep(100 * time.Millisecond)
-		if err := client.ModifyStack(newStackIDs); err != nil {
-			logger.Errorf("Error modifying stack: %v", err)
+		const maxStackRetries = 3
+		var stackErr error
+		for attempt := 1; attempt <= maxStackRetries; attempt++ {
+			stackErr = client.ModifyStack(newStackIDs)
+			if stackErr == nil {
+				break
+			}
+
+			if attempt < maxStackRetries {
+				waitTime := time.Duration(attempt) * time.Second
+				logger.Warnf("Stack modification failed (attempt %d/%d), retrying in %v: %v",
+					attempt, maxStackRetries, waitTime, stackErr)
+				time.Sleep(waitTime)
+			} else {
+				logger.Errorf("Stack modification failed after %d attempts: %v", maxStackRetries, stackErr)
+			}
 		}
 	}
 }
@@ -415,7 +492,11 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 ** @param logger - Logger instance for outputting status and errors
 **************************************************************************************************/
 func runCronLoop(client *immich.Client, logger *logrus.Logger) {
+	iteration := 0
 	for {
+		iteration++
+		// Log the iteration for debugging
+		logger.WithField("iteration", iteration).Info("Starting new iteration")
 		runStackerOnce(client, logger)
 		logger.Infof("Sleeping for %d seconds until next run", cronInterval)
 		time.Sleep(time.Duration(cronInterval) * time.Second)
