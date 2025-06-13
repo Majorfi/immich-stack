@@ -633,6 +633,122 @@ func TestSequenceKeywordHandling(t *testing.T) {
 	}
 }
 
+func TestSortStack_SonyBurstPhotosWithSequenceKeyword(t *testing.T) {
+	// Test case from GitHub issue #18 using the recommended sequence:4 pattern
+	// This should correctly order Sony burst photos based on their 4-digit sequence numbers
+	stack := []utils.TAsset{
+		{
+			ID:               "7a733c19-a588-433c-9cd8-d621071e47c3",
+			OriginalFileName: "DSCPDC_0000_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.460Z",
+		},
+		{
+			ID:               "26147f09-f6be-44c4-92e7-82b45313dc3c",
+			OriginalFileName: "DSCPDC_0002_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.758Z",
+		},
+		{
+			ID:               "e964fcd7-8889-491d-aa08-ca54cfd716ab",
+			OriginalFileName: "DSCPDC_0003_BURST20180828114700954_COVER.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.910Z",
+		},
+		{
+			ID:               "2dd4c37a-bc68-4f09-8150-bea904f30f51",
+			OriginalFileName: "DSCPDC_0001_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.608Z",
+		},
+	}
+
+	// Test with sequence:4 keyword that should match 4-digit patterns
+	parentFilenamePromote := "sequence:4"
+	parentExtPromote := ""
+	delimiters := []string{} // No delimiters, like in user's case
+
+	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters)
+
+	// Log for debugging
+	t.Logf("Sorted order with sequence:4 keyword:")
+	for i, asset := range sorted {
+		t.Logf("  [%d] %s", i, asset.OriginalFileName)
+	}
+
+	// Expected order: 0000, 0001, 0002, 0003
+	assert.Equal(t, "DSCPDC_0000_BURST20180828114700954.JPG", sorted[0].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0001_BURST20180828114700954.JPG", sorted[1].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0002_BURST20180828114700954.JPG", sorted[2].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0003_BURST20180828114700954_COVER.JPG", sorted[3].OriginalFileName)
+}
+
+func TestStackBy_SonyBurstPhotosFullWorkflow(t *testing.T) {
+	// Test the complete workflow from GitHub issue #18
+	// Using both the regex criteria and sequence:4 promote pattern
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+
+	assets := []utils.TAsset{
+		{
+			ID:               "7a733c19-a588-433c-9cd8-d621071e47c3",
+			OriginalFileName: "DSCPDC_0000_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.460Z",
+		},
+		{
+			ID:               "2dd4c37a-bc68-4f09-8150-bea904f30f51",
+			OriginalFileName: "DSCPDC_0001_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.608Z",
+		},
+		{
+			ID:               "26147f09-f6be-44c4-92e7-82b45313dc3c",
+			OriginalFileName: "DSCPDC_0002_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.758Z",
+		},
+		{
+			ID:               "e964fcd7-8889-491d-aa08-ca54cfd716ab",
+			OriginalFileName: "DSCPDC_0003_BURST20180828114700954_COVER.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.910Z",
+		},
+		// Add another burst sequence to ensure proper grouping
+		{
+			ID:               "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+			OriginalFileName: "DSCPDC_0000_BURST20180828115000000.JPG",
+			LocalDateTime:    "2018-08-28T11:50:00.000Z",
+		},
+		{
+			ID:               "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+			OriginalFileName: "DSCPDC_0001_BURST20180828115000000.JPG",
+			LocalDateTime:    "2018-08-28T11:50:00.100Z",
+		},
+	}
+
+	// Set up the exact environment from the issue
+	t.Setenv("CRITERIA", `[{"key":"originalFileName","regex":{"key":"DSCPDC_(\\d{4})_(BURST\\d{17})(_COVER)?.JPG","index":2}}]`)
+
+	// Use sequence:4 for proper ordering
+	parentFilenamePromote := "sequence:4"
+	parentExtPromote := ".jpg,.png,.jpeg,.dng"
+
+	stacks, err := StackBy(assets, "", parentFilenamePromote, parentExtPromote, logger)
+	assert.NoError(t, err)
+	assert.Len(t, stacks, 2, "Should have 2 stacks")
+
+	// Find the first burst stack
+	var firstStack []utils.TAsset
+	for _, stack := range stacks {
+		if strings.Contains(stack[0].OriginalFileName, "114700954") {
+			firstStack = stack
+			break
+		}
+	}
+
+	assert.NotNil(t, firstStack, "Should find the first burst stack")
+	assert.Len(t, firstStack, 4, "First stack should have 4 photos")
+
+	// Verify correct ordering
+	assert.Equal(t, "DSCPDC_0000_BURST20180828114700954.JPG", firstStack[0].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0001_BURST20180828114700954.JPG", firstStack[1].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0002_BURST20180828114700954.JPG", firstStack[2].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0003_BURST20180828114700954_COVER.JPG", firstStack[3].OriginalFileName)
+}
+
 func TestSequenceKeywordVariations(t *testing.T) {
 	tests := []struct {
 		name        string
