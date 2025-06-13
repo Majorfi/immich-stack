@@ -679,6 +679,73 @@ func TestSortStack_SonyBurstPhotosWithSequenceKeyword(t *testing.T) {
 	assert.Equal(t, "DSCPDC_0003_BURST20180828114700954_COVER.JPG", sorted[3].OriginalFileName)
 }
 
+func TestSortStack_SonyBurstPhotosWithPrefixPattern(t *testing.T) {
+	// Test that sequence:DSCPDC_ correctly orders only Sony burst photos
+	// and ignores other files without the DSCPDC_ prefix
+	stack := []utils.TAsset{
+		// Mix of Sony burst photos and other files
+		{
+			ID:               "1",
+			OriginalFileName: "IMG_0001.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.000Z",
+		},
+		{
+			ID:               "2",
+			OriginalFileName: "DSCPDC_0002_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.758Z",
+		},
+		{
+			ID:               "3",
+			OriginalFileName: "PHOTO_001.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.100Z",
+		},
+		{
+			ID:               "4",
+			OriginalFileName: "DSCPDC_0000_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.460Z",
+		},
+		{
+			ID:               "5",
+			OriginalFileName: "DSCPDC_0003_BURST20180828114700954_COVER.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.910Z",
+		},
+		{
+			ID:               "6",
+			OriginalFileName: "DSCPDC_0001_BURST20180828114700954.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.608Z",
+		},
+		{
+			ID:               "7",
+			OriginalFileName: "DSC_0001.JPG",
+			LocalDateTime:    "2018-08-28T11:47:00.200Z",
+		},
+	}
+
+	// Use sequence:DSCPDC_ to only order Sony burst photos
+	parentFilenamePromote := "sequence:DSCPDC_"
+	parentExtPromote := ""
+	delimiters := []string{}
+
+	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters)
+
+	// Log for debugging
+	t.Logf("Sorted order with sequence:DSCPDC_ pattern:")
+	for i, asset := range sorted {
+		t.Logf("  [%d] %s", i, asset.OriginalFileName)
+	}
+
+	// Expected: DSCPDC_ files ordered by sequence first, then others
+	assert.Equal(t, "DSCPDC_0000_BURST20180828114700954.JPG", sorted[0].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0001_BURST20180828114700954.JPG", sorted[1].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0002_BURST20180828114700954.JPG", sorted[2].OriginalFileName)
+	assert.Equal(t, "DSCPDC_0003_BURST20180828114700954_COVER.JPG", sorted[3].OriginalFileName)
+	
+	// Other files should come after, sorted alphabetically
+	assert.Equal(t, "DSC_0001.JPG", sorted[4].OriginalFileName)
+	assert.Equal(t, "IMG_0001.JPG", sorted[5].OriginalFileName)
+	assert.Equal(t, "PHOTO_001.JPG", sorted[6].OriginalFileName)
+}
+
 func TestStackBy_SonyBurstPhotosFullWorkflow(t *testing.T) {
 	// Test the complete workflow from GitHub issue #18
 	// Using both the regex criteria and sequence:4 promote pattern
