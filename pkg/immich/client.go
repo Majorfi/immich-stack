@@ -164,7 +164,7 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 ** @return map[string]stacker.Stack - Map of stacks indexed by primary asset ID
 ** @return error - Any error that occurred during the fetch
 **************************************************************************************************/
-func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
+func (c *Client) FetchAllStacks(shouldRemoveSingleAssetStacks bool) (map[string]utils.TStack, error) {
 	var stacks []utils.TStack
 	if err := c.doRequest(http.MethodGet, "/stacks", nil, &stacks); err != nil {
 		return nil, fmt.Errorf("error fetching stacks: %w", err)
@@ -177,7 +177,7 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 			if err := c.DeleteStack(stack.ID, utils.REASON_RESET_STACK); err != nil {
 				c.logger.Errorf("Error deleting stack: %v", err)
 			}
-		} else if len(stack.Assets) <= 1 {
+		} else if shouldRemoveSingleAssetStacks && len(stack.Assets) <= 1 {
 			if err := c.DeleteStack(stack.ID, utils.REASON_DELETE_STACK_WITH_ONE_ASSET); err != nil {
 				c.logger.Errorf("Error deleting stack: %v", err)
 			}
@@ -371,4 +371,88 @@ func (c *Client) GetCurrentUser() (utils.TUserResponse, error) {
 		return user, fmt.Errorf("error fetching current user: %w", err)
 	}
 	return user, nil
+}
+
+/**************************************************************************************************
+** FetchTrashedAssets retrieves only assets that are in the trash.
+** This function specifically filters for assets where IsTrashed is true.
+**
+** @param size - Number of assets per page
+** @return []utils.TAsset - List of trashed assets
+** @return error - Any error that occurred during the fetch
+**************************************************************************************************/
+func (c *Client) FetchTrashedAssets(size int) ([]utils.TAsset, error) {
+	var allTrashedAssets []utils.TAsset
+	page := 1
+
+	c.logger.Infof("🗑️  Fetching trashed assets:")
+	for {
+		c.logger.Debugf("Fetching trashed assets page %d", page)
+		var response utils.TSearchResponse
+		if err := c.doRequest(http.MethodPost, "/search/metadata", map[string]interface{}{
+			"size":         size,
+			"page":         page,
+			"order":        "asc",
+			"type":         "IMAGE",
+			"isVisible":    true,
+			"withStacked":  true,
+			"withArchived": false,
+			"withDeleted":  true,
+		}, &response); err != nil {
+			c.logger.Errorf("Error fetching trashed assets: %v", err)
+			return nil, fmt.Errorf("error fetching trashed assets: %w", err)
+		}
+
+		// Filter for only trashed assets
+		for _, asset := range response.Assets.Items {
+			if asset.IsTrashed {
+				allTrashedAssets = append(allTrashedAssets, asset)
+			}
+		}
+
+		// Handle string nextPage: empty string means no more pages
+		if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
+			break
+		}
+		nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
+		if err != nil || nextPageInt == 0 {
+			break
+		}
+		page = nextPageInt
+	}
+	c.logger.Infof("🗑️  %d trashed assets found", len(allTrashedAssets))
+
+	return allTrashedAssets, nil
+}
+
+/**************************************************************************************************
+** TrashAssets moves the specified assets to trash using the DELETE API with force=false.
+** In dry run mode, it only logs the action without making changes.
+**
+** @param assetIDs - Array of asset IDs to move to trash
+** @return error - Any error that occurred during the operation
+**************************************************************************************************/
+func (c *Client) TrashAssets(assetIDs []string) error {
+	if len(assetIDs) == 0 {
+		return nil
+	}
+
+	if c.dryRun {
+		c.logger.Infof("🗑️  Would move %d assets to trash (dry run)", len(assetIDs))
+		for _, assetID := range assetIDs {
+			c.logger.Infof("\t- Asset ID: %s", assetID)
+		}
+		return nil
+	}
+
+	if err := c.doRequest(http.MethodDelete, "/assets", map[string]interface{}{
+		"force": false,
+		"ids":   assetIDs,
+	}, nil); err != nil {
+		c.logger.Errorf("Error moving assets to trash: %v", err)
+		return fmt.Errorf("error moving assets to trash: %w", err)
+	}
+
+	c.logger.Infof("🗑️  Successfully moved %d assets to trash", len(assetIDs))
+	return nil
 }
