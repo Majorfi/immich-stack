@@ -8,6 +8,7 @@
 ## Sorting
 
 - **Parent Promotion:** Use `--parent-filename-promote` or `PARENT_FILENAME_PROMOTE` (comma-separated substrings) to promote files as stack parents
+- **Empty String for Negative Matching:** Use an empty string in the promote list to prioritize files that DON'T contain any of the other substrings (e.g., `,edit` promotes unedited files first)
 - **Sequence Keyword:** Use the `sequence` keyword for flexible sequential file handling (e.g., `sequence`, `sequence:4`, `sequence:IMG_`)
 - **Sequence Detection:** Automatically detects numeric sequences in promote lists (e.g., `0000,0001,0002`) and uses intelligent matching for burst photos
 - **Extension Promotion:** Use `--parent-ext-promote` or `PARENT_EXT_PROMOTE` (comma-separated extensions) to further prioritize
@@ -27,6 +28,22 @@ L1010229.edit.jpg
 L1010229.JPG
 L1010229.DNG
 ```
+
+### Empty String (Negative Matching) Example
+
+For files that lack EXIF data after editing, you can prioritize unedited files using empty string matching:
+
+For files: `IMG_1234.jpg`, `IMG_1234_edited.jpg`, `IMG_1234_crop.jpg`
+
+With `PARENT_FILENAME_PROMOTE=,_edited,_crop`, the empty string matches files WITHOUT "\_edited" or "\_crop":
+
+```
+IMG_1234.jpg          # Promoted first (doesn't contain _edited or _crop)
+IMG_1234_edited.jpg   # Second priority
+IMG_1234_crop.jpg     # Third priority
+```
+
+This is particularly useful when edited JPGs lose their EXIF data and would otherwise appear in the wrong timeline position.
 
 ### Burst Photo Sequence Example
 
