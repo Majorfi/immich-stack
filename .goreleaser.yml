@@ -15,7 +15,7 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    main: ./cmd/...
+    main: ./cmd/main.go
     binary: immich-stack
     dir: .
 
