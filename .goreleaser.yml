@@ -15,9 +15,8 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    main: ./cmd/main.go
+    main: ./cmd
     binary: immich-stack
-    dir: .
 
 archives:
   - format: tar.gz
