@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o immich-stack ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o immich-stack ./cmd/...
 
 # Use a smaller image for the final container
 FROM alpine:latest
