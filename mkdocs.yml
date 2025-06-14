@@ -48,6 +48,10 @@ nav:
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quick-start.md
       - Configuration: getting-started/configuration.md
+  - Commands:
+      - Overview: commands/index.md
+      - Duplicates: commands/duplicates.md
+      - Fix Trash: commands/fix-trash.md
   - Features:
       - Stacking Logic: features/stacking-logic.md
       - Multi-User Support: features/multi-user.md

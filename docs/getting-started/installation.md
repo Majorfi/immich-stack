@@ -17,7 +17,7 @@
 2. Build the binary:
 
    ```sh
-   go build -o immich-stack ./cmd/main.go
+   go build -o immich-stack ./cmd/...
    ```
 
 3. Move the binary to your PATH (optional):

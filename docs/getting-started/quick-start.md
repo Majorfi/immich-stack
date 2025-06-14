@@ -44,6 +44,32 @@ API_URL=http://your_immich_server:3001/api
 immich-stack
 ```
 
+## Available Commands
+
+### Create Stacks (Default)
+
+```sh
+# Run the main stacking operation
+immich-stack
+# Or explicitly:
+immich-stack stack
+```
+
+### Find Duplicates
+
+```sh
+# Identify duplicate assets in your library
+immich-stack duplicates
+```
+
+### Fix Trash Consistency
+
+```sh
+# Move related assets to trash when their companions are trashed
+immich-stack fix-trash --dry-run  # Preview first
+immich-stack fix-trash             # Execute
+```
+
 3. Optional: Configure additional options via environment variables or flags:
 
 ```sh
