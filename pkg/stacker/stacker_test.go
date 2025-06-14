@@ -95,6 +95,200 @@ func TestSortStack(t *testing.T) {
 			promoteStr: "edit",
 			promoteExt: ".jpg,.dng",
 		},
+		{
+			name: "empty string promotes files without suffixes",
+			inputOrder: []string{
+				"IMG_1234_edited.jpg",
+				"IMG_1234.jpg",
+				"IMG_1234_crop.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234.jpg",        // No suffix, promoted by empty string
+				"IMG_1234_edited.jpg", // Has _edited suffix
+				"IMG_1234_crop.jpg",   // Has _crop suffix
+			},
+			promoteStr: ",_edited,_crop",
+		},
+		{
+			name: "empty string with mixed priorities",
+			inputOrder: []string{
+				"IMG_1234_edited.jpg",
+				"IMG_1234_cover.jpg",
+				"IMG_1234.jpg",
+				"IMG_1234_crop.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234_cover.jpg",  // Explicitly promoted with "cover"
+				"IMG_1234.jpg",        // No suffix, promoted by empty string
+				"IMG_1234_edited.jpg", // Has _edited suffix
+				"IMG_1234_crop.jpg",   // Has _crop suffix
+			},
+			promoteStr: "cover,,_edited,_crop",
+		},
+		{
+			name: "empty string with extension promotion",
+			inputOrder: []string{
+				"IMG_1234_edited.jpg",
+				"IMG_1234.cr3",
+				"IMG_1234.jpg",
+				"IMG_1234_edited.cr3",
+			},
+			expectedOrder: []string{
+				"IMG_1234.jpg",        // No suffix + .jpg extension
+				"IMG_1234.cr3",        // No suffix + .cr3 extension
+				"IMG_1234_edited.jpg", // Has _edited suffix + .jpg
+				"IMG_1234_edited.cr3", // Has _edited suffix + .cr3
+			},
+			promoteStr: ",_edited",
+			promoteExt: ".jpg,.cr3",
+		},
+		{
+			name: "empty string only - clean file first",
+			inputOrder: []string{
+				"IMG_1234_final_edited.jpg",
+				"IMG_1234_crop_edited.jpg",
+				"IMG_1234.jpg",
+				"IMG_1234_edited.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234.jpg",              // Clean filename (empty string match)
+				"IMG_1234_crop_edited.jpg",  // Multiple suffixes - alphabetical order
+				"IMG_1234_edited.jpg",       // Single suffix - alphabetical order
+				"IMG_1234_final_edited.jpg", // Multiple suffixes - alphabetical order
+			},
+			promoteStr: ",", // Single comma = just empty string in the list
+		},
+		{
+			name: "real world case - clean files promoted, then by extension",
+			inputOrder: []string{
+				"IMG_1234_edited.jpg",
+				"IMG_1234.jpg",
+				"IMG_1234.cr3",
+			},
+			expectedOrder: []string{
+				"IMG_1234.jpg",        // Clean JPG (empty string match + .jpg extension)
+				"IMG_1234.cr3",        // Clean RAW (empty string match + .cr3 extension)
+				"IMG_1234_edited.jpg", // Edited JPG (has _edited suffix)
+			},
+			promoteStr: ",_edited",
+			promoteExt: ".jpg,.cr3",
+		},
+		{
+			name: "biggestNumber with numeric suffixes",
+			inputOrder: []string{
+				"IMG_1234.jpg",
+				"IMG_1234~2.jpg",
+				"IMG_1234~5.jpg",
+				"IMG_1234~3.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234~5.jpg", // Biggest number first
+				"IMG_1234~3.jpg",
+				"IMG_1234~2.jpg",
+				"IMG_1234.jpg", // No number suffix
+			},
+			promoteStr: "biggestNumber",
+		},
+		{
+			name: "biggestNumber with empty string - clean files first then by number",
+			inputOrder: []string{
+				"IMG_1234_edited~2.jpg",
+				"IMG_1234.jpg",
+				"IMG_1234_edited~5.jpg",
+				"IMG_1234~3.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234~3.jpg",        // Clean file with bigger number (biggestNumber applies)
+				"IMG_1234.jpg",          // Clean file without number
+				"IMG_1234_edited~5.jpg", // Edited with bigger number
+				"IMG_1234_edited~2.jpg", // Edited with smaller number
+			},
+			promoteStr: ",_edited,biggestNumber",
+		},
+		{
+			name: "biggestNumber mixed with other promotes",
+			inputOrder: []string{
+				"IMG_1234~2.jpg",
+				"IMG_1234_cover.jpg",
+				"IMG_1234~5.jpg",
+				"IMG_1234_edit.jpg",
+				"IMG_1234.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234_cover.jpg", // Explicit promote
+				"IMG_1234_edit.jpg",  // Explicit promote
+				"IMG_1234~5.jpg",     // BiggestNumber (5)
+				"IMG_1234~2.jpg",     // BiggestNumber (2)
+				"IMG_1234.jpg",       // No number, no promote
+			},
+			promoteStr: "cover,edit,biggestNumber",
+		},
+		{
+			name: "biggestNumber with different delimiter patterns",
+			inputOrder: []string{
+				"IMG_1234.jpg",
+				"IMG_1234.2.jpg",
+				"IMG_1234.10.jpg",
+				"IMG_1234.3.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234.10.jpg", // 10 is bigger than 3 and 2
+				"IMG_1234.3.jpg",
+				"IMG_1234.2.jpg",
+				"IMG_1234.jpg",
+			},
+			promoteStr: "biggestNumber",
+		},
+		{
+			name: "biggestNumber only affects files at same promote level",
+			inputOrder: []string{
+				"IMG_1234~10.jpg",
+				"IMG_1234_edit~2.jpg",
+				"IMG_1234_edit~20.jpg",
+				"IMG_1234~5.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234_edit~20.jpg", // edit promoted, bigger number
+				"IMG_1234_edit~2.jpg",  // edit promoted, smaller number
+				"IMG_1234~10.jpg",      // no promote, bigger number
+				"IMG_1234~5.jpg",       // no promote, smaller number
+			},
+			promoteStr: "edit,biggestNumber",
+		},
+		{
+			name: "biggestNumber with no numeric suffixes - falls back to alphabetical",
+			inputOrder: []string{
+				"IMG_1234_c.jpg",
+				"IMG_1234_a.jpg",
+				"IMG_1234_b.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234_a.jpg", // Alphabetical when no numbers
+				"IMG_1234_b.jpg",
+				"IMG_1234_c.jpg",
+			},
+			promoteStr: "biggestNumber",
+		},
+		{
+			name: "default promote list behavior",
+			inputOrder: []string{
+				"IMG_1234.jpg",
+				"IMG_1234_edit.jpg",
+				"IMG_1234_crop.jpg",
+				"IMG_1234_hdr.jpg",
+				"IMG_1234~5.jpg",
+				"IMG_1234~2.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_1234_edit.jpg", // Default: edit
+				"IMG_1234_crop.jpg", // Default: crop
+				"IMG_1234_hdr.jpg",  // Default: hdr
+				"IMG_1234~5.jpg",    // Default: biggestNumber (5)
+				"IMG_1234~2.jpg",    // Default: biggestNumber (2)
+				"IMG_1234.jpg",      // No match
+			},
+			promoteStr: "edit,crop,hdr,biggestNumber", // Same as default
+		},
 	}
 
 	for _, tt := range tests {

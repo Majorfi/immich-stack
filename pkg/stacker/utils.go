@@ -11,7 +11,7 @@ import (
 
 /**************************************************************************************************
 ** parsePromoteList parses a comma-separated list from an environment variable into a slice.
-** Trims whitespace and ignores empty entries.
+** Trims whitespace but preserves empty strings for negative matching.
 ** Special keywords like "sequence" are preserved for special handling.
 **************************************************************************************************/
 func parsePromoteList(list string) []string {
@@ -21,9 +21,12 @@ func parsePromoteList(list string) []string {
 	parts := strings.Split(list, ",")
 	result := make([]string, 0, len(parts))
 	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			result = append(result, p)
+		// Preserve empty strings but trim whitespace from non-empty ones
+		if p == "" {
+			result = append(result, "")
+		} else {
+			trimmed := strings.TrimSpace(p)
+			result = append(result, trimmed)
 		}
 	}
 	return result
@@ -67,16 +70,47 @@ func extractSequencePattern(keyword string) (prefix string, digits int) {
 /**************************************************************************************************
 ** getPromoteIndex returns the index of the first promote substring/extension found in the value.
 ** If none found, returns len(promoteList) (lowest priority).
+** Special handling for empty string: acts as negative match for files without other substrings.
 **************************************************************************************************/
 func getPromoteIndex(value string, promoteList []string) int {
+	// Check if we have an empty string in the promote list
+	emptyStringIndex := -1
+	hasNonEmptyStrings := false
+	
 	for idx, promote := range promoteList {
-		if promote == "" {
+		if promote == "" && emptyStringIndex == -1 {
+			emptyStringIndex = idx  // Only record the first empty string
+		} else if promote != "" && promote != "biggestNumber" {
+			hasNonEmptyStrings = true
+		}
+	}
+	
+	// Check for matches with non-empty strings
+	for idx, promote := range promoteList {
+		if promote == "" || promote == "biggestNumber" {
 			continue
 		}
 		if strings.Contains(strings.ToLower(value), strings.ToLower(promote)) {
 			return idx
 		}
 	}
+	
+	// If we have an empty string and no matches with non-empty strings, use empty string index
+	if emptyStringIndex >= 0 && hasNonEmptyStrings {
+		containsAnyPromote := false
+		for _, promote := range promoteList {
+			if promote != "" && promote != "biggestNumber" {
+				if strings.Contains(strings.ToLower(value), strings.ToLower(promote)) {
+					containsAnyPromote = true
+					break
+				}
+			}
+		}
+		if !containsAnyPromote {
+			return emptyStringIndex
+		}
+	}
+	
 	// If 'biggestNumber' is in the promote list, assign its index to unmatched files
 	for idx, promote := range promoteList {
 		if promote == "biggestNumber" {
@@ -114,6 +148,14 @@ func getExtensionRank(ext string) int {
 ** "0000", "0001", "0002" or "img1", "img2", "img3" and uses the numeric value
 ** directly as the sort index, allowing unlimited sequence numbers.
 **
+** Special handling for empty string in promote list:
+** - An empty string ("") acts as a negative match - files that don't contain any other
+**   non-empty promote strings will match the empty string's position
+** - Example: promoteList = ["", "_edited", "_crop"] means:
+**   - Files without "_edited" or "_crop" get index 0 (highest priority)
+**   - Files with "_edited" get index 1
+**   - Files with "_crop" get index 2
+**
 ** Special handling for "sequence" keyword in promote list:
 ** - Returns the position in promote list for non-sequence items
 ** - For "sequence" keyword, returns the index offset by the max non-sequence items
@@ -127,6 +169,18 @@ func getExtensionRank(ext string) int {
 func getPromoteIndexWithMode(value string, promoteList []string, matchMode string) int {
 	base := filepath.Base(value)
 
+	// Check if we have an empty string in the promote list (for negative matching)
+	emptyStringIndex := -1
+	hasNonEmptyStrings := false
+	
+	for idx, promote := range promoteList {
+		if promote == "" && emptyStringIndex == -1 {
+			emptyStringIndex = idx  // Only record the first empty string
+		} else if promote != "" && !isSequenceKeyword(promote) {
+			hasNonEmptyStrings = true
+		}
+	}
+
 	// First, check for exact matches with non-sequence items in the promote list
 	for idx, promote := range promoteList {
 		if promote == "" || isSequenceKeyword(promote) {
@@ -134,6 +188,26 @@ func getPromoteIndexWithMode(value string, promoteList []string, matchMode strin
 		}
 		if strings.Contains(strings.ToLower(base), strings.ToLower(promote)) {
 			return idx
+		}
+	}
+
+	// If we have an empty string and the filename doesn't match any non-empty strings,
+	// return the empty string's index (negative matching)
+	if emptyStringIndex >= 0 && hasNonEmptyStrings {
+		// Check if the filename contains any of the non-empty promote strings
+		containsAnyPromote := false
+		for _, promote := range promoteList {
+			if promote != "" && !isSequenceKeyword(promote) {
+				if strings.Contains(strings.ToLower(base), strings.ToLower(promote)) {
+					containsAnyPromote = true
+					break
+				}
+			}
+		}
+		
+		// If it doesn't contain any promote strings, return the empty string's index
+		if !containsAnyPromote {
+			return emptyStringIndex
 		}
 	}
 

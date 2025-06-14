@@ -2,3 +2,7 @@
 .docs
 .DS_Store
 .cursor
+.claude
+CLAUDE.md
+changelog.md
+immich-stack
