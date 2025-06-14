@@ -34,7 +34,7 @@ func getParentAndChildrenIDs(stack []utils.TAsset) (string, []string, []string) 
 			childrenIDs = append(childrenIDs, asset.ID)
 		}
 	}
-	newStackIDs := append([]string{parentID}, childrenIDs...)
+	newStackIDs := append([]string{parentID}, utils.RemoveEmptyStrings(childrenIDs)...)
 	return parentID, childrenIDs, newStackIDs
 }
 
