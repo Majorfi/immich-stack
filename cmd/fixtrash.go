@@ -6,11 +6,13 @@
 package main
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/majorfi/immich-stack/pkg/immich"
 	"github.com/majorfi/immich-stack/pkg/stacker"
 	"github.com/majorfi/immich-stack/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +43,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 		if i > 0 {
 			logger.Infof("\n")
 		}
-		client := immich.NewClient(apiURL, key, false, false, dryRun, withArchived, withDeleted, logger)
+		client := immich.NewClient(apiURL, key, false, false, dryRun, withArchived, withDeleted, false, logger)
 		if client == nil {
 			logger.Errorf("Invalid client for API key: %s", key)
 			continue
@@ -69,7 +71,9 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		existingStacks, err := client.FetchAllStacks(false)
+		logger.Infof("🗑️  Found %d trashed assets", len(trashedAssets))
+
+		existingStacks, err := client.FetchAllStacks()
 		if err != nil {
 			logger.Errorf("Error fetching stacks: %v", err)
 			continue
@@ -87,6 +91,8 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 		** to find which active assets would group with the trashed ones.
 		**********************************************************************************************/
 		assetsToTrash := make(map[string]utils.TAsset)
+		// Track which trashed asset caused each asset to be marked for deletion
+		trashedAssetMapping := make(map[string]string) // assetID -> trashed asset filename
 
 		// Filter active (non-trashed) assets
 		activeAssets := make([]utils.TAsset, 0)
@@ -96,9 +102,13 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		logger.Infof("Analyzing %d trashed assets against %d active assets using criteria matching", len(trashedAssets), len(activeAssets))
+		logger.Infof("📊 Analyzing against %d active assets...", len(activeAssets))
 
-		for _, trashedAsset := range trashedAssets {
+		for idx, trashedAsset := range trashedAssets {
+			// Show progress every 50 assets or in debug mode
+			if logger.Level == logrus.DebugLevel || (idx > 0 && idx%50 == 0) {
+				logger.Infof("   Analyzing trashed asset %d/%d...", idx+1, len(trashedAssets))
+			}
 			logger.Debugf("Analyzing trashed asset: %s", trashedAsset.OriginalFileName)
 
 			// Create a combined asset list: trashed asset + all active assets
@@ -125,11 +135,13 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 
 				// If this group contains the trashed asset, all other assets in the group should be trashed
 				if containsTrashedAsset && len(stack) > 1 {
-					logger.Debugf("Found group of %d assets containing trashed asset %s", len(stack), trashedAsset.OriginalFileName)
+					logger.Debugf("Stack found with %d assets (1 in trash, %d active):", len(stack), len(stack)-1)
+					logger.Debugf("  🗑️  %s (already in trash)", trashedAsset.OriginalFileName)
 					for _, relatedAsset := range stack {
 						if relatedAsset.ID != trashedAsset.ID && !relatedAsset.IsTrashed {
 							assetsToTrash[relatedAsset.ID] = relatedAsset
-							logger.Debugf("Found criteria-matched asset to trash: %s (matches with %s)", relatedAsset.OriginalFileName, trashedAsset.OriginalFileName)
+							trashedAssetMapping[relatedAsset.ID] = trashedAsset.OriginalFileName
+							logger.Debugf("  ➡️  %s (active → will trash)", relatedAsset.OriginalFileName)
 						}
 					}
 				}
@@ -140,15 +152,50 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 		** Move the identified assets to trash.
 		**********************************************************************************************/
 		if len(assetsToTrash) == 0 {
-			logger.Info("No related assets found that need to be moved to trash.")
+			logger.Info("✅ No related assets found that need to be moved to trash.")
 			continue
 		}
 
-		logger.Infof("Found %d assets that should be moved to trash:", len(assetsToTrash))
+		logger.Infof("✅ Analysis complete: %d trashed → %d related assets to trash", len(trashedAssets), len(assetsToTrash))
+
+		// Group by file extension for summary
+		extensionCount := make(map[string]int)
 		assetIDs := make([]string, 0, len(assetsToTrash))
+
+		// In debug mode, show detailed mapping
+		if logger.Level == logrus.DebugLevel {
+			logger.Debug("\n📋 Summary of assets to trash:")
+			// Group by the trashed asset that caused them to be marked
+			groupedByTrashed := make(map[string][]utils.TAsset)
+			for _, asset := range assetsToTrash {
+				trashedName := trashedAssetMapping[asset.ID]
+				groupedByTrashed[trashedName] = append(groupedByTrashed[trashedName], asset)
+			}
+
+			for trashedName, relatedAssets := range groupedByTrashed {
+				relatedAssetNames := make([]string, 0, len(relatedAssets))
+				for _, asset := range relatedAssets {
+					relatedAssetNames = append(relatedAssetNames, asset.OriginalFileName)
+				}
+				logger.Debugf("Stack with %s (in trash): %s\n", trashedName, strings.Join(relatedAssetNames, ", "))
+			}
+		}
+
 		for _, asset := range assetsToTrash {
-			logger.Infof("  - %s (ID: %s)", asset.OriginalFileName, asset.ID)
+			ext := filepath.Ext(asset.OriginalFileName)
+			if ext == "" {
+				ext = "(no extension)"
+			}
+			extensionCount[ext]++
 			assetIDs = append(assetIDs, asset.ID)
+		}
+
+		// Show summary by file type
+		if len(extensionCount) > 0 {
+			logger.Info("📁 Assets to trash by type:")
+			for ext, count := range extensionCount {
+				logger.Infof("   - %s files: %d", strings.ToUpper(strings.TrimPrefix(ext, ".")), count)
+			}
 		}
 
 		if err := client.TrashAssets(assetIDs); err != nil {

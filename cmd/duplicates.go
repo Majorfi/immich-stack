@@ -40,7 +40,7 @@ func runDuplicates(cmd *cobra.Command, args []string) {
 		if i > 0 {
 			logger.Infof("\n")
 		}
-		client := immich.NewClient(apiURL, key, false, false, true, withArchived, withDeleted, logger)
+		client := immich.NewClient(apiURL, key, false, false, true, withArchived, withDeleted, false, logger)
 		if client == nil {
 			logger.Errorf("Invalid client for API key: %s", key)
 			continue
@@ -57,7 +57,7 @@ func runDuplicates(cmd *cobra.Command, args []string) {
 		/**********************************************************************************************
 		** Fetch all assets and check for duplicates.
 		**********************************************************************************************/
-		existingStacks, err := client.FetchAllStacks(false)
+		existingStacks, err := client.FetchAllStacks()
 		if err != nil {
 			logger.Errorf("Error fetching stacks: %v", err)
 			continue

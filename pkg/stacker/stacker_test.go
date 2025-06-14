@@ -477,7 +477,7 @@ func TestGetPromoteIndexWithSequencePatterns(t *testing.T) {
 			// Detect mode first
 			mode := detectPromoteMatchMode(tt.promoteList, tt.filename)
 			assert.Equal(t, "sequence", mode, "Should detect sequence mode")
-			
+
 			// Test the index
 			idx := getPromoteIndexWithMode(tt.filename, tt.promoteList, mode)
 			assert.Equal(t, tt.expectedIdx, idx, "For filename %s with promoteList %v", tt.filename, tt.promoteList)
@@ -626,7 +626,7 @@ func TestSequenceKeywordHandling(t *testing.T) {
 
 			// Check the order
 			for i, expected := range tt.expected {
-				assert.Equal(t, expected, sorted[i].OriginalFileName, 
+				assert.Equal(t, expected, sorted[i].OriginalFileName,
 					"Position %d: expected %s but got %s", i, expected, sorted[i].OriginalFileName)
 			}
 		})
@@ -739,7 +739,7 @@ func TestSortStack_SonyBurstPhotosWithPrefixPattern(t *testing.T) {
 	assert.Equal(t, "DSCPDC_0001_BURST20180828114700954.JPG", sorted[1].OriginalFileName)
 	assert.Equal(t, "DSCPDC_0002_BURST20180828114700954.JPG", sorted[2].OriginalFileName)
 	assert.Equal(t, "DSCPDC_0003_BURST20180828114700954_COVER.JPG", sorted[3].OriginalFileName)
-	
+
 	// Other files should come after, sorted alphabetically
 	assert.Equal(t, "DSC_0001.JPG", sorted[4].OriginalFileName)
 	assert.Equal(t, "IMG_0001.JPG", sorted[5].OriginalFileName)
@@ -831,14 +831,14 @@ func TestSequenceKeywordVariations(t *testing.T) {
 				"IMG_001.jpg",
 				"IMG_1000.jpg", // Has "100" as first 3 digits - will match as 100
 				"IMG_100.jpg",
-				"IMG_10.jpg",   // No 3-digit match, falls back to finding any 3 digits
+				"IMG_10.jpg", // No 3-digit match, falls back to finding any 3 digits
 			},
 			expected: []string{
-				"IMG_001.jpg",   // index 1
-				"IMG_10.jpg",    // No 3-digit sequence after _, but has no fallback match -> index 1
-				"IMG_010.jpg",   // index 10
-				"IMG_100.jpg",   // index 100
-				"IMG_1000.jpg",  // Regex finds "100" -> index 100
+				"IMG_001.jpg",  // index 1
+				"IMG_10.jpg",   // No 3-digit sequence after _, but has no fallback match -> index 1
+				"IMG_010.jpg",  // index 10
+				"IMG_100.jpg",  // index 100
+				"IMG_1000.jpg", // Regex finds "100" -> index 100
 			},
 		},
 		{
@@ -849,14 +849,14 @@ func TestSequenceKeywordVariations(t *testing.T) {
 				"photo_01.jpg",
 				"photo_100.jpg", // 3 digits, but regex will find "10"
 				"photo_99.jpg",
-				"photo_1.jpg",   // 1 digit, no 2-digit match
+				"photo_1.jpg", // 1 digit, no 2-digit match
 			},
 			expected: []string{
-				"photo_01.jpg",   // index 1
-				"photo_1.jpg",    // No match, index len(promoteList) = 1
-				"photo_10.jpg",   // index 10 (first one)
-				"photo_100.jpg",  // Regex finds "10", index 10 (second one, sorted alphabetically)
-				"photo_99.jpg",   // index 99
+				"photo_01.jpg",  // index 1
+				"photo_1.jpg",   // No match, index len(promoteList) = 1
+				"photo_10.jpg",  // index 10 (first one)
+				"photo_100.jpg", // Regex finds "10", index 10 (second one, sorted alphabetically)
+				"photo_99.jpg",  // index 99
 			},
 		},
 		{
@@ -910,12 +910,12 @@ func TestSequenceKeywordVariations(t *testing.T) {
 			},
 			expected: []string{
 				// Only the first sequence keyword is used (sequence:IMG_)
-				"IMG_001.jpg",     // index 0+1 = 1
-				"IMG_002.jpg",     // index 0+2 = 2
-				"DSC_001.jpg",     // No IMG_ prefix, gets high index
-				"DSC_002.jpg",     // No IMG_ prefix, gets high index
-				"DSC_003.jpg",     // No IMG_ prefix, gets high index
-				"PHOTO_001.jpg",   // No IMG_ prefix, gets high index
+				"IMG_001.jpg",   // index 0+1 = 1
+				"IMG_002.jpg",   // index 0+2 = 2
+				"DSC_001.jpg",   // No IMG_ prefix, gets high index
+				"DSC_002.jpg",   // No IMG_ prefix, gets high index
+				"DSC_003.jpg",   // No IMG_ prefix, gets high index
+				"PHOTO_001.jpg", // No IMG_ prefix, gets high index
 			},
 		},
 		{
@@ -934,7 +934,7 @@ func TestSequenceKeywordVariations(t *testing.T) {
 				"IMG_001.jpg",      // index 0+1 = 1
 				"IMG_002.jpg",      // index 0+2 = 2
 				"PHOTO_100.jpg",    // No IMG_ prefix, high index
-				"file_1.jpg",       // No IMG_ prefix, high index  
+				"file_1.jpg",       // No IMG_ prefix, high index
 				"random_99999.jpg", // No IMG_ prefix, high index
 				"test_010.jpg",     // No IMG_ prefix, high index
 			},
@@ -994,7 +994,7 @@ func TestSequenceKeywordVariations(t *testing.T) {
 
 			// Check the order
 			for i, expected := range tt.expected {
-				assert.Equal(t, expected, sorted[i].OriginalFileName, 
+				assert.Equal(t, expected, sorted[i].OriginalFileName,
 					"Position %d: expected %s but got %s", i, expected, sorted[i].OriginalFileName)
 			}
 		})

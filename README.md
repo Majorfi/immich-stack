@@ -24,10 +24,40 @@ docker run -d --name immich-stack --env-file .env -v ./logs:/app/logs ghcr.io/ma
 
 For detailed documentation, please visit our [documentation site](https://majorfi.github.io/immich-stack/).
 
+## Commands
+
+Immich Stack provides multiple commands for different operations:
+
+### Main Stacking Command
+
+```bash
+immich-stack
+```
+
+The default command that processes and creates stacks based on your criteria.
+
+### Find Duplicates
+
+```bash
+immich-stack duplicates
+```
+
+Scans your library and reports duplicate assets based on filename and timestamp.
+
+### Fix Trash Issues
+
+```bash
+immich-stack fix-trash
+```
+
+Identifies trashed assets and moves their related stack members to trash for consistency.
+
 ## Features
 
 - **Automatic Stacking:** Groups similar photos into stacks based on filename, date, and custom criteria
 - **Smart Burst Photo Handling:** Automatically detects and properly orders burst photo sequences
+- **Duplicate Detection:** Find and list duplicate assets based on filename and timestamp
+- **Stack-Aware Trash Management:** Fix incomplete trash operations by moving related stack members to trash
 - **Multi-User Support:** Process multiple users sequentially with comma-separated API keys
 - **Configurable Grouping:** Custom grouping logic via environment variables and command-line flags
 - **Parent/Child Promotion:** Fine-grained control over stack parent selection with intelligent sequence detection

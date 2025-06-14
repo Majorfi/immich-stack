@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,18 +27,26 @@ var resetStacks bool
 var dryRun bool
 var replaceStacks bool
 var withDeleted bool
+var logLevel string
+var removeSingleAssetStacks bool
 
 /**************************************************************************************************
-** Configures the logger based on environment variables. Sets up the log level and format
-** according to LOG_LEVEL and LOG_FORMAT environment variables.
+** Configures the logger based on command-line flags and environment variables. Sets up the
+** log level and format. The --log-level flag takes precedence over the LOG_LEVEL environment
+** variable.
 **
 ** @return *logrus.Logger - Configured logger instance
 **************************************************************************************************/
 func configureLogger() *logrus.Logger {
 	logger := logrus.New()
 
-	// Set log level from environment variable
-	if level := os.Getenv("LOG_LEVEL"); level != "" {
+	// Set log level - flag takes precedence over environment variable
+	level := logLevel
+	if level == "" {
+		level = os.Getenv("LOG_LEVEL")
+	}
+
+	if level != "" {
 		if parsedLevel, err := logrus.ParseLevel(level); err == nil {
 			logger.SetLevel(parsedLevel)
 		} else {
@@ -47,7 +54,6 @@ func configureLogger() *logrus.Logger {
 			logger.SetLevel(logrus.InfoLevel)
 		}
 	} else {
-		utils.Pretty(`hello`)
 		logger.SetLevel(logrus.InfoLevel)
 	}
 
@@ -132,6 +138,9 @@ func loadEnv() *logrus.Logger {
 	}
 	if !withDeleted {
 		withDeleted = os.Getenv("WITH_DELETED") == "true"
+	}
+	if !removeSingleAssetStacks {
+		removeSingleAssetStacks = os.Getenv("REMOVE_SINGLE_ASSET_STACKS") == "true"
 	}
 	return logger
 }

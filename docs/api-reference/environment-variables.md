@@ -18,12 +18,13 @@ This document provides a complete reference of all environment variables support
 
 ## Stack Management
 
-| Variable              | Description                                  | Default | Example              |
-| --------------------- | -------------------------------------------- | ------- | -------------------- |
-| `RESET_STACKS`        | Delete all existing stacks before processing | false   | `true`               |
-| `CONFIRM_RESET_STACK` | Confirmation message for reset               | -       | `"I acknowledge..."` |
-| `REPLACE_STACKS`      | Replace stacks for new groups                | false   | `true`               |
-| `DRY_RUN`             | Simulate actions without making changes      | false   | `true`               |
+| Variable                     | Description                                  | Default | Example              |
+| ---------------------------- | -------------------------------------------- | ------- | -------------------- |
+| `RESET_STACKS`               | Delete all existing stacks before processing | false   | `true`               |
+| `CONFIRM_RESET_STACK`        | Confirmation message for reset               | -       | `"I acknowledge..."` |
+| `REPLACE_STACKS`             | Replace stacks for new groups                | false   | `true`               |
+| `DRY_RUN`                    | Simulate actions without making changes      | false   | `true`               |
+| `REMOVE_SINGLE_ASSET_STACKS` | Remove stacks containing only one asset      | false   | `true`               |
 
 ## Parent Selection
 
@@ -106,6 +107,7 @@ RESET_STACKS=true
 CONFIRM_RESET_STACK="I acknowledge all my current stacks will be deleted and new one will be created"
 REPLACE_STACKS=true
 DRY_RUN=false
+REMOVE_SINGLE_ASSET_STACKS=true
 ```
 
 ### Parent Selection

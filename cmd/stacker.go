@@ -28,10 +28,10 @@ import (
 **************************************************************************************************/
 func getParentAndChildrenIDs(stack []utils.TAsset) (string, []string, []string) {
 	parentID := stack[0].ID
-	childrenIDs := make([]string, len(stack)-1)
-	for i, asset := range stack[1:] {
+	childrenIDs := make([]string, 0, len(stack)-1)
+	for _, asset := range stack[1:] {
 		if asset.ID != parentID {
-			childrenIDs[i] = asset.ID
+			childrenIDs = append(childrenIDs, asset.ID)
 		}
 	}
 	newStackIDs := append([]string{parentID}, childrenIDs...)
@@ -149,7 +149,7 @@ func runStacker(cmd *cobra.Command, args []string) {
 		if i > 0 {
 			logger.Infof("\n")
 		}
-		client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, logger)
+		client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, logger)
 		if client == nil {
 			logger.Errorf("Invalid client for API key: %s", key)
 			continue
@@ -183,7 +183,7 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 	/**********************************************************************************************
 	** Fetch all the assets from Immich.
 	**********************************************************************************************/
-	existingStacks, err := client.FetchAllStacks(true)
+	existingStacks, err := client.FetchAllStacks()
 	if err != nil {
 		logger.Fatalf("Error fetching stacks: %v", err)
 	}
@@ -242,7 +242,7 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 		}
 
 		/******************************************************************************************
-		** Adding info logs, bug only if we are not in debug mode.
+		** Adding info logs, but only if we are not in debug mode.
 		******************************************************************************************/
 		{
 			if logger.Level != logrus.DebugLevel {

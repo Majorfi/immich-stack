@@ -16,12 +16,12 @@ import (
 
 // HTTP client configuration constants
 const (
-	defaultHTTPTimeout      = 600 * time.Second
-	maxIdleConns           = 100
-	maxIdleConnsPerHost    = 100
-	idleConnTimeout        = 90 * time.Second
-	retryBaseDelay         = 500 * time.Millisecond
-	maxRetries             = 3
+	defaultHTTPTimeout  = 600 * time.Second
+	maxIdleConns        = 100
+	maxIdleConnsPerHost = 100
+	idleConnTimeout     = 90 * time.Second
+	retryBaseDelay      = 500 * time.Millisecond
+	maxRetries          = 3
 )
 
 /**************************************************************************************************
@@ -30,15 +30,16 @@ const (
 ** request retries, and response handling.
 **************************************************************************************************/
 type Client struct {
-	client        *http.Client
-	apiURL        string
-	apiKey        string
-	resetStacks   bool
-	replaceStacks bool
-	dryRun        bool
-	withArchived  bool
-	withDeleted   bool
-	logger        *logrus.Logger
+	client                  *http.Client
+	apiURL                  string
+	apiKey                  string
+	resetStacks             bool
+	replaceStacks           bool
+	dryRun                  bool
+	withArchived            bool
+	withDeleted             bool
+	removeSingleAssetStacks bool
+	logger                  *logrus.Logger
 }
 
 /**************************************************************************************************
@@ -52,10 +53,11 @@ type Client struct {
 ** @param dryRun - Whether to perform a dry run without making changes
 ** @param withArchived - Whether to include archived assets
 ** @param withDeleted - Whether to include deleted assets
+** @param removeSingleAssetStacks - Whether to remove stacks with only one asset
 ** @param logger - Logger instance for output
 ** @return *Client - Configured Immich client instance
 **************************************************************************************************/
-func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, logger *logrus.Logger) *Client {
+func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, removeSingleAssetStacks bool, logger *logrus.Logger) *Client {
 	if apiKey == "" {
 		return nil
 	}
@@ -85,15 +87,16 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 	}
 
 	return &Client{
-		client:        client,
-		apiURL:        baseURL,
-		apiKey:        apiKey,
-		resetStacks:   resetStacks,
-		replaceStacks: replaceStacks,
-		dryRun:        dryRun,
-		withArchived:  withArchived,
-		withDeleted:   withDeleted,
-		logger:        logger,
+		client:                  client,
+		apiURL:                  baseURL,
+		apiKey:                  apiKey,
+		resetStacks:             resetStacks,
+		replaceStacks:           replaceStacks,
+		dryRun:                  dryRun,
+		withArchived:            withArchived,
+		withDeleted:             withDeleted,
+		removeSingleAssetStacks: removeSingleAssetStacks,
+		logger:                  logger,
 	}
 }
 
@@ -159,12 +162,12 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 /**************************************************************************************************
 ** FetchAllStacks retrieves all stacks from Immich and handles stack management.
 ** If resetStacks is true, it will delete all existing stacks.
-** Single-asset stacks are automatically deleted.
+** If removeSingleAssetStacks is true, single-asset stacks are automatically deleted.
 **
 ** @return map[string]stacker.Stack - Map of stacks indexed by primary asset ID
 ** @return error - Any error that occurred during the fetch
 **************************************************************************************************/
-func (c *Client) FetchAllStacks(shouldRemoveSingleAssetStacks bool) (map[string]utils.TStack, error) {
+func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 	var stacks []utils.TStack
 	if err := c.doRequest(http.MethodGet, "/stacks", nil, &stacks); err != nil {
 		return nil, fmt.Errorf("error fetching stacks: %w", err)
@@ -177,7 +180,7 @@ func (c *Client) FetchAllStacks(shouldRemoveSingleAssetStacks bool) (map[string]
 			if err := c.DeleteStack(stack.ID, utils.REASON_RESET_STACK); err != nil {
 				c.logger.Errorf("Error deleting stack: %v", err)
 			}
-		} else if shouldRemoveSingleAssetStacks && len(stack.Assets) <= 1 {
+		} else if c.removeSingleAssetStacks && len(stack.Assets) <= 1 {
 			if err := c.DeleteStack(stack.ID, utils.REASON_DELETE_STACK_WITH_ONE_ASSET); err != nil {
 				c.logger.Errorf("Error deleting stack: %v", err)
 			}
@@ -193,14 +196,16 @@ func (c *Client) FetchAllStacks(shouldRemoveSingleAssetStacks bool) (map[string]
 		return map[string]utils.TStack{}, nil
 	}
 
-	// Log stack statistics
-	stackCounts := make(map[int]int)
-	for _, stack := range stacks {
-		stackCounts[len(stack.Assets)]++
-	}
+	// Log stack statistics only in debug mode
+	if c.logger.Level == logrus.DebugLevel {
+		stackCounts := make(map[int]int)
+		for _, stack := range stacks {
+			stackCounts[len(stack.Assets)]++
+		}
 
-	for count, num := range stackCounts {
-		c.logger.Infof("📚 %d assets in a stack with %d assets", num, count)
+		for count, num := range stackCounts {
+			c.logger.Debugf("📚 %d assets in a stack with %d assets", num, count)
+		}
 	}
 
 	// Create lookup map
@@ -385,7 +390,7 @@ func (c *Client) FetchTrashedAssets(size int) ([]utils.TAsset, error) {
 	var allTrashedAssets []utils.TAsset
 	page := 1
 
-	c.logger.Infof("🗑️  Fetching trashed assets:")
+	c.logger.Debugf("🗑️  Fetching trashed assets:")
 	for {
 		c.logger.Debugf("Fetching trashed assets page %d", page)
 		var response utils.TSearchResponse
@@ -420,7 +425,7 @@ func (c *Client) FetchTrashedAssets(size int) ([]utils.TAsset, error) {
 		}
 		page = nextPageInt
 	}
-	c.logger.Infof("🗑️  %d trashed assets found", len(allTrashedAssets))
+	c.logger.Debugf("🗑️  %d trashed assets found", len(allTrashedAssets))
 
 	return allTrashedAssets, nil
 }
@@ -438,9 +443,9 @@ func (c *Client) TrashAssets(assetIDs []string) error {
 	}
 
 	if c.dryRun {
-		c.logger.Infof("🗑️  Would move %d assets to trash (dry run)", len(assetIDs))
+		c.logger.Infof("🗑️  Moving %d assets to trash... (dry run)", len(assetIDs))
 		for _, assetID := range assetIDs {
-			c.logger.Infof("\t- Asset ID: %s", assetID)
+			c.logger.Debugf("\t- Asset ID: %s", assetID)
 		}
 		return nil
 	}
@@ -453,6 +458,6 @@ func (c *Client) TrashAssets(assetIDs []string) error {
 		return fmt.Errorf("error moving assets to trash: %w", err)
 	}
 
-	c.logger.Infof("🗑️  Successfully moved %d assets to trash", len(assetIDs))
+	c.logger.Infof("🗑️  Moving %d assets to trash... done", len(assetIDs))
 	return nil
 }
