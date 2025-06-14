@@ -96,6 +96,20 @@ func TestSortStack(t *testing.T) {
 			promoteExt: ".jpg,.dng",
 		},
 		{
+			name: "single comma (empty string as only promote element)",
+			inputOrder: []string{
+				"IMG_2482.xyz",
+				"IMG_2482.abc",
+				"IMG_2482_edited.jpg",
+			},
+			expectedOrder: []string{
+				"IMG_2482_edited.jpg",  // All match empty string at index 0, .jpg has higher extension rank
+				"IMG_2482.abc",         // Then alphabetical for same extension rank
+				"IMG_2482.xyz",  
+			},
+			promoteStr: ",",  // Single comma = list with one empty string
+		},
+		{
 			name: "empty string promotes files without suffixes",
 			inputOrder: []string{
 				"IMG_1234_edited.jpg",

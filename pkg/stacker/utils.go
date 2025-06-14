@@ -95,8 +95,14 @@ func getPromoteIndex(value string, promoteList []string) int {
 		}
 	}
 	
-	// If we have an empty string and no matches with non-empty strings, use empty string index
-	if emptyStringIndex >= 0 && hasNonEmptyStrings {
+	// If we have an empty string, handle it based on whether there are other non-empty strings
+	if emptyStringIndex >= 0 {
+		if !hasNonEmptyStrings {
+			// If only empty string in promote list, it matches all files
+			return emptyStringIndex
+		}
+		
+		// If there are other non-empty strings, check for negative matching
 		containsAnyPromote := false
 		for _, promote := range promoteList {
 			if promote != "" && promote != "biggestNumber" {
@@ -191,10 +197,14 @@ func getPromoteIndexWithMode(value string, promoteList []string, matchMode strin
 		}
 	}
 
-	// If we have an empty string and the filename doesn't match any non-empty strings,
-	// return the empty string's index (negative matching)
-	if emptyStringIndex >= 0 && hasNonEmptyStrings {
-		// Check if the filename contains any of the non-empty promote strings
+	// If we have an empty string, handle it based on whether there are other non-empty strings
+	if emptyStringIndex >= 0 {
+		if !hasNonEmptyStrings {
+			// If only empty string in promote list, it matches all files
+			return emptyStringIndex
+		}
+		
+		// If there are other non-empty strings, check for negative matching
 		containsAnyPromote := false
 		for _, promote := range promoteList {
 			if promote != "" && !isSequenceKeyword(promote) {
