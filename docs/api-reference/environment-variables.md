@@ -28,10 +28,32 @@ This document provides a complete reference of all environment variables support
 
 ## Parent Selection
 
-| Variable                  | Description                                                                                                                   | Default | Example                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------- |
-| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames. Supports the `sequence` keyword and automatic sequence detection for burst photos. | -       | `edit,raw` or `COVER,sequence` or `0000,0001,0002,0003` |
-| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files                                                                                         | -       | `.jpg,.dng`                                             |
+| Variable                  | Description                                                                                                                                                       | Default | Example                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------- |
+| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames. Supports empty string for negative matching, the `sequence` keyword and automatic sequence detection for burst photos. | -       | `,_edited` or `edit,raw` or `COVER,sequence` or `0000,0001,0002,0003` |
+| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files                                                                                                                             | -       | `.jpg,.dng`                                                           |
+
+### Empty String for Negative Matching
+
+An empty string (`""`) in the promote list acts as a negative match - it matches files that **don't** contain any of the other non-empty substrings in the list:
+
+| Example          | Description                | Effect                                                                  |
+| ---------------- | -------------------------- | ----------------------------------------------------------------------- |
+| `,_edited`       | Prioritize unedited files  | Files without "\_edited" are promoted first                             |
+| `,_edited,_crop` | Prioritize clean filenames | Files without "\_edited" or "\_crop" come first                         |
+| `COVER,,_edited` | Complex priority           | COVER files first, then files without "\_edited", then "\_edited" files |
+
+**Examples:**
+
+```sh
+# Promote unedited JPGs over edited ones
+PARENT_FILENAME_PROMOTE=,_edited
+# Result: IMG_1234.jpg > IMG_1234_edited.jpg
+
+# Multiple exclusions
+PARENT_FILENAME_PROMOTE=,_edited,_crop,_cropped
+# Result: IMG_1234.jpg > IMG_1234_edited.jpg > IMG_1234_crop.jpg > IMG_1234_cropped.jpg
+```
 
 ### Sequence Keyword
 

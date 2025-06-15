@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -141,6 +142,19 @@ func loadEnv() *logrus.Logger {
 	}
 	if !removeSingleAssetStacks {
 		removeSingleAssetStacks = os.Getenv("REMOVE_SINGLE_ASSET_STACKS") == "true"
+	}
+	if parentFilenamePromote == "" || parentFilenamePromote == utils.DefaultParentFilenamePromoteString {
+		if envVal := os.Getenv("PARENT_FILENAME_PROMOTE"); envVal != "" {
+			parentFilenamePromote = envVal
+		}
+	}
+	if parentExtPromote == "" || parentExtPromote == utils.DefaultParentExtPromoteString {
+		if envVal := os.Getenv("PARENT_EXT_PROMOTE"); envVal != "" {
+			parentExtPromote = envVal
+		}
+	}
+	if criteria == "" {
+		criteria = os.Getenv("CRITERIA")
 	}
 	return logger
 }

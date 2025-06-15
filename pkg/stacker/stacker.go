@@ -69,7 +69,7 @@ func extractLargestNumberSuffix(filename string, delimiters []string) int {
 **************************************************************************************************/
 func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtPromote string, delimiters []string) []utils.TAsset {
 	promoteSubstrings := parsePromoteList(parentFilenamePromote)
-	if len(promoteSubstrings) == 0 {
+	if len(promoteSubstrings) == 0 && parentFilenamePromote != "" {
 		promoteSubstrings = utils.DefaultParentFilenamePromote
 	}
 

@@ -97,9 +97,15 @@ immich-stack --dry-run --api-key your_key
 ### Custom Parent Selection
 
 ```sh
+# Promote edited and raw files
 immich-stack \
   --parent-filename-promote edit,raw \
   --parent-ext-promote .jpg,.dng \
+  --api-key your_key
+
+# Promote unedited files using empty string
+immich-stack \
+  --parent-filename-promote ,_edited,_crop \
   --api-key your_key
 ```
 
