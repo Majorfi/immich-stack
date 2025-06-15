@@ -34,11 +34,22 @@ type TSplit struct {
 
 /**************************************************************************************************
 ** TRegex represents a regex operation on a key value. It applies a regular expression
-** and selects a specific capture group by index.
+** and selects a specific capture group by index. Optionally, it can also specify promotion
+** rules based on capture groups.
+**
+** Field Design Notes:
+** - Index: Not a pointer, defaults to 0 (full match) when not specified. This maintains
+**   backward compatibility as existing configs expect index 0 as the default behavior.
+** - PromoteIndex: Pointer to distinguish between explicit 0 (capture group 0) and unset
+**   (nil). This allows optional promotion behavior without affecting grouping logic.
+**   When nil, no regex-based promotion occurs. When set (even to 0), promotion uses
+**   the specified capture group.
 **************************************************************************************************/
 type TRegex struct {
-	Key   string `json:"key"`   // Regular expression pattern to match against the value
-	Index int    `json:"index"` // Index of capture group to select (0 = full match, 1+ = capture groups)
+	Key          string   `json:"key"`                     // Regular expression pattern to match against the value
+	Index        int      `json:"index"`                   // Index of capture group to select (0 = full match, 1+ = capture groups). Defaults to 0.
+	PromoteIndex *int     `json:"promote_index,omitempty"` // Optional: capture group index to use for promotion ordering (nil = no promotion)
+	PromoteKeys  []string `json:"promote_keys,omitempty"`  // Optional: ordered list of values for promotion (first = highest priority)
 }
 
 /**************************************************************************************************
@@ -99,4 +110,14 @@ type TUserResponse struct {
 	Name             string `json:"name"`
 	ProfileChangedAt string `json:"profileChangedAt"`
 	ProfileImagePath string `json:"profileImagePath"`
+}
+
+/**************************************************************************************************
+** TAssetWithPromote represents an asset with its associated regex promotion value.
+** This is used internally during stacking to pass promotion data from criteria application
+** to the sorting phase.
+**************************************************************************************************/
+type TAssetWithPromote struct {
+	Asset        TAsset            // The original asset
+	PromoteValue map[string]string // Map of criteria key to promotion value extracted via regex
 }
