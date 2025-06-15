@@ -73,50 +73,38 @@ func extractSequencePattern(keyword string) (prefix string, digits int) {
 ** Special handling for empty string: acts as negative match for files without other substrings.
 **************************************************************************************************/
 func getPromoteIndex(value string, promoteList []string) int {
-	// Check if we have an empty string in the promote list
+	// Single loop to check for empty string and matches
 	emptyStringIndex := -1
 	hasNonEmptyStrings := false
-	
+	loweredValue := strings.ToLower(value)
+
 	for idx, promote := range promoteList {
-		if promote == "" && emptyStringIndex == -1 {
-			emptyStringIndex = idx  // Only record the first empty string
-		} else if promote != "" && promote != "biggestNumber" {
+		if promote == "" {
+			if emptyStringIndex == -1 {
+				emptyStringIndex = idx // Only record the first empty string
+			}
+		} else if promote != "biggestNumber" {
 			hasNonEmptyStrings = true
+			// Check for match while we're iterating
+			loweredPromote := strings.ToLower(promote)
+			if strings.Contains(loweredValue, loweredPromote) {
+				return idx
+			}
 		}
 	}
-	
-	// Check for matches with non-empty strings
-	for idx, promote := range promoteList {
-		if promote == "" || promote == "biggestNumber" {
-			continue
-		}
-		if strings.Contains(strings.ToLower(value), strings.ToLower(promote)) {
-			return idx
-		}
-	}
-	
+
 	// If we have an empty string, handle it based on whether there are other non-empty strings
 	if emptyStringIndex >= 0 {
 		if !hasNonEmptyStrings {
 			// If only empty string in promote list, it matches all files
 			return emptyStringIndex
 		}
-		
-		// If there are other non-empty strings, check for negative matching
-		containsAnyPromote := false
-		for _, promote := range promoteList {
-			if promote != "" && promote != "biggestNumber" {
-				if strings.Contains(strings.ToLower(value), strings.ToLower(promote)) {
-					containsAnyPromote = true
-					break
-				}
-			}
-		}
-		if !containsAnyPromote {
-			return emptyStringIndex
-		}
+
+		// If there are other non-empty strings, return empty string index
+		// since we already checked all non-empty promotes in the first loop
+		return emptyStringIndex
 	}
-	
+
 	// If 'biggestNumber' is in the promote list, assign its index to unmatched files
 	for idx, promote := range promoteList {
 		if promote == "biggestNumber" {
@@ -175,25 +163,23 @@ func getExtensionRank(ext string) int {
 func getPromoteIndexWithMode(value string, promoteList []string, matchMode string) int {
 	base := filepath.Base(value)
 
-	// Check if we have an empty string in the promote list (for negative matching)
+	// Single loop to check for empty string and matches with non-sequence items
 	emptyStringIndex := -1
 	hasNonEmptyStrings := false
-	
-	for idx, promote := range promoteList {
-		if promote == "" && emptyStringIndex == -1 {
-			emptyStringIndex = idx  // Only record the first empty string
-		} else if promote != "" && !isSequenceKeyword(promote) {
-			hasNonEmptyStrings = true
-		}
-	}
+	loweredBase := strings.ToLower(base)
 
-	// First, check for exact matches with non-sequence items in the promote list
 	for idx, promote := range promoteList {
-		if promote == "" || isSequenceKeyword(promote) {
-			continue
-		}
-		if strings.Contains(strings.ToLower(base), strings.ToLower(promote)) {
-			return idx
+		if promote == "" {
+			if emptyStringIndex == -1 {
+				emptyStringIndex = idx // Only record the first empty string
+			}
+		} else if !isSequenceKeyword(promote) {
+			hasNonEmptyStrings = true
+			// Check for match while we're iterating
+			loweredPromote := strings.ToLower(promote)
+			if strings.Contains(loweredBase, loweredPromote) {
+				return idx
+			}
 		}
 	}
 
@@ -203,22 +189,10 @@ func getPromoteIndexWithMode(value string, promoteList []string, matchMode strin
 			// If only empty string in promote list, it matches all files
 			return emptyStringIndex
 		}
-		
-		// If there are other non-empty strings, check for negative matching
-		containsAnyPromote := false
-		for _, promote := range promoteList {
-			if promote != "" && !isSequenceKeyword(promote) {
-				if strings.Contains(strings.ToLower(base), strings.ToLower(promote)) {
-					containsAnyPromote = true
-					break
-				}
-			}
-		}
-		
-		// If it doesn't contain any promote strings, return the empty string's index
-		if !containsAnyPromote {
-			return emptyStringIndex
-		}
+
+		// If there are other non-empty strings, return empty string index
+		// since we already checked all non-empty promotes in the first loop
+		return emptyStringIndex
 	}
 
 	// Check if we have a sequence keyword in the promote list
