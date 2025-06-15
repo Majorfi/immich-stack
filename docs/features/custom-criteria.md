@@ -94,6 +94,29 @@ The `regex` configuration allows you to extract parts of string values using reg
 }
 ```
 
+### Regex with Promotion
+
+Regex can also be used to control the promotion order within a stack. By specifying `promote_index` and `promote_keys`, you can extract a different capture group for promotion:
+
+```json
+{
+  "key": "originalFileName",
+  "regex": {
+    "key": "PXL_(\\d{8})_(\\d{9})(_\\w+)?", // Pattern with optional suffix
+    "index": 1, // Group by date (capture group 1)
+    "promote_index": 3, // Use suffix for promotion (capture group 3)
+    "promote_keys": ["_MP", "_edit", "_crop", ""] // Order of promotion (first = highest priority)
+  }
+}
+```
+
+This configuration:
+
+- Groups files by date (capture group 1: `20230503`)
+- Promotes files based on suffix (capture group 3: `_MP`, `_edit`, etc.)
+- Files with `_MP` suffix become the primary asset
+- Files with no suffix (empty string) have lowest priority
+
 For example, with a file named `PXL_20230503_152823814.jpg`:
 
 1. The regex `PXL_(\\d{8})_(\\d{9})` matches and creates capture groups:
@@ -357,6 +380,47 @@ Here are some useful regex patterns for common filename formats:
   }
 }
 ```
+
+## Complete Example: Regex Promotion for Pixel Photos
+
+Imagine you have Google Pixel photos with different processing suffixes:
+
+```
+photos/
+├── PXL_20230503_152823814.jpg        # Original
+├── PXL_20230503_152823814_MP.jpg     # Motion Photo
+├── PXL_20230503_152823814_edit.jpg   # Edited version
+├── PXL_20230503_152823814_crop.jpg   # Cropped version
+├── PXL_20230504_091234567.jpg        # Different photo
+└── PXL_20230504_091234567_MP.jpg     # Its Motion Photo
+```
+
+You want to:
+
+1. Group photos by date and time
+2. Prioritize Motion Photos (\_MP) as primary assets
+3. Then edited versions, then cropped, then originals
+
+**Configuration:**
+
+```json
+[
+  {
+    "key": "originalFileName",
+    "regex": {
+      "key": "(PXL_\\d{8}_\\d{9})(_\\w+)?\\.(jpg|JPG)",
+      "index": 1, // Group by base filename
+      "promote_index": 2, // Use suffix for promotion
+      "promote_keys": ["_MP", "_edit", "_crop", ""]
+    }
+  }
+]
+```
+
+**Result:**
+
+- Stack 1: Primary: `PXL_20230503_152823814_MP.jpg`, Others: `_edit`, `_crop`, original
+- Stack 2: Primary: `PXL_20230504_091234567_MP.jpg`, Others: original
 
 ## Complete Example: Multi-Camera Setup
 

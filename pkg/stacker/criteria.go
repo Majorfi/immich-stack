@@ -76,12 +76,14 @@ func extractTimeWithDelta(timeStr string, delta *utils.TDelta) (string, error) {
 }
 
 /**************************************************************************************************
-** applyCriteria generates a list of identifying strings for a given asset based on a
-** set of criteria. Each criterion specifies a key (e.g., "originalFileName",
-** "localDateTime") and optional parameters (like time delta or split rules). The
-** function iterates through the criteria, extracts the corresponding value from the
-** asset, applies any transformations, and collects non-empty values into a slice of
-** strings. This slice serves as a unique key for grouping the asset.
+** applyCriteriaWithPromote generates a list of identifying strings for a given asset based on a
+** set of criteria, and also extracts promotion values from regex criteria if specified.
+** Each criterion specifies a key (e.g., "originalFileName", "localDateTime") and optional
+** parameters (like time delta, split rules, or regex with promotion). The function iterates
+** through the criteria, extracts the corresponding value from the asset, applies any
+** transformations, and collects non-empty values into a slice of strings. This slice serves
+** as a unique key for grouping the asset. Additionally, it collects promotion values from
+** regex criteria that have promote_index configured.
 **
 ** @param asset - The utils.TAsset to apply criteria to.
 ** @param criteria - A slice of utils.TCriteria defining how to extract and transform
@@ -89,56 +91,77 @@ func extractTimeWithDelta(timeStr string, delta *utils.TDelta) (string, error) {
 ** @return []string - A slice of strings that collectively identify the asset based on
 **                    the applied criteria. Empty strings resulting from extractors are
 **                    omitted.
+** @return map[string]string - A map of criteria key to promotion value for regex criteria
+**                              with promote_index configured.
 ** @return error - An error if an unknown criteria key is encountered or if any
 **                 extractor function returns an error.
 **************************************************************************************************/
-func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, error) {
-	extractors := map[string]func(asset utils.TAsset, c utils.TCriteria) (string, error){
-		"id":            func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.ID, nil },
-		"deviceAssetId": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceAssetID, nil },
-		"deviceId":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceID, nil },
-		"duration":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Duration, nil },
-		"fileCreatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
-			return extractTimeWithDelta(a.FileCreatedAt, c.Delta)
-		},
-		"fileModifiedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
-			return extractTimeWithDelta(a.FileModifiedAt, c.Delta)
-		},
-		"hasMetadata": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.HasMetadata), nil },
-		"isArchived":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsArchived), nil },
-		"isFavorite":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsFavorite), nil },
-		"isOffline":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsOffline), nil },
-		"isTrashed":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsTrashed), nil },
-		"localDateTime": func(a utils.TAsset, c utils.TCriteria) (string, error) {
-			return extractTimeWithDelta(a.LocalDateTime, c.Delta)
-		},
-		"originalFileName": extractOriginalFileName,
-		"originalPath":     extractOriginalPath,
-		"ownerId":          func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OwnerID, nil },
-		"type":             func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Type, nil },
-		"updatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
-			return extractTimeWithDelta(a.UpdatedAt, c.Delta)
-		},
-		"checksum": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Checksum, nil },
-	}
-
+func applyCriteriaWithPromote(asset utils.TAsset, criteria []utils.TCriteria) ([]string, map[string]string, error) {
 	result := make([]string, 0, len(criteria))
+	promoteValues := make(map[string]string)
 
 	for _, c := range criteria {
-		extractor, ok := extractors[c.Key]
-		if !ok {
-			return nil, fmt.Errorf("unknown criteria key: %s", c.Key)
+		var value string
+		var promoteValue string
+		var err error
+
+		// Handle special cases that can return promotion values
+		switch c.Key {
+		case "originalFileName":
+			value, promoteValue, err = extractOriginalFileName(asset, c)
+		case "originalPath":
+			value, promoteValue, err = extractOriginalPath(asset, c)
+		default:
+			// For other extractors, we need to use the old signature
+			extractors := map[string]func(asset utils.TAsset, c utils.TCriteria) (string, error){
+				"id":            func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.ID, nil },
+				"deviceAssetId": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceAssetID, nil },
+				"deviceId":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceID, nil },
+				"duration":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Duration, nil },
+				"fileCreatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+					return extractTimeWithDelta(a.FileCreatedAt, c.Delta)
+				},
+				"fileModifiedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+					return extractTimeWithDelta(a.FileModifiedAt, c.Delta)
+				},
+				"hasMetadata": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.HasMetadata), nil },
+				"isArchived":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsArchived), nil },
+				"isFavorite":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsFavorite), nil },
+				"isOffline":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsOffline), nil },
+				"isTrashed":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsTrashed), nil },
+				"localDateTime": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+					return extractTimeWithDelta(a.LocalDateTime, c.Delta)
+				},
+				"ownerId": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OwnerID, nil },
+				"type":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Type, nil },
+				"updatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+					return extractTimeWithDelta(a.UpdatedAt, c.Delta)
+				},
+				"checksum": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Checksum, nil },
+			}
+
+			extractor, ok := extractors[c.Key]
+			if !ok {
+				return nil, nil, fmt.Errorf("unknown criteria key: %s", c.Key)
+			}
+			value, err = extractor(asset, c)
 		}
-		value, err := extractor(asset, c)
+
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+
 		if value != "" {
 			result = append(result, value)
 		}
+
+		// Store promotion value if present
+		if promoteValue != "" && c.Regex != nil && c.Regex.PromoteIndex != nil {
+			promoteValues[c.Key] = promoteValue
+		}
 	}
 
-	return result, nil
+	return result, promoteValues, nil
 }
 
 /**************************************************************************************************
@@ -150,28 +173,39 @@ func applyCriteria(asset utils.TAsset, criteria []utils.TCriteria) ([]string, er
 ** @param asset - The utils.TAsset from which to extract the original file name.
 ** @param c - The utils.TCriteria containing potential split or regex parameters.
 ** @return string - The processed original file name (base name, potentially split or matched).
+** @return string - The promotion value if regex promote_index is specified, empty otherwise.
 ** @return error - An error if the split index is out of range for the resulting parts,
 **                 if regex compilation fails, or if the regex index is out of range.
 **************************************************************************************************/
-func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, error) {
+func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, string, error) {
 	// Handle regex processing if configured - use full filename including extension
 	if c.Regex != nil && c.Regex.Key != "" {
 		regex, err := regexp.Compile(c.Regex.Key)
 		if err != nil {
-			return "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
+			return "", "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
 		}
 
 		matches := regex.FindStringSubmatch(asset.OriginalFileName)
 		if matches == nil {
-			return "", nil // No match found, return empty string
+			return "", "", nil // No match found, return empty string
 		}
 
 		if c.Regex.Index < 0 || c.Regex.Index >= len(matches) {
-			return "", fmt.Errorf("regex capture group index %d out of range for %q (found %d groups)",
+			return "", "", fmt.Errorf("regex capture group index %d out of range for %q (found %d groups)",
 				c.Regex.Index, asset.OriginalFileName, len(matches)-1)
 		}
 
-		return matches[c.Regex.Index], nil
+		// Extract promotion value if promote_index is specified
+		promoteValue := ""
+		if c.Regex.PromoteIndex != nil {
+			if *c.Regex.PromoteIndex < 0 || *c.Regex.PromoteIndex >= len(matches) {
+				return "", "", fmt.Errorf("regex promote capture group index %d out of range for %q (found %d groups)",
+					*c.Regex.PromoteIndex, asset.OriginalFileName, len(matches)-1)
+			}
+			promoteValue = matches[*c.Regex.PromoteIndex]
+		}
+
+		return matches[c.Regex.Index], promoteValue, nil
 	}
 
 	// For split mode, remove extension first
@@ -192,12 +226,12 @@ func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, err
 			parts = temp
 		}
 		if c.Split.Index < 0 || c.Split.Index >= len(parts) {
-			return "", fmt.Errorf("split index %d out of range for %q", c.Split.Index, baseName)
+			return "", "", fmt.Errorf("split index %d out of range for %q", c.Split.Index, baseName)
 		}
 		baseName = parts[c.Split.Index]
 	}
 
-	return baseName, nil
+	return baseName, "", nil
 }
 
 /**************************************************************************************************
@@ -212,10 +246,11 @@ func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, err
 ** @param asset - The utils.TAsset from which to extract the original path.
 ** @param c - The utils.TCriteria containing potential split or regex parameters.
 ** @return string - The processed original path (potentially split or matched).
+** @return string - The promotion value if regex promote_index is specified, empty otherwise.
 ** @return error - An error if the split index is out of range for the resulting parts,
 **                 if regex compilation fails, or if the regex index is out of range.
 **************************************************************************************************/
-func extractOriginalPath(asset utils.TAsset, c utils.TCriteria) (string, error) {
+func extractOriginalPath(asset utils.TAsset, c utils.TCriteria) (string, string, error) {
 	// Always normalize path separators to forward slashes
 	path := strings.ReplaceAll(asset.OriginalPath, "\\", "/")
 
@@ -223,20 +258,30 @@ func extractOriginalPath(asset utils.TAsset, c utils.TCriteria) (string, error) 
 	if c.Regex != nil && c.Regex.Key != "" {
 		regex, err := regexp.Compile(c.Regex.Key)
 		if err != nil {
-			return "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
+			return "", "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
 		}
 
 		matches := regex.FindStringSubmatch(path)
 		if matches == nil {
-			return "", nil // No match found, return empty string
+			return "", "", nil // No match found, return empty string
 		}
 
 		if c.Regex.Index < 0 || c.Regex.Index >= len(matches) {
-			return "", fmt.Errorf("regex capture group index %d out of range for %q (found %d groups)",
+			return "", "", fmt.Errorf("regex capture group index %d out of range for %q (found %d groups)",
 				c.Regex.Index, path, len(matches)-1)
 		}
 
-		return matches[c.Regex.Index], nil
+		// Extract promotion value if promote_index is specified
+		promoteValue := ""
+		if c.Regex.PromoteIndex != nil {
+			if *c.Regex.PromoteIndex < 0 || *c.Regex.PromoteIndex >= len(matches) {
+				return "", "", fmt.Errorf("regex promote capture group index %d out of range for %q (found %d groups)",
+					*c.Regex.PromoteIndex, path, len(matches)-1)
+			}
+			promoteValue = matches[*c.Regex.PromoteIndex]
+		}
+
+		return matches[c.Regex.Index], promoteValue, nil
 	}
 
 	// Handle delimiter-based split processing if configured
@@ -250,11 +295,11 @@ func extractOriginalPath(asset utils.TAsset, c utils.TCriteria) (string, error) 
 			parts = temp
 		}
 		if c.Split.Index < 0 || c.Split.Index >= len(parts) {
-			return "", fmt.Errorf("split index %d out of range for %q", c.Split.Index, path)
+			return "", "", fmt.Errorf("split index %d out of range for %q", c.Split.Index, path)
 		}
 		path = parts[c.Split.Index]
 	}
-	return path, nil
+	return path, "", nil
 }
 
 /**************************************************************************************************

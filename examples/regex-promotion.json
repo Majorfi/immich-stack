@@ -1,0 +1,11 @@
+[
+  {
+    "key": "originalFileName",
+    "regex": {
+      "key": "(PXL_\\d{8}_\\d{9})(_\\w+)?\\.(jpg|JPG|dng|DNG)",
+      "index": 1,
+      "promote_index": 2,
+      "promote_keys": ["_MP", "_Portrait", "_Night", "_edit", "_crop", ""]
+    }
+  }
+]
