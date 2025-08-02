@@ -145,27 +145,27 @@ func runStacker(cmd *cobra.Command, args []string) {
 		logger.Fatalf("No API key(s) provided.")
 	}
 
-	for i, key := range apiKeys {
-		if i > 0 {
-			logger.Infof("\n")
-		}
-		client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, logger)
-		if client == nil {
-			logger.Errorf("Invalid client for API key: %s", key)
-			continue
-		}
-		user, err := client.GetCurrentUser()
-		if err != nil {
-			logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
-			continue
-		}
-		logger.Infof("=====================================================================================")
-		logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
-		logger.Infof("=====================================================================================")
-		if runMode == "cron" {
-			logger.Infof("Running in cron mode with interval of %d seconds", cronInterval)
-			runCronLoop(client, logger)
-		} else {
+	if runMode == "cron" {
+		logger.Infof("Running in cron mode with interval of %d seconds", cronInterval)
+		runCronLoopForAllUsers(apiKeys, apiURL, logger)
+	} else {
+		for i, key := range apiKeys {
+			if i > 0 {
+				logger.Infof("\n")
+			}
+			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, logger)
+			if client == nil {
+				logger.Errorf("Invalid client for API key: %s", key)
+				continue
+			}
+			user, err := client.GetCurrentUser()
+			if err != nil {
+				logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
+				continue
+			}
+			logger.Infof("=====================================================================================")
+			logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
+			logger.Infof("=====================================================================================")
 			logger.Info("Running in once mode")
 			runStackerOnce(client, logger)
 		}
@@ -285,15 +285,34 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 }
 
 /**************************************************************************************************
-** Runs the stacker process in a loop with the specified interval. Handles graceful shutdown
-** and error recovery between runs.
+** Runs the stacker process in a continuous loop for all users. Processes each user sequentially
+** in each iteration to ensure all users are handled.
 **
-** @param client - Immich client instance
+** @param apiKeys - Array of API keys for each user
+** @param apiURL - Base URL for the Immich API
 ** @param logger - Logger instance for outputting status and errors
 **************************************************************************************************/
-func runCronLoop(client *immich.Client, logger *logrus.Logger) {
+func runCronLoopForAllUsers(apiKeys []string, apiURL string, logger *logrus.Logger) {
 	for {
-		runStackerOnce(client, logger)
+		for i, key := range apiKeys {
+			if i > 0 {
+				logger.Infof("\n")
+			}
+			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, logger)
+			if client == nil {
+				logger.Errorf("Invalid client for API key: %s", key)
+				continue
+			}
+			user, err := client.GetCurrentUser()
+			if err != nil {
+				logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
+				continue
+			}
+			logger.Infof("=====================================================================================")
+			logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
+			logger.Infof("=====================================================================================")
+			runStackerOnce(client, logger)
+		}
 		logger.Infof("Sleeping for %d seconds until next run", cronInterval)
 		time.Sleep(time.Duration(cronInterval) * time.Second)
 	}
