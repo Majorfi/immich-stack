@@ -86,7 +86,7 @@ func TestExtractOriginalFileNameExtensionRemoval(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.filename, func(t *testing.T) {
 			asset := utils.TAsset{OriginalFileName: tc.filename}
-			result, err := extractOriginalFileName(asset, criteria)
+			result, _, err := extractOriginalFileName(asset, criteria)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, result)
 		})
@@ -119,7 +119,7 @@ func TestExtractOriginalFileNameMultiDelimiter(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.filename, func(t *testing.T) {
 			asset := utils.TAsset{OriginalFileName: tc.filename}
-			result, err := extractOriginalFileName(asset, criteria)
+			result, _, err := extractOriginalFileName(asset, criteria)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, result)
 		})
@@ -139,7 +139,7 @@ func TestSortStackBiggestNumber(t *testing.T) {
 	}
 	// Promote list includes 'biggestNumber' only
 	promote := "edit,biggestNumber"
-	result := sortStack(assets, promote, "", []string{"~", "."})
+	result := sortStack(assets, promote, "", []string{"~", "."}, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
 	// The first asset should be the one with the largest number (edit99)
 	assert.Equal(t, "PXL_20250503_152823814.edit99.jpg", result[0].OriginalFileName)
 	assert.Equal(t, "PXL_20250503_152823814.7.jpg", result[1].OriginalFileName)
@@ -477,7 +477,7 @@ func TestExtractOriginalPath(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			asset := utils.TAsset{OriginalPath: tc.path}
-			result, err := extractOriginalPath(asset, tc.criteria)
+			result, _, err := extractOriginalPath(asset, tc.criteria)
 			if tc.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -906,7 +906,7 @@ func TestExtractOriginalFileNameRegex(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			asset := utils.TAsset{OriginalFileName: tc.filename}
-			result, err := extractOriginalFileName(asset, tc.criteria)
+			result, _, err := extractOriginalFileName(asset, tc.criteria)
 			if tc.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -1039,7 +1039,7 @@ func TestExtractOriginalPathRegex(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			asset := utils.TAsset{OriginalPath: tc.path}
-			result, err := extractOriginalPath(asset, tc.criteria)
+			result, _, err := extractOriginalPath(asset, tc.criteria)
 			if tc.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -1228,7 +1228,7 @@ func TestApplyCriteriaWithRegex(t *testing.T) {
 				for _, group := range groups {
 					// All files in a group should have the same extracted date
 					firstAsset := group[0]
-					extractedDate, err := extractOriginalFileName(firstAsset, tt.criteria[0])
+					extractedDate, _, err := extractOriginalFileName(firstAsset, tt.criteria[0])
 					require.NoError(t, err)
 					dates[extractedDate] = len(group)
 				}
@@ -1246,4 +1246,158 @@ func mustMarshalJSON(t *testing.T, v interface{}) string {
 	data, err := json.Marshal(v)
 	require.NoError(t, err)
 	return string(data)
+}
+
+/************************************************************************************************
+** Test extractOriginalFileName with regex promotion functionality
+************************************************************************************************/
+func TestExtractOriginalFileNameRegexPromotion(t *testing.T) {
+	type testCase struct {
+		name         string
+		filename     string
+		criteria     utils.TCriteria
+		expectedKey  string
+		expectedProm string
+		wantErr      bool
+	}
+
+	promoteIndex := 3
+	tests := []testCase{
+		{
+			name:     "regex with promote_index extracts both values",
+			filename: "PXL_20230503_152823814_MP.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
+					Index:        1, // Date for grouping
+					PromoteIndex: &promoteIndex, // Suffix for promotion
+				},
+			},
+			expectedKey:  "20230503",
+			expectedProm: "_MP",
+			wantErr:      false,
+		},
+		{
+			name:     "regex with promote_index - no suffix",
+			filename: "PXL_20230503_152823814.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName", 
+				Regex: &utils.TRegex{
+					Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
+					Index:        1,
+					PromoteIndex: &promoteIndex,
+				},
+			},
+			expectedKey:  "20230503",
+			expectedProm: "", // Optional group not matched
+			wantErr:      false,
+		},
+		{
+			name:     "regex without promote_index returns empty promotion",
+			filename: "PXL_20230503_152823814_MP.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:   `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
+					Index: 1,
+				},
+			},
+			expectedKey:  "20230503",
+			expectedProm: "",
+			wantErr:      false,
+		},
+		{
+			name:     "promote_index out of range",
+			filename: "PXL_20230503_152823814.jpg",
+			criteria: utils.TCriteria{
+				Key: "originalFileName",
+				Regex: &utils.TRegex{
+					Key:          `PXL_(\d{8})_(\d{9})\.jpg`,
+					Index:        1,
+					PromoteIndex: &promoteIndex, // Index 3 doesn't exist
+				},
+			},
+			expectedKey:  "",
+			expectedProm: "",
+			wantErr:      true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			asset := utils.TAsset{OriginalFileName: tc.filename}
+			key, prom, err := extractOriginalFileName(asset, tc.criteria)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedKey, key)
+				assert.Equal(t, tc.expectedProm, prom)
+			}
+		})
+	}
+}
+
+/************************************************************************************************
+** Test stacking with regex promotion
+************************************************************************************************/
+func TestStackByWithRegexPromotion(t *testing.T) {
+	promoteIndex := 3
+	
+	tests := []struct {
+		name     string
+		assets   []utils.TAsset
+		criteria []utils.TCriteria
+		expected []string // Expected order of filenames after sorting
+	}{
+		{
+			name: "regex promotion with promote_keys",
+			assets: []utils.TAsset{
+				{ID: "1", OriginalFileName: "PXL_20230503_152823814.jpg"},
+				{ID: "2", OriginalFileName: "PXL_20230503_152823814_edit.jpg"},
+				{ID: "3", OriginalFileName: "PXL_20230503_152823814_MP.jpg"},
+				{ID: "4", OriginalFileName: "PXL_20230503_152823814_crop.jpg"},
+			},
+			criteria: []utils.TCriteria{
+				{
+					Key: "originalFileName",
+					Regex: &utils.TRegex{
+						Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
+						Index:        1, // Group by date
+						PromoteIndex: &promoteIndex, // Promote by suffix
+						PromoteKeys:  []string{"_MP", "_edit", "_crop", ""}, // Order of promotion
+					},
+				},
+			},
+			expected: []string{
+				"PXL_20230503_152823814_MP.jpg",    // _MP has highest priority
+				"PXL_20230503_152823814_edit.jpg",  // _edit is second
+				"PXL_20230503_152823814_crop.jpg",  // _crop is third
+				"PXL_20230503_152823814.jpg",       // empty suffix is last
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set up test criteria in environment
+			t.Setenv("CRITERIA", mustMarshalJSON(t, tt.criteria))
+
+			// Run stacking
+			logger := logrus.New()
+			stacks, err := StackBy(tt.assets, "", "", "", logger)
+			require.NoError(t, err)
+			require.Len(t, stacks, 1, "Expected exactly one stack")
+
+			// Check the order of assets in the stack
+			stack := stacks[0]
+			require.Len(t, stack, len(tt.expected))
+			
+			for i, expectedFilename := range tt.expected {
+				assert.Equal(t, expectedFilename, stack[i].OriginalFileName,
+					"Asset at position %d should be %s", i, expectedFilename)
+			}
+		})
+	}
 }

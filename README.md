@@ -60,7 +60,7 @@ Identifies trashed assets and moves their related stack members to trash for con
 - **Stack-Aware Trash Management:** Fix incomplete trash operations by moving related stack members to trash
 - **Multi-User Support:** Process multiple users sequentially with comma-separated API keys
 - **Configurable Grouping:** Custom grouping logic via environment variables and command-line flags
-- **Parent/Child Promotion:** Fine-grained control over stack parent selection with intelligent sequence detection
+- **Parent/Child Promotion:** Fine-grained control over stack parent selection with intelligent sequence detection and regex-based promotion
 - **Safe Operations:** Dry-run mode, stack replacement, and reset with confirmation
 - **Comprehensive Logging:** Colorful, structured logs for all operations
 - **Tested and Modular:** Table-driven tests and clear separation of concerns

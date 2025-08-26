@@ -1,0 +1,33 @@
+[
+  {
+    "key": "originalPath",
+    "regex": {
+      "key": "photos/(\\d{4})/(\\d{2})/",
+      "index": 1
+    }
+  },
+  {
+    "key": "originalFileName",
+    "regex": {
+      "key": "(IMG|PXL|DSC)_(\\d{8})_(\\d{6,9})(_\\w+)?\\.(jpg|JPG|png|PNG|dng|DNG)",
+      "index": 2,
+      "promote_index": 4,
+      "promote_keys": [
+        "_MP",
+        "_HDR",
+        "_Portrait",
+        "_Night",
+        "_edit",
+        "_final",
+        "_crop",
+        ""
+      ]
+    }
+  },
+  {
+    "key": "localDateTime",
+    "delta": {
+      "milliseconds": 5000
+    }
+  }
+]

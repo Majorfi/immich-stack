@@ -323,7 +323,7 @@ func TestSortStack(t *testing.T) {
 			}
 
 			// Act
-			result := sortStack(assets, tt.promoteStr, tt.promoteExt, []string{"~", "."})
+			result := sortStack(assets, tt.promoteStr, tt.promoteExt, []string{"~", "."}, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
 
 			// Assert
 			expectedAssets := make([]utils.TAsset, len(tt.expectedOrder))
@@ -435,7 +435,7 @@ func TestSortStack_SonyBurstPhotos(t *testing.T) {
 	parentExtPromote := ""
 	delimiters := []string{} // No delimiters, like in user's case
 
-	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters)
+	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
 
 	// Print actual order for debugging
 	t.Logf("Sorted order:")
@@ -526,7 +526,7 @@ func TestSortStack_BurstPhotoWithShuffledInput(t *testing.T) {
 	parentExtPromote := ""
 	delimiters := []string{} // No delimiters, like in user's case
 
-	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters)
+	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
 
 	t.Logf("Sorted order with burst handling:")
 	for i, asset := range sorted {
@@ -830,7 +830,7 @@ func TestSequenceKeywordHandling(t *testing.T) {
 
 			// Sort using our stacker
 			promoteStr := strings.Join(tt.promoteList, ",")
-			sorted := sortStack(assets, promoteStr, "", []string{})
+			sorted := sortStack(assets, promoteStr, "", []string{}, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
 
 			// Check the order
 			for i, expected := range tt.expected {
@@ -872,7 +872,7 @@ func TestSortStack_SonyBurstPhotosWithSequenceKeyword(t *testing.T) {
 	parentExtPromote := ""
 	delimiters := []string{} // No delimiters, like in user's case
 
-	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters)
+	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
 
 	// Log for debugging
 	t.Logf("Sorted order with sequence:4 keyword:")
@@ -934,7 +934,7 @@ func TestSortStack_SonyBurstPhotosWithPrefixPattern(t *testing.T) {
 	parentExtPromote := ""
 	delimiters := []string{}
 
-	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters)
+	sorted := sortStack(stack, parentFilenamePromote, parentExtPromote, delimiters, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
 
 	// Log for debugging
 	t.Logf("Sorted order with sequence:DSCPDC_ pattern:")
@@ -1198,7 +1198,7 @@ func TestSequenceKeywordVariations(t *testing.T) {
 
 			// Sort using our stacker
 			promoteStr := strings.Join(tt.promoteList, ",")
-			sorted := sortStack(assets, promoteStr, "", []string{})
+			sorted := sortStack(assets, promoteStr, "", []string{}, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
 
 			// Check the order
 			for i, expected := range tt.expected {
