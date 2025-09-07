@@ -634,3 +634,12 @@ func applyAdvancedCriteria(asset utils.TAsset, groups []utils.TCriteriaGroup) ([
 
 	return groupingKeys, nil
 }
+
+/**************************************************************************************************
+** ParseCriteria is a small public wrapper around getCriteriaConfig for testing and callers
+** that need to parse a criteria string directly. It honors the provided string and falls
+** back to the CRITERIA environment variable only when the string is empty.
+**************************************************************************************************/
+func ParseCriteria(criteria string) (CriteriaConfig, error) {
+    return getCriteriaConfig(criteria)
+}

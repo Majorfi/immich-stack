@@ -79,23 +79,23 @@ func TestRealCommandStructure(t *testing.T) {
 	if cmd.Use != "immich-stack" {
 		t.Errorf("Expected command name 'immich-stack', got '%s'", cmd.Use)
 	}
-	
+
 	// Verify persistent flags are present
 	criteriaFlag := cmd.PersistentFlags().Lookup("criteria")
 	if criteriaFlag == nil {
 		t.Fatal("Expected --criteria flag to be present")
 	}
-	
+
 	apiKeyFlag := cmd.PersistentFlags().Lookup("api-key")
 	if apiKeyFlag == nil {
 		t.Fatal("Expected --api-key flag to be present")
 	}
-	
+
 	// Verify subcommands are present
 	duplicatesCmd := cmd.Commands()
 	foundDuplicates := false
 	foundFixTrash := false
-	
+
 	for _, subcmd := range duplicatesCmd {
 		if subcmd.Use == "duplicates" {
 			foundDuplicates = true
@@ -104,7 +104,7 @@ func TestRealCommandStructure(t *testing.T) {
 			foundFixTrash = true
 		}
 	}
-	
+
 	if !foundDuplicates {
 		t.Error("Expected 'duplicates' subcommand to be present")
 	}
@@ -119,12 +119,12 @@ func TestRealCommandStructure(t *testing.T) {
 func TestInvalidCriteriaJSONEndToEnd(t *testing.T) {
 	defer teardownTest()
 	setupTest()
-	
+
 	// Set required API_KEY to avoid early failure
 	os.Setenv("API_KEY", "test-key")
-	
+
 	cmd := CreateTestableRootCommand()
-	
+
 	// Override Run to test the actual integration path
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		// Load environment to set up global state
@@ -133,7 +133,7 @@ func TestInvalidCriteriaJSONEndToEnd(t *testing.T) {
 			t.Errorf("LoadEnv should not fail: %v", config.Error)
 			return
 		}
-		
+
 		// Now test that invalid JSON in criteria causes ParseCriteria to fail
 		_, err := stacker.ParseCriteria(criteria)
 		if err == nil {
@@ -142,9 +142,9 @@ func TestInvalidCriteriaJSONEndToEnd(t *testing.T) {
 			t.Errorf("Expected JSON parsing error, got: %v", err)
 		}
 	}
-	
+
 	cmd.SetArgs([]string{"--criteria", `{"invalid": json}`})
-	
+
 	err := cmd.Execute()
 	if err != nil {
 		t.Errorf("Command execution should not fail at flag parsing level: %v", err)
@@ -203,7 +203,7 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 		{
 			name: "RESET_STACKS without confirmation returns error",
 			envVars: map[string]string{
-				"API_KEY":      "test-key", 
+				"API_KEY":      "test-key",
 				"RESET_STACKS": "true",
 			},
 			expectError:   true,
@@ -214,12 +214,12 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setupTest()
-			
+
 			// Set environment variables
 			for key, val := range tt.envVars {
 				os.Setenv(key, val)
 			}
-			
+
 			// Create command and set CLI flags
 			cmd := CreateTestableRootCommand()
 			var cmdArgs []string
@@ -227,16 +227,16 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 				cmdArgs = append(cmdArgs, "--"+key, val)
 			}
 			cmd.SetArgs(cmdArgs)
-			
+
 			// Parse flags to set global variables
 			err := cmd.ParseFlags(cmdArgs)
 			if err != nil {
 				t.Fatalf("Flag parsing failed: %v", err)
 			}
-			
+
 			// Test LoadEnvForTesting
 			config := LoadEnvForTesting()
-			
+
 			if tt.expectError {
 				if config.Error == nil {
 					t.Error("Expected error but got none")
@@ -247,7 +247,7 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 				if config.Error != nil {
 					t.Errorf("Unexpected error: %v", config.Error)
 				}
-				
+
 				// Verify expected values
 				if cronInterval != tt.expectedCronInt {
 					t.Errorf("Expected cronInterval %d, got %d", tt.expectedCronInt, cronInterval)
@@ -269,14 +269,14 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 func TestCriteriaFlagOverridesEnvEndToEnd(t *testing.T) {
 	defer teardownTest()
 	setupTest()
-	
-	// Set environment with one criteria and flag with another 
+
+	// Set environment with one criteria and flag with another
 	os.Setenv("API_KEY", "test-key")
 	os.Setenv("CRITERIA", `[{"key": "localDateTime"}]`)
-	
+
 	cmd := CreateTestableRootCommand()
 	cmd.SetArgs([]string{"--criteria", `[{"key": "originalFileName"}]`})
-	
+
 	// Override Run to test integration
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		// Load environment
@@ -285,26 +285,26 @@ func TestCriteriaFlagOverridesEnvEndToEnd(t *testing.T) {
 			t.Errorf("LoadEnv should not fail: %v", config.Error)
 			return
 		}
-		
+
 		// Test that ParseCriteria uses the CLI flag value
 		criteriaConfig, err := stacker.ParseCriteria(criteria)
 		if err != nil {
 			t.Errorf("getCriteriaConfig failed: %v", err)
 			return
 		}
-		
+
 		// Verify we get the flag value, not the env value
 		if len(criteriaConfig.Legacy) == 0 {
 			t.Error("Expected criteria to be parsed")
 			return
 		}
-		
+
 		// Check that we got the flag value (originalFileName), not the env value (localDateTime)
 		if criteriaConfig.Legacy[0].Key != "originalFileName" {
 			t.Errorf("Expected key 'originalFileName' from CLI flag, got '%s' - CLI flag should override env", criteriaConfig.Legacy[0].Key)
 		}
 	}
-	
+
 	err := cmd.Execute()
 	if err != nil {
 		t.Errorf("Command execution failed: %v", err)
@@ -316,7 +316,7 @@ func TestCriteriaFlagOverridesEnvEndToEnd(t *testing.T) {
 **************************************************************************************************/
 func TestLogLevelValidation(t *testing.T) {
 	defer teardownTest()
-	
+
 	tests := []struct {
 		name            string
 		flagValue       string
@@ -332,7 +332,7 @@ func TestLogLevelValidation(t *testing.T) {
 		},
 		{
 			name:           "Valid flag info",
-			flagValue:      "info", 
+			flagValue:      "info",
 			expectedResult: "info",
 		},
 		{
@@ -360,7 +360,7 @@ func TestLogLevelValidation(t *testing.T) {
 		{
 			name:           "Flag overrides env",
 			flagValue:      "error",
-			envValue:       "debug", 
+			envValue:       "debug",
 			expectedResult: "error",
 		},
 		{
@@ -375,36 +375,36 @@ func TestLogLevelValidation(t *testing.T) {
 			expectedWarning: "Invalid LOG_LEVEL 'invalid-env-level', using default 'info'",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setupTest()
-			
+
 			// Set logLevel global (simulating flag parsing)
 			logLevel = tt.flagValue
-			
+
 			// Set environment
 			if tt.envValue != "" {
 				os.Setenv("LOG_LEVEL", tt.envValue)
 			}
-			
+
 			// Always test the actual configureLogger function
 			var logBuffer bytes.Buffer
 			var logger *logrus.Logger
-			
+
 			if tt.expectWarning {
-				// Use the test helper to capture output from configureLogger 
+				// Use the test helper to capture output from configureLogger
 				logger = configureLoggerForTesting(&logBuffer)
 			} else {
 				// Test configureLogger directly
 				logger = configureLogger()
 			}
-			
+
 			actualLevel := logger.GetLevel().String()
 			if actualLevel != tt.expectedResult {
 				t.Errorf("Expected log level '%s', got '%s'", tt.expectedResult, actualLevel)
 			}
-			
+
 			// Check for expected warning
 			if tt.expectWarning {
 				logOutput := logBuffer.String()
@@ -422,10 +422,10 @@ func TestLogLevelValidation(t *testing.T) {
 func TestMultiAPIKeyEndToEndFlow(t *testing.T) {
 	defer teardownTest()
 	setupTest()
-	
+
 	cmd := CreateTestableRootCommand()
 	cmd.SetArgs([]string{"--api-key", "key1,key2,key3"})
-	
+
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		// Test the same splitting logic used in runStacker
 		apiKeys := utils.RemoveEmptyStrings(func(keys []string) []string {
@@ -434,21 +434,21 @@ func TestMultiAPIKeyEndToEndFlow(t *testing.T) {
 			}
 			return keys
 		}(strings.Split(apiKey, ",")))
-		
+
 		// Verify parsing
 		expectedKeys := []string{"key1", "key2", "key3"}
 		if len(apiKeys) != len(expectedKeys) {
 			t.Errorf("Expected %d API keys, got %d", len(expectedKeys), len(apiKeys))
 			return
 		}
-		
+
 		for i, expected := range expectedKeys {
 			if apiKeys[i] != expected {
 				t.Errorf("Expected API key %d to be '%s', got '%s'", i, expected, apiKeys[i])
 			}
 		}
 	}
-	
+
 	err := cmd.Execute()
 	if err != nil {
 		t.Errorf("Command execution failed: %v", err)
@@ -461,12 +461,12 @@ func TestMultiAPIKeyEndToEndFlow(t *testing.T) {
 func TestSubcommandFlagInheritance(t *testing.T) {
 	defer teardownTest()
 	setupTest()
-	
+
 	cmd := CreateRootCommand()
-	
+
 	// Test that subcommands inherit persistent flags
 	var duplicatesCmd, fixTrashCmd *cobra.Command
-	
+
 	for _, subcmd := range cmd.Commands() {
 		if subcmd.Use == "duplicates" {
 			duplicatesCmd = subcmd
@@ -475,17 +475,17 @@ func TestSubcommandFlagInheritance(t *testing.T) {
 			fixTrashCmd = subcmd
 		}
 	}
-	
+
 	if duplicatesCmd == nil {
 		t.Fatal("duplicates command not found")
 	}
 	if fixTrashCmd == nil {
 		t.Fatal("fix-trash command not found")
 	}
-	
+
 	// Verify key persistent flags are inherited
 	testFlags := []string{"api-key", "dry-run", "criteria"}
-	
+
 	for _, flagName := range testFlags {
 		// Check via InheritedFlags() which includes persistent flags from parent
 		if duplicatesCmd.InheritedFlags().Lookup(flagName) == nil {
@@ -506,19 +506,19 @@ func TestFullRunPathWithMockedImmich(t *testing.T) {
 
 	// Set up test environment
 	os.Setenv("API_KEY", "test-key")
-	
+
 	// Create a mock runStackerOnce function that we can verify gets called
 	var actualCriteria string
 	var stackByCalled bool
-	
+
 	cmd := CreateTestableRootCommand()
 	cmd.SetArgs([]string{"--criteria", `[{"key": "originalFileName"}]`})
-	
+
 	// Override Run to test the full integration path
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		// This follows the exact same flow as the real runStacker
 		logger := loadEnv()
-		
+
 		// Create minimal test assets to pass to StackBy
 		testAssets := []utils.TAsset{
 			{
@@ -528,37 +528,37 @@ func TestFullRunPathWithMockedImmich(t *testing.T) {
 			},
 			{
 				ID:               "asset2",
-				OriginalFileName: "IMG_002.jpg", 
+				OriginalFileName: "IMG_002.jpg",
 				LocalDateTime:    "2023-01-01T10:00:30Z",
 			},
 		}
-		
+
 		// Call StackBy with the same parameters as runStackerOnce
 		actualCriteria = criteria
 		stacks, err := stacker.StackBy(testAssets, criteria, parentFilenamePromote, parentExtPromote, logger)
 		stackByCalled = true
-		
+
 		if err != nil {
 			t.Errorf("StackBy failed: %v", err)
 			return
 		}
-		
+
 		// Verify we got results
 		if stacks == nil {
 			t.Error("StackBy should return non-nil stacks")
 		}
 	}
-	
+
 	err := cmd.Execute()
 	if err != nil {
 		t.Errorf("Command execution failed: %v", err)
 	}
-	
+
 	// Verify the full flow executed
 	if !stackByCalled {
 		t.Error("StackBy was not called - full run path not exercised")
 	}
-	
+
 	// Verify criteria was passed through correctly
 	expectedCriteria := `[{"key": "originalFileName"}]`
 	if actualCriteria != expectedCriteria {
@@ -571,7 +571,7 @@ func TestFullRunPathWithMockedImmich(t *testing.T) {
 **************************************************************************************************/
 func TestSubcommandRequiresAPIKey(t *testing.T) {
 	defer teardownTest()
-	
+
 	tests := []struct {
 		name        string
 		subcommand  string
@@ -580,14 +580,14 @@ func TestSubcommandRequiresAPIKey(t *testing.T) {
 		{"duplicates without API_KEY", "duplicates", true},
 		{"fix-trash without API_KEY", "fix-trash", true},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setupTest()
 			// Note: Not setting API_KEY environment variable
-			
+
 			cmd := CreateTestableRootCommand()
-			
+
 			// Find the subcommand and override its Run function
 			for _, subcmd := range cmd.Commands() {
 				if subcmd.Use == tt.subcommand {
@@ -601,16 +601,16 @@ func TestSubcommandRequiresAPIKey(t *testing.T) {
 							}
 							return
 						}
-						
+
 						if tt.expectError {
 							t.Error("Expected error for missing API_KEY, but validation passed")
 						}
 					}
 				}
 			}
-			
+
 			cmd.SetArgs([]string{tt.subcommand})
-			
+
 			err := cmd.Execute()
 			if err != nil {
 				t.Errorf("Command execution failed: %v", err)
@@ -625,13 +625,13 @@ func TestSubcommandRequiresAPIKey(t *testing.T) {
 func TestBooleanEnvironmentOverrides(t *testing.T) {
 	defer teardownTest()
 	setupTest()
-	
+
 	tests := []struct {
-		name       string
-		envVar     string
-		envValue   string
-		globalVar  *bool
-		expected   bool
+		name      string
+		envVar    string
+		envValue  string
+		globalVar *bool
+		expected  bool
 	}{
 		{"WITH_ARCHIVED true", "WITH_ARCHIVED", "true", &withArchived, true},
 		{"WITH_ARCHIVED false", "WITH_ARCHIVED", "false", &withArchived, false},
@@ -641,19 +641,19 @@ func TestBooleanEnvironmentOverrides(t *testing.T) {
 		// So REPLACE_STACKS env is only effective if flag is set to false first
 		{"REMOVE_SINGLE_ASSET_STACKS true", "REMOVE_SINGLE_ASSET_STACKS", "true", &removeSingleAssetStacks, true},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setupTest()
 			os.Setenv("API_KEY", "test-key") // Avoid API_KEY error
 			os.Setenv(tt.envVar, tt.envValue)
-			
+
 			config := LoadEnvForTesting()
 			if config.Error != nil {
 				t.Errorf("LoadEnv failed: %v", config.Error)
 				return
 			}
-			
+
 			if *tt.globalVar != tt.expected {
 				t.Errorf("Expected %s to be %v, got %v", tt.envVar, tt.expected, *tt.globalVar)
 			}

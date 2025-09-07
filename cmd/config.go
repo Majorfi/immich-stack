@@ -109,7 +109,7 @@ type LoadEnvConfig struct {
 func LoadEnvForTesting() LoadEnvConfig {
 	_ = godotenv.Load()
 	logger := configureLogger()
-	
+
 	if apiKey == "" {
 		apiKey = os.Getenv("API_KEY")
 	}

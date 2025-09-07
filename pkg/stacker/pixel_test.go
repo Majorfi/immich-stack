@@ -223,9 +223,9 @@ func TestPixelRegexExtraction(t *testing.T) {
 			}
 			
 			asset := utils.TAsset{OriginalFileName: tc.filename}
-			result, err := extractOriginalFileName(asset, criteria)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expected, result, "Expected %s but got %s for %s", tc.expected, result, tc.filename)
-		})
-	}
+            result, _, err := extractOriginalFileName(asset, criteria)
+            assert.NoError(t, err)
+            assert.Equal(t, tc.expected, result, "Expected %s but got %s for %s", tc.expected, result, tc.filename)
+        })
+    }
 }
