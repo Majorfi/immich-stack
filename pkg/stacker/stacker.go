@@ -156,7 +156,7 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 		// First, check regex-based promotion
 		iRegexPromoteIdx := getRegexPromoteIndex(stack[i].ID, promoteData, stackCriteria, promotionMaps)
 		jRegexPromoteIdx := getRegexPromoteIndex(stack[j].ID, promoteData, stackCriteria, promotionMaps)
-		
+
 		// If both have regex promotion values, compare them
 		if iRegexPromoteIdx >= 0 && jRegexPromoteIdx >= 0 {
 			if iRegexPromoteIdx != jRegexPromoteIdx {
@@ -169,7 +169,7 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 			// j has regex promotion, i doesn't - j comes first
 			return false
 		}
-		
+
 		// Fall back to filename promotion
 		iOriginalFileNameNoExt := filepath.Base(stack[i].OriginalFileName)
 		jOriginalFileNameNoExt := filepath.Base(stack[j].OriginalFileName)
@@ -327,7 +327,7 @@ func stackByLegacy(assets []utils.TAsset, stackingCriteria []utils.TCriteria, pa
 		}
 
 		groups[key] = append(groups[key], asset)
-		
+
 		// Store promotion values if any
 		if len(assetPromoteValues) > 0 {
 			promoteData.Set(asset.ID, assetPromoteValues)
@@ -359,107 +359,107 @@ func stackByLegacy(assets []utils.TAsset, stackingCriteria []utils.TCriteria, pa
 ** This allows complex AND/OR/NOT logic for advanced asset filtering and grouping.
 **************************************************************************************************/
 func stackByAdvanced(assets []utils.TAsset, config CriteriaConfig, parentFilenamePromote string, parentExtPromote string, logger *logrus.Logger) ([][]utils.TAsset, error) {
-    if config.Expression == nil {
-        return nil, fmt.Errorf("advanced mode requires a criteria expression")
-    }
+	if config.Expression == nil {
+		return nil, fmt.Errorf("advanced mode requires a criteria expression")
+	}
 
-    // Debug logging
-    if logger.IsLevelEnabled(logrus.DebugLevel) {
-        if config.Expression != nil {
-            logger.Debugf("Advanced criteria (expression-based) stacking with expression evaluation")
-        } else {
-            logger.Debugf("Advanced criteria (groups-based) stacking with %d groups", len(config.Groups))
-        }
-        logger.Debugf("Parent filename promote: %s", parentFilenamePromote)
-        logger.Debugf("Parent extension promote: %s", parentExtPromote)
-    }
+	// Debug logging
+	if logger.IsLevelEnabled(logrus.DebugLevel) {
+		if config.Expression != nil {
+			logger.Debugf("Advanced criteria (expression-based) stacking with expression evaluation")
+		} else {
+			logger.Debugf("Advanced criteria (groups-based) stacking with %d groups", len(config.Groups))
+		}
+		logger.Debugf("Parent filename promote: %s", parentFilenamePromote)
+		logger.Debugf("Parent extension promote: %s", parentExtPromote)
+	}
 
-    // Build criteria list from expression for delimiter detection and regex promotion  
-    exprCriteria := flattenCriteriaFromExpression(config.Expression)
+	// Build criteria list from expression for delimiter detection and regex promotion
+	exprCriteria := flattenCriteriaFromExpression(config.Expression)
 
-    // Pre-compute promotion key maps for O(1) lookup
-    promotionMaps := make(map[int]map[string]int) // criteriaIndex -> (promoteKey -> priority)
-    for i, c := range exprCriteria {
-        if c.Regex != nil && c.Regex.PromoteIndex != nil && len(c.Regex.PromoteKeys) > 0 {
-            promoteMap := make(map[string]int)
-            for idx, key := range c.Regex.PromoteKeys {
-                promoteMap[key] = idx
-            }
-            promotionMaps[i] = promoteMap
-        }
-    }
+	// Pre-compute promotion key maps for O(1) lookup
+	promotionMaps := make(map[int]map[string]int) // criteriaIndex -> (promoteKey -> priority)
+	for i, c := range exprCriteria {
+		if c.Regex != nil && c.Regex.PromoteIndex != nil && len(c.Regex.PromoteKeys) > 0 {
+			promoteMap := make(map[string]int)
+			for idx, key := range c.Regex.PromoteKeys {
+				promoteMap[key] = idx
+			}
+			promotionMaps[i] = promoteMap
+		}
+	}
 
-    // Find delimiters for originalFileName criteria
-    var delimiters []string
-    for _, c := range exprCriteria {
-        if c.Key == "originalFileName" && c.Split != nil && len(c.Split.Delimiters) > 0 {
-            delimiters = c.Split.Delimiters
-            break
-        }
-    }
+	// Find delimiters for originalFileName criteria
+	var delimiters []string
+	for _, c := range exprCriteria {
+		if c.Key == "originalFileName" && c.Split != nil && len(c.Split.Delimiters) > 0 {
+			delimiters = c.Split.Delimiters
+			break
+		}
+	}
 
-    // Group assets by their expression-based grouping keys
-    stackGroups := make(map[string][]utils.TAsset)
-    promoteData := &safePromoteData{data: make(map[string]map[string]string)}
-    
-    for _, asset := range assets {
-        // Check if asset matches the expression
-        matches, err := EvaluateExpression(config.Expression, asset)
-        if err != nil {
-            return nil, fmt.Errorf("failed to evaluate expression for asset %s: %w", asset.OriginalFileName, err)
-        }
-        
-        if !matches {
-            continue // Skip assets that don't match the expression
-        }
-        
-        // Build grouping key based on matching criteria values
-        key, err := buildExpressionGroupingKey(asset, config.Expression, exprCriteria)
-        if err != nil {
-            return nil, fmt.Errorf("failed to build grouping key for asset %s: %w", asset.OriginalFileName, err)
-        }
-        
-        if key == "" {
-            continue // Skip assets with empty grouping keys
-        }
-        
-        if logger.IsLevelEnabled(logrus.DebugLevel) {
-            logger.Debugf("Asset %s (%s) -> grouping key: %s", asset.OriginalFileName, asset.ID, key)
-        }
-        
-        // Add asset to the appropriate group
-        stackGroups[key] = append(stackGroups[key], asset)
-        
-        // Collect promotion values for sorting within each group
-        _, promVals, _ := applyCriteriaWithPromote(asset, exprCriteria)
-        if len(promVals) > 0 {
-            promoteData.Set(asset.ID, promVals)
-        }
-    }
+	// Group assets by their expression-based grouping keys
+	stackGroups := make(map[string][]utils.TAsset)
+	promoteData := &safePromoteData{data: make(map[string]map[string]string)}
 
-    // Convert groups to stacks (filter out groups with < 2 assets)
-    result := make([][]utils.TAsset, 0, len(stackGroups))
-    
-    for key, group := range stackGroups {
-        if len(group) < 2 {
-            if logger.IsLevelEnabled(logrus.DebugLevel) {
-                logger.Debugf("Skipping group with key %s (only %d asset)", key, len(group))
-            }
-            continue // Skip groups with fewer than 2 assets
-        }
-        
-        // Sort the group using existing sorting pipeline
-        sorted := sortStack(group, parentFilenamePromote, parentExtPromote, delimiters, exprCriteria, promoteData, promotionMaps)
-        result = append(result, sorted)
-        
-        if logger.IsLevelEnabled(logrus.DebugLevel) {
-            logger.Debugf("Formed stack with %d assets from key: %s", len(sorted), key)
-        }
-    }
+	for _, asset := range assets {
+		// Check if asset matches the expression
+		matches, err := EvaluateExpression(config.Expression, asset)
+		if err != nil {
+			return nil, fmt.Errorf("failed to evaluate expression for asset %s: %w", asset.OriginalFileName, err)
+		}
 
-    logger.Infof("Advanced criteria (expression-based) formed %d stacks from %d assets", len(result), len(assets))
+		if !matches {
+			continue // Skip assets that don't match the expression
+		}
 
-    return result, nil
+		// Build grouping key based on matching criteria values
+		key, err := buildExpressionGroupingKey(asset, config.Expression, exprCriteria)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build grouping key for asset %s: %w", asset.OriginalFileName, err)
+		}
+
+		if key == "" {
+			continue // Skip assets with empty grouping keys
+		}
+
+		if logger.IsLevelEnabled(logrus.DebugLevel) {
+			logger.Debugf("Asset %s (%s) -> grouping key: %s", asset.OriginalFileName, asset.ID, key)
+		}
+
+		// Add asset to the appropriate group
+		stackGroups[key] = append(stackGroups[key], asset)
+
+		// Collect promotion values for sorting within each group
+		_, promVals, _ := applyCriteriaWithPromote(asset, exprCriteria)
+		if len(promVals) > 0 {
+			promoteData.Set(asset.ID, promVals)
+		}
+	}
+
+	// Convert groups to stacks (filter out groups with < 2 assets)
+	result := make([][]utils.TAsset, 0, len(stackGroups))
+
+	for key, group := range stackGroups {
+		if len(group) < 2 {
+			if logger.IsLevelEnabled(logrus.DebugLevel) {
+				logger.Debugf("Skipping group with key %s (only %d asset)", key, len(group))
+			}
+			continue // Skip groups with fewer than 2 assets
+		}
+
+		// Sort the group using existing sorting pipeline
+		sorted := sortStack(group, parentFilenamePromote, parentExtPromote, delimiters, exprCriteria, promoteData, promotionMaps)
+		result = append(result, sorted)
+
+		if logger.IsLevelEnabled(logrus.DebugLevel) {
+			logger.Debugf("Formed stack with %d assets from key: %s", len(sorted), key)
+		}
+	}
+
+	logger.Infof("Advanced criteria (expression-based) formed %d stacks from %d assets", len(result), len(assets))
+
+	return result, nil
 }
 
 /**************************************************************************************************
@@ -467,9 +467,9 @@ func stackByAdvanced(assets []utils.TAsset, config CriteriaConfig, parentFilenam
 ** This is the intermediate complexity level between legacy and full expression-based stacking.
 **************************************************************************************************/
 func stackByLegacyGroups(assets []utils.TAsset, groups []utils.TCriteriaGroup, parentFilenamePromote string, parentExtPromote string, logger *logrus.Logger) ([][]utils.TAsset, error) {
-    if len(groups) == 0 {
-        return nil, fmt.Errorf("groups-based mode requires at least one criteria group")
-    }
+	if len(groups) == 0 {
+		return nil, fmt.Errorf("groups-based mode requires at least one criteria group")
+	}
 
 	// Debug logging
 	if logger.IsLevelEnabled(logrus.DebugLevel) {
@@ -478,131 +478,131 @@ func stackByLegacyGroups(assets []utils.TAsset, groups []utils.TCriteriaGroup, p
 		logger.Debugf("Parent extension promote: %s", parentExtPromote)
 	}
 
-    // Flatten criteria across groups for delimiter detection and regex promotion
-    groupCriteria := flattenCriteriaFromGroups(groups)
+	// Flatten criteria across groups for delimiter detection and regex promotion
+	groupCriteria := flattenCriteriaFromGroups(groups)
 
-    // Pre-compute promotion key maps for O(1) lookup
-    promotionMaps := make(map[int]map[string]int) // criteriaIndex -> (promoteKey -> priority)
-    for i, c := range groupCriteria {
-        if c.Regex != nil && c.Regex.PromoteIndex != nil && len(c.Regex.PromoteKeys) > 0 {
-            promoteMap := make(map[string]int)
-            for idx, key := range c.Regex.PromoteKeys {
-                promoteMap[key] = idx
-            }
-            promotionMaps[i] = promoteMap
-        }
-    }
+	// Pre-compute promotion key maps for O(1) lookup
+	promotionMaps := make(map[int]map[string]int) // criteriaIndex -> (promoteKey -> priority)
+	for i, c := range groupCriteria {
+		if c.Regex != nil && c.Regex.PromoteIndex != nil && len(c.Regex.PromoteKeys) > 0 {
+			promoteMap := make(map[string]int)
+			for idx, key := range c.Regex.PromoteKeys {
+				promoteMap[key] = idx
+			}
+			promotionMaps[i] = promoteMap
+		}
+	}
 
-    // Find delimiters for originalFileName criteria
-    var delimiters []string
-    for _, c := range groupCriteria {
-        if c.Key == "originalFileName" && c.Split != nil && len(c.Split.Delimiters) > 0 {
-            delimiters = c.Split.Delimiters
-            break
-        }
-    }
+	// Find delimiters for originalFileName criteria
+	var delimiters []string
+	for _, c := range groupCriteria {
+		if c.Key == "originalFileName" && c.Split != nil && len(c.Split.Delimiters) > 0 {
+			delimiters = c.Split.Delimiters
+			break
+		}
+	}
 
-    // For groups mode with OR semantics, we need to build a connectivity graph
-    // where assets are connected if they share any grouping keys from OR groups
-    assetKeys := make(map[string][]string) // assetID -> list of grouping keys
-    promoteData := &safePromoteData{data: make(map[string]map[string]string)}
-    matchingAssets := make([]utils.TAsset, 0)
-    
-    for _, asset := range assets {
-        groupKeys, err := applyAdvancedCriteria(asset, groups)
-        if err != nil {
-            return nil, fmt.Errorf("failed to apply advanced criteria to asset %s: %w", asset.OriginalFileName, err)
-        }
-        
-        if len(groupKeys) > 0 {
-            assetKeys[asset.ID] = groupKeys
-            matchingAssets = append(matchingAssets, asset)
-            
-            if logger.IsLevelEnabled(logrus.DebugLevel) {
-                logger.Debugf("Asset %s (%s) -> grouping keys: %v", asset.OriginalFileName, asset.ID, groupKeys)
-            }
+	// For groups mode with OR semantics, we need to build a connectivity graph
+	// where assets are connected if they share any grouping keys from OR groups
+	assetKeys := make(map[string][]string) // assetID -> list of grouping keys
+	promoteData := &safePromoteData{data: make(map[string]map[string]string)}
+	matchingAssets := make([]utils.TAsset, 0)
 
-            // Record promotion values for assets that appear in any group
-            _, promVals, _ := applyCriteriaWithPromote(asset, groupCriteria)
-            if len(promVals) > 0 {
-                promoteData.Set(asset.ID, promVals)
-            }
-        }
-    }
+	for _, asset := range assets {
+		groupKeys, err := applyAdvancedCriteria(asset, groups)
+		if err != nil {
+			return nil, fmt.Errorf("failed to apply advanced criteria to asset %s: %w", asset.OriginalFileName, err)
+		}
 
-    if len(matchingAssets) == 0 {
-        logger.Infof("Advanced criteria (groups-based) formed 0 stacks from %d assets", len(assets))
-        return nil, nil
-    }
+		if len(groupKeys) > 0 {
+			assetKeys[asset.ID] = groupKeys
+			matchingAssets = append(matchingAssets, asset)
 
-    // Build connected components using union semantics for OR groups
-    components := buildConnectedComponents(matchingAssets, assetKeys, logger)
+			if logger.IsLevelEnabled(logrus.DebugLevel) {
+				logger.Debugf("Asset %s (%s) -> grouping keys: %v", asset.OriginalFileName, asset.ID, groupKeys)
+			}
 
-    // Convert components to result format and sort each component
-    result := make([][]utils.TAsset, 0, len(components))
+			// Record promotion values for assets that appear in any group
+			_, promVals, _ := applyCriteriaWithPromote(asset, groupCriteria)
+			if len(promVals) > 0 {
+				promoteData.Set(asset.ID, promVals)
+			}
+		}
+	}
 
-    for _, component := range components {
-        if len(component) > 1 {
-            sorted := sortStack(component, parentFilenamePromote, parentExtPromote, delimiters, groupCriteria, promoteData, promotionMaps)
-            result = append(result, sorted)
-            
-            if logger.IsLevelEnabled(logrus.DebugLevel) {
-                logger.Debugf("Formed stack with %d assets in connected component", len(sorted))
-            }
-        } else if logger.IsLevelEnabled(logrus.DebugLevel) {
-            logger.Debugf("Skipping component with only 1 asset")
-        }
-    }
+	if len(matchingAssets) == 0 {
+		logger.Infof("Advanced criteria (groups-based) formed 0 stacks from %d assets", len(assets))
+		return nil, nil
+	}
+
+	// Build connected components using union semantics for OR groups
+	components := buildConnectedComponents(matchingAssets, assetKeys, logger)
+
+	// Convert components to result format and sort each component
+	result := make([][]utils.TAsset, 0, len(components))
+
+	for _, component := range components {
+		if len(component) > 1 {
+			sorted := sortStack(component, parentFilenamePromote, parentExtPromote, delimiters, groupCriteria, promoteData, promotionMaps)
+			result = append(result, sorted)
+
+			if logger.IsLevelEnabled(logrus.DebugLevel) {
+				logger.Debugf("Formed stack with %d assets in connected component", len(sorted))
+			}
+		} else if logger.IsLevelEnabled(logrus.DebugLevel) {
+			logger.Debugf("Skipping component with only 1 asset")
+		}
+	}
 
 	logger.Infof("Advanced criteria (groups-based) formed %d stacks from %d assets", len(result), len(assets))
 
-    return result, nil
+	return result, nil
 }
 
 /**************************************************************************************************
 ** flattenCriteriaFromGroups returns a flattened list of criteria from all groups.
 **************************************************************************************************/
 func flattenCriteriaFromGroups(groups []utils.TCriteriaGroup) []utils.TCriteria {
-    out := make([]utils.TCriteria, 0)
-    for _, g := range groups {
-        out = append(out, g.Criteria...)
-    }
-    return out
+	out := make([]utils.TCriteria, 0)
+	for _, g := range groups {
+		out = append(out, g.Criteria...)
+	}
+	return out
 }
 
 /**************************************************************************************************
 ** flattenCriteriaFromExpression returns all leaf criteria contained within an expression.
 **************************************************************************************************/
 func flattenCriteriaFromExpression(expr *utils.TCriteriaExpression) []utils.TCriteria {
-    if expr == nil {
-        return nil
-    }
-    out := make([]utils.TCriteria, 0)
-    var walk func(e *utils.TCriteriaExpression)
-    walk = func(e *utils.TCriteriaExpression) {
-        if e == nil {
-            return
-        }
-        if e.Criteria != nil {
-            out = append(out, *e.Criteria)
-            return
-        }
-        for i := range e.Children {
-            walk(&e.Children[i])
-        }
-    }
-    walk(expr)
-    return out
+	if expr == nil {
+		return nil
+	}
+	out := make([]utils.TCriteria, 0)
+	var walk func(e *utils.TCriteriaExpression)
+	walk = func(e *utils.TCriteriaExpression) {
+		if e == nil {
+			return
+		}
+		if e.Criteria != nil {
+			out = append(out, *e.Criteria)
+			return
+		}
+		for i := range e.Children {
+			walk(&e.Children[i])
+		}
+	}
+	walk(expr)
+	return out
 }
 
 /**************************************************************************************************
 ** buildExpressionGroupingKey creates a deterministic grouping key for an asset based on the
 ** leaf criteria values from an expression that actually matched. This enables proper grouping
 ** where assets with the same criteria values get stacked together.
-** 
+**
 ** The key format is "key=value|key=value" in a stable order to avoid collisions.
 **
-** @param asset - The asset to build a key for  
+** @param asset - The asset to build a key for
 ** @param expr - The expression tree to evaluate
 ** @param criteria - Flattened criteria from the expression for consistent ordering
 ** @return string - The grouping key, or empty string if no criteria matched
@@ -615,16 +615,16 @@ func buildExpressionGroupingKey(asset utils.TAsset, expr *utils.TCriteriaExpress
 	if err != nil {
 		return "", err
 	}
-	
+
 	if len(matchingValues) == 0 {
 		return "", nil
 	}
-	
+
 	// Build deterministic key in the format: key=value|key=value
 	// Use a map to track keys we've already added to avoid duplicates
 	var keyParts []string
 	addedKeys := make(map[string]bool)
-	
+
 	for _, c := range criteria {
 		if value, exists := matchingValues[c.Key]; exists && value != "" {
 			keyValue := c.Key + "=" + value
@@ -634,33 +634,33 @@ func buildExpressionGroupingKey(asset utils.TAsset, expr *utils.TCriteriaExpress
 			}
 		}
 	}
-	
+
 	if len(keyParts) == 0 {
 		return "", nil
 	}
-	
+
 	return strings.Join(keyParts, "|"), nil
 }
 
 /**************************************************************************************************
 ** collectMatchingCriteriaValues walks through an expression tree and collects the actual
-** criteria values that contributed to a match for the given asset. This is crucial for 
+** criteria values that contributed to a match for the given asset. This is crucial for
 ** proper grouping - we only want to group assets that share the same matching criteria values.
 **
 ** @param asset - The asset to evaluate
-** @param expr - The expression tree to walk  
+** @param expr - The expression tree to walk
 ** @param criteria - All leaf criteria for consistent key ordering
 ** @return map[string]string - Map of criteria key to extracted value for matching leaves
 ** @return error - Error if evaluation fails
 **************************************************************************************************/
 func collectMatchingCriteriaValues(asset utils.TAsset, expr *utils.TCriteriaExpression, criteria []utils.TCriteria) (map[string]string, error) {
 	values := make(map[string]string)
-	
+
 	err := walkMatchingCriteria(asset, expr, values)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return values, nil
 }
 
@@ -678,14 +678,14 @@ func walkMatchingCriteria(asset utils.TAsset, expr *utils.TCriteriaExpression, v
 	if expr == nil {
 		return nil
 	}
-	
+
 	// Leaf node: evaluate criteria and collect value if it matches
 	if expr.Criteria != nil {
 		matches, err := evaluateSingleCriteria(*expr.Criteria, asset)
 		if err != nil {
 			return err
 		}
-		
+
 		if matches {
 			// Extract the value for grouping - use processed criteria values for consistent grouping
 			// For regex criteria, we want the matched portion, not the full filename
@@ -693,33 +693,33 @@ func walkMatchingCriteria(asset utils.TAsset, expr *utils.TCriteriaExpression, v
 			if err != nil {
 				return err
 			}
-			
+
 			if len(criteriaValues) > 0 && criteriaValues[0] != "" {
 				values[expr.Criteria.Key] = criteriaValues[0]
 			}
 		}
-		
+
 		return nil
 	}
-	
+
 	// Operator node: evaluate based on logical operator
 	if expr.Operator == nil || len(expr.Children) == 0 {
 		return fmt.Errorf("expression node must have either criteria or operator with children")
 	}
-	
+
 	switch *expr.Operator {
 	case "AND":
 		// For AND: collect values from all children that evaluate to true
 		// Use a temporary map to collect all values, then only keep them if all children match
 		tempValues := make(map[string]string)
 		allMatch := true
-		
+
 		for _, child := range expr.Children {
 			childMatches, err := EvaluateExpression(&child, asset)
 			if err != nil {
 				return err
 			}
-			
+
 			if childMatches {
 				// Child matches, collect its values in temporary map
 				err = walkMatchingCriteria(asset, &child, tempValues)
@@ -730,14 +730,14 @@ func walkMatchingCriteria(asset utils.TAsset, expr *utils.TCriteriaExpression, v
 				allMatch = false
 			}
 		}
-		
+
 		// If all children match, copy temp values to main values map
 		if allMatch {
 			for k, v := range tempValues {
 				values[k] = v
 			}
 		}
-		
+
 	case "OR":
 		// For OR: collect values only from the first child that matches
 		// This prevents mixing values from different OR branches in the grouping key
@@ -746,7 +746,7 @@ func walkMatchingCriteria(asset utils.TAsset, expr *utils.TCriteriaExpression, v
 			if err != nil {
 				return err
 			}
-			
+
 			if childMatches {
 				// Found a matching branch, collect its values and stop
 				// Use a temporary map to collect values from this branch only
@@ -755,7 +755,7 @@ func walkMatchingCriteria(asset utils.TAsset, expr *utils.TCriteriaExpression, v
 				if err != nil {
 					return err
 				}
-				
+
 				// Copy values from the successful branch to the main values map
 				for k, v := range tempValues {
 					values[k] = v
@@ -763,18 +763,18 @@ func walkMatchingCriteria(asset utils.TAsset, expr *utils.TCriteriaExpression, v
 				break // Only collect from the first matching OR branch
 			}
 		}
-		
+
 	case "NOT":
 		// For NOT: if the child doesn't match, the NOT matches but contributes no values
 		if len(expr.Children) != 1 {
 			return fmt.Errorf("NOT operator must have exactly one child")
 		}
-		
+
 		childMatches, err := EvaluateExpression(&expr.Children[0], asset)
 		if err != nil {
 			return err
 		}
-		
+
 		// NOT matches when child doesn't match, but contributes no grouping values
 		// Assets grouped by NOT operations would all have the same "empty" key
 		// This is expected behavior - NOT is used for filtering, not grouping
@@ -782,11 +782,11 @@ func walkMatchingCriteria(asset utils.TAsset, expr *utils.TCriteriaExpression, v
 			// NOT expression matches but adds no values to grouping key
 			// This means all assets that match via NOT will be grouped together
 		}
-		
+
 	default:
 		return fmt.Errorf("unknown operator: %s", *expr.Operator)
 	}
-	
+
 	return nil
 }
 
@@ -804,7 +804,7 @@ func buildConnectedComponents(assets []utils.TAsset, assetKeys map[string][]stri
 	if len(assets) == 0 {
 		return nil
 	}
-	
+
 	// Build a map from grouping keys to assets that have that key
 	keyToAssets := make(map[string][]string) // grouping key -> list of asset IDs
 	for assetID, keys := range assetKeys {
@@ -812,13 +812,13 @@ func buildConnectedComponents(assets []utils.TAsset, assetKeys map[string][]stri
 			keyToAssets[key] = append(keyToAssets[key], assetID)
 		}
 	}
-	
+
 	// Build adjacency list for the connectivity graph
 	assetIDToIndex := make(map[string]int)
 	for i, asset := range assets {
 		assetIDToIndex[asset.ID] = i
 	}
-	
+
 	// Create adjacency list where assets are connected if they share any grouping key
 	// TODO: For very large groups, consider deduping neighbors per node to reduce list sizes
 	// (e.g., use map[int]bool per node before appending). DFS handles duplicates fine but
@@ -838,30 +838,30 @@ func buildConnectedComponents(assets []utils.TAsset, assetKeys map[string][]stri
 			}
 		}
 	}
-	
+
 	// Find connected components using DFS
 	visited := make([]bool, len(assets))
 	var components [][]utils.TAsset
-	
+
 	for i := 0; i < len(assets); i++ {
 		if !visited[i] {
 			// Start a new component from this unvisited node
 			var component []utils.TAsset
 			dfsConnectedComponents(i, adjacency, visited, assets, &component)
-			
+
 			if len(component) > 0 {
 				components = append(components, component)
 			}
 		}
 	}
-	
+
 	if logger.IsLevelEnabled(logrus.DebugLevel) {
 		logger.Debugf("Built %d connected components from %d assets", len(components), len(assets))
 		for i, comp := range components {
 			logger.Debugf("Component %d has %d assets", i, len(comp))
 		}
 	}
-	
+
 	return components
 }
 
@@ -878,10 +878,10 @@ func dfsConnectedComponents(node int, adjacency [][]int, visited []bool, assets 
 	if visited[node] || node >= len(assets) {
 		return
 	}
-	
+
 	visited[node] = true
 	*component = append(*component, assets[node])
-	
+
 	// Visit all connected nodes
 	for _, neighbor := range adjacency[node] {
 		if !visited[neighbor] {
