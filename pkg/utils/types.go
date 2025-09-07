@@ -113,11 +113,34 @@ type TUserResponse struct {
 }
 
 /**************************************************************************************************
-** TAssetWithPromote represents an asset with its associated regex promotion value.
-** This is used internally during stacking to pass promotion data from criteria application
-** to the sorting phase.
+** TCriteriaGroup represents a group of criteria with a logical operator.
+** Used in enhanced criteria configuration to support OR/AND logic.
 **************************************************************************************************/
-type TAssetWithPromote struct {
-	Asset        TAsset            // The original asset
-	PromoteValue map[string]string // Map of criteria key to promotion value extracted via regex
+type TCriteriaGroup struct {
+	Operator string      `json:"operator"` // "AND" or "OR"
+	Criteria []TCriteria `json:"criteria"` // List of criteria in this group
+}
+
+/**************************************************************************************************
+** TCriteriaExpression represents a recursive criteria expression that supports complex logical
+** operations including AND, OR, and NOT with unlimited nesting.
+**
+** Only ONE of the fields should be set:
+** - Criteria: for leaf nodes (actual criteria evaluation)
+** - Operator + Children: for logical operations (AND, OR, NOT)
+**************************************************************************************************/
+type TCriteriaExpression struct {
+	Operator *string               `json:"operator,omitempty"` // "AND", "OR", "NOT" - logical operator
+	Criteria *TCriteria            `json:"criteria,omitempty"` // Leaf criteria for evaluation
+	Children []TCriteriaExpression `json:"children,omitempty"` // Child expressions for logical operations
+}
+
+/**************************************************************************************************
+** TAdvancedCriteria represents the advanced criteria configuration that supports
+** flexible grouping logic with OR/AND operations.
+**************************************************************************************************/
+type TAdvancedCriteria struct {
+	Mode       string               `json:"mode"`                 // "legacy", "advanced"
+	Groups     []TCriteriaGroup     `json:"groups,omitempty"`     // Legacy: Criteria groups (deprecated)
+	Expression *TCriteriaExpression `json:"expression,omitempty"` // New: Nested criteria expression
 }

@@ -1401,3 +1401,45 @@ func TestStackByWithRegexPromotion(t *testing.T) {
 		})
 	}
 }
+
+/************************************************************************************************
+** Test stacking with regex promotion prioritizing unedited files (empty string first)
+************************************************************************************************/
+func TestStackByWithRegexPromotion_UneditedFirst(t *testing.T) {
+    logger := logrus.New()
+
+    assets := []utils.TAsset{
+        {ID: "1", OriginalFileName: "IMG_1234.jpg"},
+        {ID: "2", OriginalFileName: "IMG_1234_edit.jpg"},
+        {ID: "3", OriginalFileName: "IMG_1234-edited.jpg"},
+        {ID: "4", OriginalFileName: "IMG_1234.cropped.jpg"},
+        {ID: "5", OriginalFileName: "IMG_1234_crop.jpg"},
+    }
+
+    // Regex captures:
+    //  - Group 1: base name without suffix and extension (e.g., IMG_1234)
+    //  - Group 3: the edit token (crop|cropped|edit|edited) if present, else empty string
+    //  - Group 4: file extension
+    criteriaJSON := `[{"key":"originalFileName","regex":{"key":"^(.*?)([._-](crop|cropped|edit|edited).*)?\\.([^.]+)$","index":1,"promote_index":3,"promote_keys":["","edited","edit","cropped","crop"]}}]`
+    t.Setenv("CRITERIA", criteriaJSON)
+
+    stacks, err := StackBy(assets, "", "", "", logger)
+    require.NoError(t, err)
+    require.Len(t, stacks, 1, "Expected exactly one stack for same base name")
+
+    stack := stacks[0]
+    require.Len(t, stack, len(assets))
+
+    // Expect unedited first, then edited variants in the order of promote_keys
+    expected := []string{
+        "IMG_1234.jpg",         // empty promote value
+        "IMG_1234-edited.jpg",  // "edited"
+        "IMG_1234_edit.jpg",    // "edit"
+        "IMG_1234.cropped.jpg", // "cropped"
+        "IMG_1234_crop.jpg",    // "crop"
+    }
+
+    for i, want := range expected {
+        assert.Equal(t, want, stack[i].OriginalFileName, "position %d should be %s", i, want)
+    }
+}

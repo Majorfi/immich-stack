@@ -197,7 +197,7 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 	}
 
 	// Log stack statistics only in debug mode
-	if c.logger.Level == logrus.DebugLevel {
+	if c.logger.IsLevelEnabled(logrus.DebugLevel) {
 		stackCounts := make(map[int]int)
 		for _, stack := range stacks {
 			stackCounts[len(stack.Assets)]++

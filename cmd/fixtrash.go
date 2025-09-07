@@ -106,7 +106,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 
 		for idx, trashedAsset := range trashedAssets {
 			// Show progress every 50 assets or in debug mode
-			if logger.Level == logrus.DebugLevel || (idx > 0 && idx%50 == 0) {
+			if logger.IsLevelEnabled(logrus.DebugLevel) || (idx > 0 && idx%50 == 0) {
 				logger.Infof("   Analyzing trashed asset %d/%d...", idx+1, len(trashedAssets))
 			}
 			logger.Debugf("Analyzing trashed asset: %s", trashedAsset.OriginalFileName)
@@ -163,7 +163,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 		assetIDs := make([]string, 0, len(assetsToTrash))
 
 		// In debug mode, show detailed mapping
-		if logger.Level == logrus.DebugLevel {
+		if logger.IsLevelEnabled(logrus.DebugLevel) {
 			logger.Debug("\n📋 Summary of assets to trash:")
 			// Group by the trashed asset that caused them to be marked
 			groupedByTrashed := make(map[string][]utils.TAsset)

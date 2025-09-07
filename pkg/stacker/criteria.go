@@ -2,6 +2,7 @@ package stacker
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,26 +14,223 @@ import (
 )
 
 /**************************************************************************************************
-** getCriteriaConfig retrieves the criteria configuration from environment variables.
-** If the CRITERIA environment variable is not set, it returns the default criteria
-** configuration. Otherwise, it parses the JSON string from the CRITERIA environment
-** variable.
-**
-** @return []utils.TCriteria - A slice of criteria to be used for stacking assets.
-** @return error - An error if parsing the CRITERIA environment variable fails, or nil
-**                 otherwise.
+** CriteriaConfig holds the processed criteria configuration, either from legacy format
+** or advanced format.
 **************************************************************************************************/
-func getCriteriaConfig() ([]utils.TCriteria, error) {
-	criteriaOverride := os.Getenv("CRITERIA")
-	if criteriaOverride == "" {
-		return utils.DefaultCriteria, nil
+type CriteriaConfig struct {
+	Mode       string                     // "legacy" or "advanced"
+	Groups     []utils.TCriteriaGroup     // Criteria groups for stacking (legacy)
+	Legacy     []utils.TCriteria          // Legacy format for backward compatibility
+	Expression *utils.TCriteriaExpression // New nested expression format
+}
+
+/****************************************************************************************************
+** EvaluateExpression recursively evaluates a nested criteria expression against an asset.
+** Returns true if the asset matches the expression, false otherwise.
+**
+** @param expr - The criteria expression to evaluate
+** @param asset - The asset to evaluate against
+** @return bool - True if the asset matches the expression
+** @return error - An error if evaluation fails
+****************************************************************************************************/
+func EvaluateExpression(expr *utils.TCriteriaExpression, asset utils.TAsset) (bool, error) {
+	if expr == nil {
+		return false, errors.New("expression cannot be nil")
 	}
 
-	var criteria []utils.TCriteria
-	if err := json.Unmarshal([]byte(criteriaOverride), &criteria); err != nil {
-		return nil, fmt.Errorf("failed to parse CRITERIA env var: %w", err)
+	// Leaf node: evaluate single criteria
+	if expr.Criteria != nil {
+		return evaluateSingleCriteria(*expr.Criteria, asset)
 	}
-	return criteria, nil
+
+	// Operator node: evaluate children
+	if expr.Operator == nil {
+		return false, errors.New("expression must have either criteria or operator")
+	}
+
+	if len(expr.Children) == 0 {
+		return false, errors.New("operator expression must have children")
+	}
+
+	switch *expr.Operator {
+	case "AND":
+		for _, child := range expr.Children {
+			result, err := EvaluateExpression(&child, asset)
+			if err != nil {
+				return false, err
+			}
+			if !result {
+				return false, nil // Short-circuit: AND requires all to be true
+			}
+		}
+		return true, nil
+
+	case "OR":
+		for _, child := range expr.Children {
+			result, err := EvaluateExpression(&child, asset)
+			if err != nil {
+				return false, err
+			}
+			if result {
+				return true, nil // Short-circuit: OR requires only one to be true
+			}
+		}
+		return false, nil
+
+	case "NOT":
+		if len(expr.Children) != 1 {
+			return false, errors.New("NOT operator requires exactly one child")
+		}
+		result, err := EvaluateExpression(&expr.Children[0], asset)
+		if err != nil {
+			return false, err
+		}
+		return !result, nil
+
+	default:
+		return false, fmt.Errorf("unknown operator: %s", *expr.Operator)
+	}
+}
+
+/****************************************************************************************************
+** evaluateSingleCriteria evaluates a single criteria against an asset.
+** This is a helper function for the recursive expression evaluator.
+**
+** @param criteria - The single criteria to evaluate
+** @param asset - The asset to evaluate against
+** @return bool - True if the asset matches the criteria
+** @return error - An error if evaluation fails
+****************************************************************************************************/
+func evaluateSingleCriteria(criteria utils.TCriteria, asset utils.TAsset) (bool, error) {
+	// Use the existing extractor logic from applyCriteria
+	extractors := map[string]func(asset utils.TAsset, c utils.TCriteria) (string, error){
+		"id":            func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.ID, nil },
+		"deviceAssetId": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceAssetID, nil },
+		"deviceId":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceID, nil },
+		"duration":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Duration, nil },
+		"fileCreatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.FileCreatedAt, c.Delta)
+		},
+		"fileModifiedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.FileModifiedAt, c.Delta)
+		},
+		"hasMetadata": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.HasMetadata), nil },
+		"isArchived":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsArchived), nil },
+		"isFavorite":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsFavorite), nil },
+		"isOffline":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsOffline), nil },
+		"isTrashed":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsTrashed), nil },
+		"localDateTime": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.LocalDateTime, c.Delta)
+		},
+		"originalFileName": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			value, _, err := extractOriginalFileName(a, c)
+			return value, err
+		},
+		"originalPath": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			value, _, err := extractOriginalPath(a, c)
+			return value, err
+		},
+		"ownerId": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OwnerID, nil },
+		"type":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Type, nil },
+		"updatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.UpdatedAt, c.Delta)
+		},
+		"checksum": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Checksum, nil },
+	}
+
+	extractor, ok := extractors[criteria.Key]
+	if !ok {
+		return false, fmt.Errorf("unknown criteria key: %s", criteria.Key)
+	}
+
+	value, err := extractor(asset, criteria)
+	if err != nil {
+		return false, err
+	}
+
+	// For expression evaluation, we need to validate the extracted value
+	// Empty values indicate the criteria couldn't be applied (e.g., no match)
+	if value == "" {
+		return false, nil
+	}
+
+	// For boolean fields, treat "true" as matching and "false" as not matching
+	// This makes NOT expressions work intuitively: NOT isArchived means "not archived"
+	booleanFields := map[string]bool{
+		"hasMetadata": true,
+		"isArchived":  true,
+		"isFavorite":  true,
+		"isOffline":   true,
+		"isTrashed":   true,
+	}
+
+	if booleanFields[criteria.Key] {
+		return value == "true", nil
+	}
+
+	// If there's a regex pattern, validate it against the extracted value
+	if criteria.Regex != nil {
+		// For generic fields (like type), we need to validate the regex pattern
+		// (originalFileName and originalPath extractors handle this internally)
+		if criteria.Key != "originalFileName" && criteria.Key != "originalPath" {
+			re, compileErr := regexp.Compile(criteria.Regex.Key)
+			if compileErr != nil {
+				return false, fmt.Errorf("invalid regex pattern %s: %w", criteria.Regex.Key, compileErr)
+			}
+			matches := re.FindStringSubmatch(value)
+			if len(matches) == 0 {
+				return false, nil // Regex didn't match
+			}
+		}
+	}
+
+	return true, nil
+}
+
+/**************************************************************************************************
+** getCriteriaConfig parses the provided criteria string and returns the configuration.
+** If the criteria string is empty, it falls back to the CRITERIA environment variable.
+** If both are empty, it returns the default criteria configuration.
+** It supports both legacy array format and advanced object format.
+**
+** @param criteria - The criteria string to parse (from CLI flag or other source)
+** @return CriteriaConfig - The processed criteria configuration
+** @return error - An error if parsing the criteria string fails, or nil otherwise.
+**************************************************************************************************/
+func getCriteriaConfig(criteria string) (CriteriaConfig, error) {
+	criteriaOverride := criteria
+	// Fall back to environment variable if criteria parameter is empty
+	if criteriaOverride == "" {
+		criteriaOverride = os.Getenv("CRITERIA")
+	}
+	if criteriaOverride == "" {
+		return CriteriaConfig{
+			Mode:   "legacy",
+			Legacy: utils.DefaultCriteria,
+		}, nil
+	}
+
+	// First, try to parse as advanced criteria format
+	var advancedCriteria utils.TAdvancedCriteria
+	if err := json.Unmarshal([]byte(criteriaOverride), &advancedCriteria); err == nil && advancedCriteria.Mode != "" {
+		// Successfully parsed as advanced format
+		return CriteriaConfig{
+			Mode:       advancedCriteria.Mode,
+			Groups:     advancedCriteria.Groups,
+			Expression: advancedCriteria.Expression,
+		}, nil
+	}
+
+	// Fallback to legacy array format
+	var legacyCriteria []utils.TCriteria
+	if err := json.Unmarshal([]byte(criteriaOverride), &legacyCriteria); err != nil {
+		return CriteriaConfig{}, fmt.Errorf("failed to parse criteria as either advanced or legacy format: %w", err)
+	}
+
+	return CriteriaConfig{
+		Mode:   "legacy",
+		Legacy: legacyCriteria,
+	}, nil
 }
 
 /**************************************************************************************************
@@ -98,6 +296,9 @@ func extractTimeWithDelta(timeStr string, delta *utils.TDelta) (string, error) {
 **************************************************************************************************/
 func applyCriteriaWithPromote(asset utils.TAsset, criteria []utils.TCriteria) ([]string, map[string]string, error) {
 	result := make([]string, 0, len(criteria))
+	// NOTE: promoteValues keyed by criteria.Key. If multiple regex promotions exist for the
+	// same key (e.g., two different filename regexes), later matches may overwrite earlier ones.
+	// TODO: Consider keying by criteria identifier or pattern if this becomes an issue.
 	promoteValues := make(map[string]string)
 
 	for _, c := range criteria {
@@ -155,8 +356,8 @@ func applyCriteriaWithPromote(asset utils.TAsset, criteria []utils.TCriteria) ([
 			result = append(result, value)
 		}
 
-		// Store promotion value if present
-		if promoteValue != "" && c.Regex != nil && c.Regex.PromoteIndex != nil {
+		// Store promotion value if present (including empty strings, which are valid promote values)
+		if c.Regex != nil && c.Regex.PromoteIndex != nil {
 			promoteValues[c.Key] = promoteValue
 		}
 	}
@@ -187,7 +388,10 @@ func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, str
 
 		matches := regex.FindStringSubmatch(asset.OriginalFileName)
 		if matches == nil {
-			return "", "", nil // No match found, return empty string
+			// No match found - in legacy mode, this means the asset may be excluded from stacking
+			// or grouped by other criteria if multiple criteria are specified.
+			// For complex regex filtering, consider using advanced mode.
+			return "", "", nil
 		}
 
 		if c.Regex.Index < 0 || c.Regex.Index >= len(matches) {
@@ -263,7 +467,10 @@ func extractOriginalPath(asset utils.TAsset, c utils.TCriteria) (string, string,
 
 		matches := regex.FindStringSubmatch(path)
 		if matches == nil {
-			return "", "", nil // No match found, return empty string
+			// No match found - in legacy mode, this means the asset may be excluded from stacking
+			// or grouped by other criteria if multiple criteria are specified.
+			// For complex regex filtering, consider using advanced mode.
+			return "", "", nil
 		}
 
 		if c.Regex.Index < 0 || c.Regex.Index >= len(matches) {
@@ -314,4 +521,116 @@ func boolToString(b bool) string {
 		return "true"
 	}
 	return "false"
+}
+
+/**************************************************************************************************
+** applyAdvancedCriteria generates grouping keys for an asset using advanced criteria logic.
+** It correctly handles OR groups where each matching criterion creates separate grouping opportunities.
+**
+** @param asset - The utils.TAsset to apply criteria to.
+** @param groups - A slice of utils.TCriteriaGroup defining how to group assets.
+** @return []string - A slice of grouping keys that the asset matches. Empty if no groups match.
+** @return error - An error if any extractor function returns an error.
+**************************************************************************************************/
+func applyAdvancedCriteria(asset utils.TAsset, groups []utils.TCriteriaGroup) ([]string, error) {
+	extractors := map[string]func(asset utils.TAsset, c utils.TCriteria) (string, error){
+		"id":            func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.ID, nil },
+		"deviceAssetId": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceAssetID, nil },
+		"deviceId":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.DeviceID, nil },
+		"duration":      func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Duration, nil },
+		"fileCreatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.FileCreatedAt, c.Delta)
+		},
+		"fileModifiedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.FileModifiedAt, c.Delta)
+		},
+		"hasMetadata": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.HasMetadata), nil },
+		"isArchived":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsArchived), nil },
+		"isFavorite":  func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsFavorite), nil },
+		"isOffline":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsOffline), nil },
+		"isTrashed":   func(a utils.TAsset, _ utils.TCriteria) (string, error) { return boolToString(a.IsTrashed), nil },
+		"localDateTime": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.LocalDateTime, c.Delta)
+		},
+		"originalFileName": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			value, _, err := extractOriginalFileName(a, c)
+			return value, err
+		},
+		"originalPath": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			value, _, err := extractOriginalPath(a, c)
+			return value, err
+		},
+		"ownerId": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.OwnerID, nil },
+		"type":    func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Type, nil },
+		"updatedAt": func(a utils.TAsset, c utils.TCriteria) (string, error) {
+			return extractTimeWithDelta(a.UpdatedAt, c.Delta)
+		},
+		"checksum": func(a utils.TAsset, _ utils.TCriteria) (string, error) { return a.Checksum, nil },
+	}
+
+	var groupingKeys []string
+
+	// Process each criteria group
+	for groupIdx, group := range groups {
+		if group.Operator == "OR" {
+			// For OR groups, each matching criterion creates its own grouping opportunity
+			// This allows assets to be grouped by ANY of the criteria, creating multiple potential stacks
+			for criteriaIdx, criterion := range group.Criteria {
+				extractor, ok := extractors[criterion.Key]
+				if !ok {
+					return nil, fmt.Errorf("unknown criteria key: %s", criterion.Key)
+				}
+
+				value, err := extractor(asset, criterion)
+				if err != nil {
+					return nil, err
+				}
+
+				if value != "" {
+					// Create a unique key for this specific criterion match
+					groupKey := fmt.Sprintf("group_%d_or_%d_%s:%s", groupIdx, criteriaIdx, criterion.Key, value)
+					groupingKeys = append(groupingKeys, groupKey)
+				}
+			}
+		} else {
+			// Default to AND logic - all criteria in the group must match
+			var groupValues []string
+			var criteriaKeys []string
+			groupMatches := true
+
+			for _, criterion := range group.Criteria {
+				extractor, ok := extractors[criterion.Key]
+				if !ok {
+					return nil, fmt.Errorf("unknown criteria key: %s", criterion.Key)
+				}
+
+				value, err := extractor(asset, criterion)
+				if err != nil {
+					return nil, err
+				}
+
+				if value == "" {
+					groupMatches = false
+					break
+				}
+
+				groupValues = append(groupValues, value)
+				criteriaKeys = append(criteriaKeys, criterion.Key)
+			}
+
+			// If all criteria match, create a single grouping key
+			if groupMatches && len(groupValues) > 0 {
+				groupKey := fmt.Sprintf("group_%d_and:", groupIdx)
+				for i, key := range criteriaKeys {
+					if i > 0 {
+						groupKey += "|"
+					}
+					groupKey += fmt.Sprintf("%s=%s", key, groupValues[i])
+				}
+				groupingKeys = append(groupingKeys, groupKey)
+			}
+		}
+	}
+
+	return groupingKeys, nil
 }

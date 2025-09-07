@@ -404,9 +404,6 @@ func shouldUseSequenceMatching(filename string, promoteList []string) bool {
 	return false
 }
 
-// Compile regex once to avoid recompilation in loops
-var fourDigitRegex = regexp.MustCompile(`^\d{4}$`)
-
 /**************************************************************************************************
 ** detectPromoteMatchMode analyzes the promote list and filenames to determine
 ** the best matching mode to use.

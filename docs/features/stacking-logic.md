@@ -1,9 +1,30 @@
 # Stacking Logic
 
-## Grouping
+## Grouping Modes
+
+Immich Stack supports three grouping modes with increasing complexity and power:
+
+### 1. Legacy Mode (Default)
 
 - **Default Criteria:** Groups by base filename (before extension) and local capture time
-- **Custom Criteria:** Override with the `--criteria` flag or `CRITERIA` environment variable
+- **Logic:** Simple AND operation - all criteria must match
+- **Configuration:** Array format in `CRITERIA` environment variable
+
+### 2. Advanced Groups Mode
+
+- **Multiple Strategies:** Support for multiple grouping approaches
+- **Logic:** Configurable AND/OR operations per group
+- **Configuration:** Object format with `"mode": "advanced"` and `groups` array
+
+### 3. Advanced Expression Mode
+
+- **Maximum Flexibility:** Unlimited nested logical expressions
+- **Logic:** Full support for AND, OR, and NOT operations with unlimited nesting
+- **Configuration:** Object format with `"mode": "advanced"` and `expression` tree
+
+## Custom Criteria
+
+Override default grouping behavior with the `--criteria` flag or `CRITERIA` environment variable using any of the three supported formats. See [Custom Criteria](custom-criteria.md) for complete documentation.
 
 ## Sorting
 
@@ -95,10 +116,14 @@ The system can detect various sequence patterns when using comma-separated numbe
 ## Stacking Process
 
 1. **Fetch all stacks and assets** from Immich
-2. **Group assets** into stacks using criteria
-3. **Sort each stack** to determine the parent and children
-4. **Apply changes** via the Immich API (create, update, or delete stacks as needed)
-5. **Log all actions** and optionally run in dry-run mode for safety
+2. **Determine grouping mode** based on `CRITERIA` configuration:
+   - **Legacy Mode:** Apply simple AND logic to array of criteria
+   - **Groups Mode:** Process each criteria group with configured AND/OR logic
+   - **Expression Mode:** Recursively evaluate nested logical expressions
+3. **Group assets** into stacks using the selected mode and criteria
+4. **Sort each stack** to determine the parent and children using promotion rules
+5. **Apply changes** via the Immich API (create, update, or delete stacks as needed)
+6. **Log all actions** and optionally run in dry-run mode for safety
 
 ## Safe Operations
 
