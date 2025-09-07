@@ -1270,7 +1270,7 @@ func TestExtractOriginalFileNameRegexPromotion(t *testing.T) {
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
 					Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
-					Index:        1, // Date for grouping
+					Index:        1,             // Date for grouping
 					PromoteIndex: &promoteIndex, // Suffix for promotion
 				},
 			},
@@ -1282,7 +1282,7 @@ func TestExtractOriginalFileNameRegexPromotion(t *testing.T) {
 			name:     "regex with promote_index - no suffix",
 			filename: "PXL_20230503_152823814.jpg",
 			criteria: utils.TCriteria{
-				Key: "originalFileName", 
+				Key: "originalFileName",
 				Regex: &utils.TRegex{
 					Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
 					Index:        1,
@@ -1344,7 +1344,7 @@ func TestExtractOriginalFileNameRegexPromotion(t *testing.T) {
 ************************************************************************************************/
 func TestStackByWithRegexPromotion(t *testing.T) {
 	promoteIndex := 3
-	
+
 	tests := []struct {
 		name     string
 		assets   []utils.TAsset
@@ -1364,17 +1364,17 @@ func TestStackByWithRegexPromotion(t *testing.T) {
 					Key: "originalFileName",
 					Regex: &utils.TRegex{
 						Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
-						Index:        1, // Group by date
-						PromoteIndex: &promoteIndex, // Promote by suffix
+						Index:        1,                                     // Group by date
+						PromoteIndex: &promoteIndex,                         // Promote by suffix
 						PromoteKeys:  []string{"_MP", "_edit", "_crop", ""}, // Order of promotion
 					},
 				},
 			},
 			expected: []string{
-				"PXL_20230503_152823814_MP.jpg",    // _MP has highest priority
-				"PXL_20230503_152823814_edit.jpg",  // _edit is second
-				"PXL_20230503_152823814_crop.jpg",  // _crop is third
-				"PXL_20230503_152823814.jpg",       // empty suffix is last
+				"PXL_20230503_152823814_MP.jpg",   // _MP has highest priority
+				"PXL_20230503_152823814_edit.jpg", // _edit is second
+				"PXL_20230503_152823814_crop.jpg", // _crop is third
+				"PXL_20230503_152823814.jpg",      // empty suffix is last
 			},
 		},
 	}
@@ -1393,7 +1393,7 @@ func TestStackByWithRegexPromotion(t *testing.T) {
 			// Check the order of assets in the stack
 			stack := stacks[0]
 			require.Len(t, stack, len(tt.expected))
-			
+
 			for i, expectedFilename := range tt.expected {
 				assert.Equal(t, expectedFilename, stack[i].OriginalFileName,
 					"Asset at position %d should be %s", i, expectedFilename)
@@ -1406,40 +1406,40 @@ func TestStackByWithRegexPromotion(t *testing.T) {
 ** Test stacking with regex promotion prioritizing unedited files (empty string first)
 ************************************************************************************************/
 func TestStackByWithRegexPromotion_UneditedFirst(t *testing.T) {
-    logger := logrus.New()
+	logger := logrus.New()
 
-    assets := []utils.TAsset{
-        {ID: "1", OriginalFileName: "IMG_1234.jpg"},
-        {ID: "2", OriginalFileName: "IMG_1234_edit.jpg"},
-        {ID: "3", OriginalFileName: "IMG_1234-edited.jpg"},
-        {ID: "4", OriginalFileName: "IMG_1234.cropped.jpg"},
-        {ID: "5", OriginalFileName: "IMG_1234_crop.jpg"},
-    }
+	assets := []utils.TAsset{
+		{ID: "1", OriginalFileName: "IMG_1234.jpg"},
+		{ID: "2", OriginalFileName: "IMG_1234_edit.jpg"},
+		{ID: "3", OriginalFileName: "IMG_1234-edited.jpg"},
+		{ID: "4", OriginalFileName: "IMG_1234.cropped.jpg"},
+		{ID: "5", OriginalFileName: "IMG_1234_crop.jpg"},
+	}
 
-    // Regex captures:
-    //  - Group 1: base name without suffix and extension (e.g., IMG_1234)
-    //  - Group 3: the edit token (crop|cropped|edit|edited) if present, else empty string
-    //  - Group 4: file extension
-    criteriaJSON := `[{"key":"originalFileName","regex":{"key":"^(.*?)([._-](crop|cropped|edit|edited).*)?\\.([^.]+)$","index":1,"promote_index":3,"promote_keys":["","edited","edit","cropped","crop"]}}]`
-    t.Setenv("CRITERIA", criteriaJSON)
+	// Regex captures:
+	//  - Group 1: base name without suffix and extension (e.g., IMG_1234)
+	//  - Group 3: the edit token (crop|cropped|edit|edited) if present, else empty string
+	//  - Group 4: file extension
+	criteriaJSON := `[{"key":"originalFileName","regex":{"key":"^(.*?)([._-](crop|cropped|edit|edited).*)?\\.([^.]+)$","index":1,"promote_index":3,"promote_keys":["","edited","edit","cropped","crop"]}}]`
+	t.Setenv("CRITERIA", criteriaJSON)
 
-    stacks, err := StackBy(assets, "", "", "", logger)
-    require.NoError(t, err)
-    require.Len(t, stacks, 1, "Expected exactly one stack for same base name")
+	stacks, err := StackBy(assets, "", "", "", logger)
+	require.NoError(t, err)
+	require.Len(t, stacks, 1, "Expected exactly one stack for same base name")
 
-    stack := stacks[0]
-    require.Len(t, stack, len(assets))
+	stack := stacks[0]
+	require.Len(t, stack, len(assets))
 
-    // Expect unedited first, then edited variants in the order of promote_keys
-    expected := []string{
-        "IMG_1234.jpg",         // empty promote value
-        "IMG_1234-edited.jpg",  // "edited"
-        "IMG_1234_edit.jpg",    // "edit"
-        "IMG_1234.cropped.jpg", // "cropped"
-        "IMG_1234_crop.jpg",    // "crop"
-    }
+	// Expect unedited first, then edited variants in the order of promote_keys
+	expected := []string{
+		"IMG_1234.jpg",         // empty promote value
+		"IMG_1234-edited.jpg",  // "edited"
+		"IMG_1234_edit.jpg",    // "edit"
+		"IMG_1234.cropped.jpg", // "cropped"
+		"IMG_1234_crop.jpg",    // "crop"
+	}
 
-    for i, want := range expected {
-        assert.Equal(t, want, stack[i].OriginalFileName, "position %d should be %s", i, want)
-    }
+	for i, want := range expected {
+		assert.Equal(t, want, stack[i].OriginalFileName, "position %d should be %s", i, want)
+	}
 }
