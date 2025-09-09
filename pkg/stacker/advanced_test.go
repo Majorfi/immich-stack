@@ -1,6 +1,7 @@
 package stacker
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
@@ -506,9 +507,9 @@ func TestAdvancedCriteriaIntegration(t *testing.T) {
 		pxlInStack := 0
 		imgInStack := 0
 		for _, asset := range stack {
-			if asset.OriginalFileName[0:4] == "PXL_" {
+			if strings.HasPrefix(asset.OriginalFileName, "PXL_") {
 				pxlInStack++
-			} else if asset.OriginalFileName[0:4] == "IMG_" {
+			} else if strings.HasPrefix(asset.OriginalFileName, "IMG_") {
 				imgInStack++
 			}
 		}

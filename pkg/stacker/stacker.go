@@ -13,6 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// numericSuffixRegex matches a string that contains only digits (used for extracting numeric suffixes)
+var numericSuffixRegex = regexp.MustCompile(`^(\d+)$`)
+
 // safePromoteData provides thread-safe access to promotion data
 type safePromoteData struct {
 	mu   sync.RWMutex
@@ -57,7 +60,8 @@ func getRegexPromoteIndex(assetID string, promoteData *safePromoteData, criteria
 			continue
 		}
 
-		promoteValue, hasValue := assetPromoteValues[c.Key]
+		criteriaIdentifier := fmt.Sprintf("%s:%d", c.Key, i)
+		promoteValue, hasValue := assetPromoteValues[criteriaIdentifier]
 		if !hasValue {
 			continue
 		}
@@ -105,7 +109,6 @@ func extractLargestNumberSuffix(filename string, delimiters []string) int {
 		return 0
 	}
 	last := parts[len(parts)-1]
-	numericSuffixRegex := regexp.MustCompile(`^(\d+)$`)
 	match := numericSuffixRegex.FindStringSubmatch(last)
 	if len(match) < 2 {
 		return 0
@@ -268,6 +271,10 @@ func StackBy(assets []utils.TAsset, criteria string, parentFilenamePromote strin
 ** This is the original stacking logic that groups assets based on matching criteria values.
 **************************************************************************************************/
 func stackByLegacy(assets []utils.TAsset, stackingCriteria []utils.TCriteria, parentFilenamePromote string, parentExtPromote string, logger *logrus.Logger) ([][]utils.TAsset, error) {
+    // Precompile regex patterns from legacy criteria
+    if err := PrecompileLegacyRegexes(stackingCriteria); err != nil {
+        return nil, fmt.Errorf("failed to precompile legacy criteria regexes: %w", err)
+    }
 	// Pre-compute promotion key maps for O(1) lookup
 	promotionMaps := make(map[int]map[string]int) // criteriaIndex -> (promoteKey -> priority)
 	for i, c := range stackingCriteria {
@@ -359,9 +366,9 @@ func stackByLegacy(assets []utils.TAsset, stackingCriteria []utils.TCriteria, pa
 ** This allows complex AND/OR/NOT logic for advanced asset filtering and grouping.
 **************************************************************************************************/
 func stackByAdvanced(assets []utils.TAsset, config CriteriaConfig, parentFilenamePromote string, parentExtPromote string, logger *logrus.Logger) ([][]utils.TAsset, error) {
-	if config.Expression == nil {
-		return nil, fmt.Errorf("advanced mode requires a criteria expression")
-	}
+    if config.Expression == nil {
+        return nil, fmt.Errorf("advanced mode requires a criteria expression")
+    }
 
 	// Debug logging
 	if logger.IsLevelEnabled(logrus.DebugLevel) {
@@ -374,8 +381,13 @@ func stackByAdvanced(assets []utils.TAsset, config CriteriaConfig, parentFilenam
 		logger.Debugf("Parent extension promote: %s", parentExtPromote)
 	}
 
-	// Build criteria list from expression for delimiter detection and regex promotion
-	exprCriteria := flattenCriteriaFromExpression(config.Expression)
+    // Precompile regex patterns from the expression leaves to avoid first-hit compilation
+    if err := PrecompileExpressionRegexes(config.Expression); err != nil {
+        return nil, fmt.Errorf("failed to precompile expression regexes: %w", err)
+    }
+
+    // Build criteria list from expression for delimiter detection and regex promotion  
+    exprCriteria := flattenCriteriaFromExpression(config.Expression)
 
 	// Pre-compute promotion key maps for O(1) lookup
 	promotionMaps := make(map[int]map[string]int) // criteriaIndex -> (promoteKey -> priority)
@@ -467,9 +479,9 @@ func stackByAdvanced(assets []utils.TAsset, config CriteriaConfig, parentFilenam
 ** This is the intermediate complexity level between legacy and full expression-based stacking.
 **************************************************************************************************/
 func stackByLegacyGroups(assets []utils.TAsset, groups []utils.TCriteriaGroup, parentFilenamePromote string, parentExtPromote string, logger *logrus.Logger) ([][]utils.TAsset, error) {
-	if len(groups) == 0 {
-		return nil, fmt.Errorf("groups-based mode requires at least one criteria group")
-	}
+    if len(groups) == 0 {
+        return nil, fmt.Errorf("groups-based mode requires at least one criteria group")
+    }
 
 	// Debug logging
 	if logger.IsLevelEnabled(logrus.DebugLevel) {
@@ -478,8 +490,13 @@ func stackByLegacyGroups(assets []utils.TAsset, groups []utils.TCriteriaGroup, p
 		logger.Debugf("Parent extension promote: %s", parentExtPromote)
 	}
 
-	// Flatten criteria across groups for delimiter detection and regex promotion
-	groupCriteria := flattenCriteriaFromGroups(groups)
+    // Precompile regex patterns from groups
+    if err := PrecompileGroupsRegexes(groups); err != nil {
+        return nil, fmt.Errorf("failed to precompile group regexes: %w", err)
+    }
+
+    // Flatten criteria across groups for delimiter detection and regex promotion
+    groupCriteria := flattenCriteriaFromGroups(groups)
 
 	// Pre-compute promotion key maps for O(1) lookup
 	promotionMaps := make(map[int]map[string]int) // criteriaIndex -> (promoteKey -> priority)

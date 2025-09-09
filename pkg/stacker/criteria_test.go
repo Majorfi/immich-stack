@@ -1443,3 +1443,362 @@ func TestStackByWithRegexPromotion_UneditedFirst(t *testing.T) {
 		assert.Equal(t, want, stack[i].OriginalFileName, "position %d should be %s", i, want)
 	}
 }
+
+/************************************************************************************************
+** Test applyCriteriaWithPromote handles multiple regex promotions on same key without collision
+************************************************************************************************/
+func TestApplyCriteriaWithPromoteMultipleRegex(t *testing.T) {
+	asset := utils.TAsset{
+		ID:               "test-asset",
+		OriginalFileName: "IMG_001.jpg",
+	}
+
+	// Two criteria with same key but different promotion configurations
+	criteria := []utils.TCriteria{
+		{
+			Key: "originalFileName",
+			Regex: &utils.TRegex{
+				Key:          "^(IMG)_(\\d+)",
+				Index:        1,                        // Extract "IMG" 
+				PromoteIndex: &[]int{1}[0],             // Use captured group 1 for promotion
+				PromoteKeys:  []string{"IMG", "PXL"},
+			},
+		},
+		{
+			Key: "originalFileName", 
+			Regex: &utils.TRegex{
+				Key:          "^([A-Z]+)_(\\d+)",
+				Index:        2,                        // Extract "001"
+				PromoteIndex: &[]int{2}[0],             // Use captured group 2 for promotion  
+				PromoteKeys:  []string{"001", "002"},
+			},
+		},
+	}
+
+	values, promoteValues, err := applyCriteriaWithPromote(asset, criteria)
+	require.NoError(t, err)
+
+	// Verify both criteria extracted values
+	assert.Equal(t, []string{"IMG", "001"}, values)
+
+	// Verify both promotion values are stored with unique keys (no collision)
+	assert.Len(t, promoteValues, 2, "Should have promotion values from both criteria")
+	assert.Equal(t, "IMG", promoteValues["originalFileName:0"], "First criteria should store IMG")
+	assert.Equal(t, "001", promoteValues["originalFileName:1"], "Second criteria should store 001")
+
+	// Verify that neither promotion value overwrote the other
+	assert.NotEqual(t, promoteValues["originalFileName:0"], promoteValues["originalFileName:1"],
+		"Promotion values should be different (no collision)")
+}
+
+/************************************************************************************************
+** Early-fail regex tests for precompile helpers
+************************************************************************************************/
+
+func TestPrecompileLegacyRegexes(t *testing.T) {
+	tests := []struct {
+		name        string
+		criteria    []utils.TCriteria
+		expectError bool
+		errorPart   string
+	}{
+		{
+			name: "valid regex patterns",
+			criteria: []utils.TCriteria{
+				{
+					Key:   "originalFileName",
+					Regex: &utils.TRegex{Key: "^IMG_.*"},
+				},
+				{
+					Key:   "originalPath",
+					Regex: &utils.TRegex{Key: "\\d{4}"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid regex pattern - unclosed parenthesis",
+			criteria: []utils.TCriteria{
+				{
+					Key:   "originalFileName",
+					Regex: &utils.TRegex{Key: "("},
+				},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name: "invalid regex pattern - unclosed bracket",
+			criteria: []utils.TCriteria{
+				{
+					Key:   "originalPath",
+					Regex: &utils.TRegex{Key: "[abc"},
+				},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name: "mixed valid and invalid patterns",
+			criteria: []utils.TCriteria{
+				{
+					Key:   "originalFileName",
+					Regex: &utils.TRegex{Key: "^IMG_.*"},
+				},
+				{
+					Key:   "originalPath",
+					Regex: &utils.TRegex{Key: "("},
+				},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name:        "nil criteria",
+			criteria:    nil,
+			expectError: false,
+		},
+		{
+			name: "criteria with nil regex",
+			criteria: []utils.TCriteria{
+				{
+					Key:   "originalFileName",
+					Regex: nil,
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := PrecompileLegacyRegexes(tt.criteria)
+			
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for invalid regex pattern")
+				if tt.errorPart != "" {
+					assert.Contains(t, err.Error(), tt.errorPart)
+				}
+			} else {
+				assert.NoError(t, err, "Expected no error for valid regex patterns")
+			}
+		})
+	}
+}
+
+func TestPrecompileGroupsRegexes(t *testing.T) {
+	tests := []struct {
+		name        string
+		groups      []utils.TCriteriaGroup
+		expectError bool
+		errorPart   string
+	}{
+		{
+			name: "valid regex patterns in groups",
+			groups: []utils.TCriteriaGroup{
+				{
+					Operator: "OR",
+					Criteria: []utils.TCriteria{
+						{
+							Key:   "originalFileName",
+							Regex: &utils.TRegex{Key: "^IMG_.*"},
+						},
+						{
+							Key:   "originalPath",
+							Regex: &utils.TRegex{Key: "\\d{4}"},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid regex in group",
+			groups: []utils.TCriteriaGroup{
+				{
+					Operator: "AND",
+					Criteria: []utils.TCriteria{
+						{
+							Key:   "originalFileName",
+							Regex: &utils.TRegex{Key: "("},
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name: "multiple groups with mixed validity",
+			groups: []utils.TCriteriaGroup{
+				{
+					Operator: "OR",
+					Criteria: []utils.TCriteria{
+						{
+							Key:   "originalFileName",
+							Regex: &utils.TRegex{Key: "^IMG_.*"},
+						},
+					},
+				},
+				{
+					Operator: "AND",
+					Criteria: []utils.TCriteria{
+						{
+							Key:   "originalPath",
+							Regex: &utils.TRegex{Key: "[abc"},
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name:        "empty groups",
+			groups:      []utils.TCriteriaGroup{},
+			expectError: false,
+		},
+		{
+			name:        "nil groups",
+			groups:      nil,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := PrecompileGroupsRegexes(tt.groups)
+			
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for invalid regex pattern")
+				if tt.errorPart != "" {
+					assert.Contains(t, err.Error(), tt.errorPart)
+				}
+			} else {
+				assert.NoError(t, err, "Expected no error for valid regex patterns")
+			}
+		})
+	}
+}
+
+func TestPrecompileExpressionRegexes(t *testing.T) {
+	tests := []struct {
+		name        string
+		expression  *utils.TCriteriaExpression
+		expectError bool
+		errorPart   string
+	}{
+		{
+			name: "valid regex in leaf expression",
+			expression: &utils.TCriteriaExpression{
+				Criteria: &utils.TCriteria{
+					Key:   "originalFileName",
+					Regex: &utils.TRegex{Key: "^IMG_.*"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid regex in leaf expression",
+			expression: &utils.TCriteriaExpression{
+				Criteria: &utils.TCriteria{
+					Key:   "originalFileName",
+					Regex: &utils.TRegex{Key: "("},
+				},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name: "nested expression with valid regex",
+			expression: &utils.TCriteriaExpression{
+				Operator: &[]string{"AND"}[0],
+				Children: []utils.TCriteriaExpression{
+					{
+						Criteria: &utils.TCriteria{
+							Key:   "originalFileName",
+							Regex: &utils.TRegex{Key: "^IMG_.*"},
+						},
+					},
+					{
+						Criteria: &utils.TCriteria{
+							Key:   "originalPath",
+							Regex: &utils.TRegex{Key: "\\d{4}"},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "nested expression with invalid regex in child",
+			expression: &utils.TCriteriaExpression{
+				Operator: &[]string{"OR"}[0],
+				Children: []utils.TCriteriaExpression{
+					{
+						Criteria: &utils.TCriteria{
+							Key:   "originalFileName",
+							Regex: &utils.TRegex{Key: "^IMG_.*"},
+						},
+					},
+					{
+						Criteria: &utils.TCriteria{
+							Key:   "originalPath",
+							Regex: &utils.TRegex{Key: "[abc"},
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name: "deeply nested expression with invalid regex",
+			expression: &utils.TCriteriaExpression{
+				Operator: &[]string{"AND"}[0],
+				Children: []utils.TCriteriaExpression{
+					{
+						Operator: &[]string{"OR"}[0],
+						Children: []utils.TCriteriaExpression{
+							{
+								Criteria: &utils.TCriteria{
+									Key:   "originalFileName",
+									Regex: &utils.TRegex{Key: "("},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name:        "nil expression",
+			expression:  nil,
+			expectError: false,
+		},
+		{
+			name: "expression with nil criteria",
+			expression: &utils.TCriteriaExpression{
+				Criteria: nil,
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := PrecompileExpressionRegexes(tt.expression)
+			
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for invalid regex pattern")
+				if tt.errorPart != "" {
+					assert.Contains(t, err.Error(), tt.errorPart)
+				}
+			} else {
+				assert.NoError(t, err, "Expected no error for valid regex patterns")
+			}
+		})
+	}
+}

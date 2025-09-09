@@ -637,6 +637,80 @@ Advanced mode with expressions performs both **filtering** and **grouping** base
 
 > **Note:** In OR expressions, only the first matching branch contributes to the grouping key. Branch order matters—criteria are evaluated in the order they appear in the expression.
 
+#### OR Branch Order Impact
+
+When using OR expressions, the order of branches is critical because **only the first matching branch contributes values to the grouping key**. This means assets will be grouped differently depending on which branch matches first.
+
+**Example - Order affects grouping:**
+
+Consider these assets:
+
+- `IMG_001.jpg` (in `/photos/2023/` folder)
+- `IMG_002.jpg` (in `/photos/2023/` folder)
+- `PXL_001.jpg` (in `/photos/2024/` folder)
+
+**Configuration A (filename first):**
+
+```json
+{
+  "operator": "OR",
+  "children": [
+    {
+      "criteria": {
+        "key": "originalFileName",
+        "regex": { "key": "^([A-Z]+)_", "index": 1 }
+      }
+    },
+    {
+      "criteria": {
+        "key": "originalPath",
+        "regex": { "key": "(\\d{4})", "index": 1 }
+      }
+    }
+  ]
+}
+```
+
+**Resulting grouping keys:**
+
+- `IMG_001.jpg` → `originalFileName=IMG` (first branch matched)
+- `IMG_002.jpg` → `originalFileName=IMG` (first branch matched)
+- `PXL_001.jpg` → `originalFileName=PXL` (first branch matched)
+
+**Result:** 2 stacks (IMG group + PXL group)
+
+**Configuration B (path first):**
+
+```json
+{
+  "operator": "OR",
+  "children": [
+    {
+      "criteria": {
+        "key": "originalPath",
+        "regex": { "key": "(\\d{4})", "index": 1 }
+      }
+    },
+    {
+      "criteria": {
+        "key": "originalFileName",
+        "regex": { "key": "^([A-Z]+)_", "index": 1 }
+      }
+    }
+  ]
+}
+```
+
+**Resulting grouping keys:**
+
+- `IMG_001.jpg` → `originalPath=2023` (first branch matched)
+- `IMG_002.jpg` → `originalPath=2023` (first branch matched)
+- `PXL_001.jpg` → `originalPath=2024` (first branch matched)
+
+**Result:** 2 different stacks (2023 group + 2024 group)
+
+> **💡 Best Practice:** Put your most specific/preferred grouping criteria first in OR expressions. For example, if you want to primarily group by camera model but fall back to date, put the camera model criterion first.
+
 **Example - Multiple stacks from one expression:**
 
 ```json

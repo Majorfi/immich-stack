@@ -153,6 +153,9 @@ func TestInvalidCriteriaJSONEndToEnd(t *testing.T) {
 
 /**************************************************************************************************
 ** Test LoadEnv precedence and defaults with safe environment testing
+** 
+** NOTE: This test handles boolean flags (reset-stacks, dry-run, etc.) that don't take values.
+** Boolean flags are only added to cmdArgs when their value is "true", otherwise they're omitted.
 **************************************************************************************************/
 func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 	defer teardownTest()
@@ -209,6 +212,14 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 			expectError:   true,
 			errorContains: "to use RESET_STACKS, you must set CONFIRM_RESET_STACK",
 		},
+		{
+			name:              "Boolean CLI flags work correctly",
+			envVars:           map[string]string{"API_KEY": "test-key"},
+			cliFlags:          map[string]string{"dry-run": "true", "with-archived": "true"},
+			expectedCronInt:   0,
+			expectedPromotion: utils.DefaultParentFilenamePromoteString,
+			expectedExtPromo:  utils.DefaultParentExtPromoteString,
+		},
 	}
 
 	for _, tt := range tests {
@@ -223,8 +234,27 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 			// Create command and set CLI flags
 			cmd := CreateTestableRootCommand()
 			var cmdArgs []string
+			
+			// Boolean flags that don't take values
+			booleanFlags := map[string]bool{
+				"reset-stacks":               true,
+				"replace-stacks":             true,
+				"dry-run":                    true,
+				"with-archived":              true,
+				"with-deleted":               true,
+				"remove-single-asset-stacks": true,
+			}
+			
 			for key, val := range tt.cliFlags {
-				cmdArgs = append(cmdArgs, "--"+key, val)
+				if booleanFlags[key] {
+					// Boolean flags: only add the flag if value is "true"
+					if val == "true" {
+						cmdArgs = append(cmdArgs, "--"+key)
+					}
+				} else {
+					// String/Int flags: add flag with value
+					cmdArgs = append(cmdArgs, "--"+key, val)
+				}
 			}
 			cmd.SetArgs(cmdArgs)
 
@@ -257,6 +287,16 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 				}
 				if parentExtPromote != tt.expectedExtPromo {
 					t.Errorf("Expected parentExtPromote '%s', got '%s'", tt.expectedExtPromo, parentExtPromote)
+				}
+				
+				// For the boolean flags test case, verify the boolean flags were parsed correctly
+				if tt.name == "Boolean CLI flags work correctly" {
+					if !dryRun {
+						t.Error("Expected dryRun to be true when --dry-run flag is set")
+					}
+					if !withArchived {
+						t.Error("Expected withArchived to be true when --with-archived flag is set")
+					}
 				}
 			}
 		})

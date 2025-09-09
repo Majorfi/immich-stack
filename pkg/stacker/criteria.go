@@ -1,17 +1,85 @@
 package stacker
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"time"
+    "encoding/json"
+    "errors"
+    "fmt"
+    "os"
+    "path/filepath"
+    "regexp"
+    "strings"
+    "time"
+    "sync"
 
-	"github.com/majorfi/immich-stack/pkg/utils"
+    "github.com/majorfi/immich-stack/pkg/utils"
 )
+
+// regexCache caches compiled regular expressions keyed by pattern string to avoid
+// repeated compilation across assets and evaluations. The number of distinct patterns
+// is typically small (from user criteria), so unbounded growth is not expected.
+var regexCache sync.Map // map[string]*regexp.Regexp
+
+func getCompiledRegex(pattern string) (*regexp.Regexp, error) {
+    if v, ok := regexCache.Load(pattern); ok {
+        if re, ok2 := v.(*regexp.Regexp); ok2 {
+            return re, nil
+        }
+    }
+    re, err := regexp.Compile(pattern)
+    if err != nil {
+        return nil, err
+    }
+    regexCache.Store(pattern, re)
+    return re, nil
+}
+
+/**************************************************************************************************
+** Precompilation helpers to warm regex cache from criteria definitions. This avoids first-hit
+** compilation cost inside tight per-asset loops.
+**************************************************************************************************/
+func precompileCriteriaRegex(c utils.TCriteria) error {
+    if c.Regex != nil && c.Regex.Key != "" {
+        if _, err := getCompiledRegex(c.Regex.Key); err != nil {
+            return fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
+        }
+    }
+    return nil
+}
+
+func PrecompileLegacyRegexes(criteria []utils.TCriteria) error {
+    for _, c := range criteria {
+        if err := precompileCriteriaRegex(c); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func PrecompileGroupsRegexes(groups []utils.TCriteriaGroup) error {
+    for _, g := range groups {
+        for _, c := range g.Criteria {
+            if err := precompileCriteriaRegex(c); err != nil {
+                return err
+            }
+        }
+    }
+    return nil
+}
+
+func PrecompileExpressionRegexes(expr *utils.TCriteriaExpression) error {
+    if expr == nil {
+        return nil
+    }
+    if expr.Criteria != nil {
+        return precompileCriteriaRegex(*expr.Criteria)
+    }
+    for i := range expr.Children {
+        if err := PrecompileExpressionRegexes(&expr.Children[i]); err != nil {
+            return err
+        }
+    }
+    return nil
+}
 
 /**************************************************************************************************
 ** CriteriaConfig holds the processed criteria configuration, either from legacy format
@@ -172,13 +240,13 @@ func evaluateSingleCriteria(criteria utils.TCriteria, asset utils.TAsset) (bool,
 	if criteria.Regex != nil {
 		// For generic fields (like type), we need to validate the regex pattern
 		// (originalFileName and originalPath extractors handle this internally)
-		if criteria.Key != "originalFileName" && criteria.Key != "originalPath" {
-			re, compileErr := regexp.Compile(criteria.Regex.Key)
-			if compileErr != nil {
-				return false, fmt.Errorf("invalid regex pattern %s: %w", criteria.Regex.Key, compileErr)
-			}
-			matches := re.FindStringSubmatch(value)
-			if len(matches) == 0 {
+        if criteria.Key != "originalFileName" && criteria.Key != "originalPath" {
+            re, compileErr := getCompiledRegex(criteria.Regex.Key)
+            if compileErr != nil {
+                return false, fmt.Errorf("invalid regex pattern %s: %w", criteria.Regex.Key, compileErr)
+            }
+            matches := re.FindStringSubmatch(value)
+            if len(matches) == 0 {
 				return false, nil // Regex didn't match
 			}
 		}
@@ -289,19 +357,19 @@ func extractTimeWithDelta(timeStr string, delta *utils.TDelta) (string, error) {
 ** @return []string - A slice of strings that collectively identify the asset based on
 **                    the applied criteria. Empty strings resulting from extractors are
 **                    omitted.
-** @return map[string]string - A map of criteria key to promotion value for regex criteria
-**                              with promote_index configured.
+** @return map[string]string - A map of criteria identifier to promotion value for regex criteria
+**                              with promote_index configured. Uses format "key:index" to avoid
+**                              collisions when multiple criteria use the same key.
 ** @return error - An error if an unknown criteria key is encountered or if any
 **                 extractor function returns an error.
 **************************************************************************************************/
 func applyCriteriaWithPromote(asset utils.TAsset, criteria []utils.TCriteria) ([]string, map[string]string, error) {
 	result := make([]string, 0, len(criteria))
-	// NOTE: promoteValues keyed by criteria.Key. If multiple regex promotions exist for the
-	// same key (e.g., two different filename regexes), later matches may overwrite earlier ones.
-	// TODO: Consider keying by criteria identifier or pattern if this becomes an issue.
+	// Use criteria index-based keys to avoid collisions when multiple criteria use the same key
+	// Format: "key:index" where index is the position in the criteria slice
 	promoteValues := make(map[string]string)
 
-	for _, c := range criteria {
+	for i, c := range criteria {
 		var value string
 		var promoteValue string
 		var err error
@@ -357,8 +425,10 @@ func applyCriteriaWithPromote(asset utils.TAsset, criteria []utils.TCriteria) ([
 		}
 
 		// Store promotion value if present (including empty strings, which are valid promote values)
+		// Use criteria index-based key to avoid collisions between multiple criteria with same key
 		if c.Regex != nil && c.Regex.PromoteIndex != nil {
-			promoteValues[c.Key] = promoteValue
+			criteriaIdentifier := fmt.Sprintf("%s:%d", c.Key, i)
+			promoteValues[criteriaIdentifier] = promoteValue
 		}
 	}
 
@@ -380,11 +450,11 @@ func applyCriteriaWithPromote(asset utils.TAsset, criteria []utils.TCriteria) ([
 **************************************************************************************************/
 func extractOriginalFileName(asset utils.TAsset, c utils.TCriteria) (string, string, error) {
 	// Handle regex processing if configured - use full filename including extension
-	if c.Regex != nil && c.Regex.Key != "" {
-		regex, err := regexp.Compile(c.Regex.Key)
-		if err != nil {
-			return "", "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
-		}
+    if c.Regex != nil && c.Regex.Key != "" {
+        regex, err := getCompiledRegex(c.Regex.Key)
+        if err != nil {
+            return "", "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
+        }
 
 		matches := regex.FindStringSubmatch(asset.OriginalFileName)
 		if matches == nil {
@@ -459,11 +529,11 @@ func extractOriginalPath(asset utils.TAsset, c utils.TCriteria) (string, string,
 	path := strings.ReplaceAll(asset.OriginalPath, "\\", "/")
 
 	// Handle regex processing if configured
-	if c.Regex != nil && c.Regex.Key != "" {
-		regex, err := regexp.Compile(c.Regex.Key)
-		if err != nil {
-			return "", "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
-		}
+    if c.Regex != nil && c.Regex.Key != "" {
+        regex, err := getCompiledRegex(c.Regex.Key)
+        if err != nil {
+            return "", "", fmt.Errorf("failed to compile regex %q: %w", c.Regex.Key, err)
+        }
 
 		matches := regex.FindStringSubmatch(path)
 		if matches == nil {

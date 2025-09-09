@@ -113,12 +113,14 @@ type TUserResponse struct {
 }
 
 /**************************************************************************************************
-** TCriteriaGroup represents a group of criteria with a logical operator.
-** Used in enhanced criteria configuration to support OR/AND logic.
+** TCriteriaGroup represents the intermediate “groups” format (AND/OR per group).
+** This is kept for backward compatibility and for users who prefer simpler grouping,
+** but it is superseded by the expression-based format (`TCriteriaExpression`).
+** Prefer expressions for new configurations; groups are considered deprecated.
 **************************************************************************************************/
 type TCriteriaGroup struct {
-	Operator string      `json:"operator"` // "AND" or "OR"
-	Criteria []TCriteria `json:"criteria"` // List of criteria in this group
+    Operator string      `json:"operator"` // "AND" or "OR"
+    Criteria []TCriteria `json:"criteria"` // List of criteria in this group
 }
 
 /**************************************************************************************************
