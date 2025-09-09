@@ -427,7 +427,7 @@ func applyCriteriaWithPromote(asset utils.TAsset, criteria []utils.TCriteria) ([
 		// Store promotion value if present (including empty strings, which are valid promote values)
 		// Use criteria index-based key to avoid collisions between multiple criteria with same key
 		if c.Regex != nil && c.Regex.PromoteIndex != nil {
-			criteriaIdentifier := fmt.Sprintf("%s:%d", c.Key, i)
+			criteriaIdentifier := buildCriteriaIdentifier(c.Key, i)
 			promoteValues[criteriaIdentifier] = promoteValue
 		}
 	}

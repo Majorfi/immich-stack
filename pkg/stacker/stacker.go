@@ -16,6 +16,12 @@ import (
 // numericSuffixRegex matches a string that contains only digits (used for extracting numeric suffixes)
 var numericSuffixRegex = regexp.MustCompile(`^(\d+)$`)
 
+// buildCriteriaIdentifier creates a unique identifier for a criteria by combining its key and index.
+// This prevents collisions when multiple criteria use the same key for promotions.
+func buildCriteriaIdentifier(key string, index int) string {
+	return fmt.Sprintf("%s:%d", key, index)
+}
+
 // safePromoteData provides thread-safe access to promotion data
 type safePromoteData struct {
 	mu   sync.RWMutex
@@ -60,7 +66,7 @@ func getRegexPromoteIndex(assetID string, promoteData *safePromoteData, criteria
 			continue
 		}
 
-		criteriaIdentifier := fmt.Sprintf("%s:%d", c.Key, i)
+		criteriaIdentifier := buildCriteriaIdentifier(c.Key, i)
 		promoteValue, hasValue := assetPromoteValues[criteriaIdentifier]
 		if !hasValue {
 			continue
