@@ -3,7 +3,6 @@ package stacker
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,9 +11,6 @@ import (
 	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
-
-// numericSuffixRegex matches a string that contains only digits (used for extracting numeric suffixes)
-var numericSuffixRegex = regexp.MustCompile(`^(\d+)$`)
 
 // buildCriteriaIdentifier creates a unique identifier for a criteria by combining its key and index.
 // This prevents collisions when multiple criteria use the same key for promotions.
@@ -158,6 +154,10 @@ func extractLargestNumberSuffix(filename string, delimiters []string) int {
 		return 0
 	}
 	last := parts[len(parts)-1]
+	numericSuffixRegex, err := getCompiledRegex(`^(\d+)$`)
+	if err != nil {
+		return 0 // Pattern is hardcoded and should never fail, but handle gracefully
+	}
 	match := numericSuffixRegex.FindStringSubmatch(last)
 	if len(match) < 2 {
 		return 0
