@@ -22,6 +22,49 @@ func buildCriteriaIdentifier(key string, index int) string {
 	return fmt.Sprintf("%s:%d", key, index)
 }
 
+// unionFind implements a Disjoint Set Union data structure with path compression and union by rank.
+// This provides near-linear performance for very large connected component problems.
+type unionFind struct {
+	parent []int
+	rank   []int
+}
+
+// newUnionFind creates a new Union-Find structure with n elements.
+func newUnionFind(n int) *unionFind {
+	parent := make([]int, n)
+	rank := make([]int, n)
+	for i := range parent {
+		parent[i] = i
+	}
+	return &unionFind{parent: parent, rank: rank}
+}
+
+// find returns the root of the set containing x, with path compression.
+func (uf *unionFind) find(x int) int {
+	if uf.parent[x] != x {
+		uf.parent[x] = uf.find(uf.parent[x]) // Path compression
+	}
+	return uf.parent[x]
+}
+
+// union merges the sets containing x and y using union by rank.
+func (uf *unionFind) union(x, y int) {
+	rootX, rootY := uf.find(x), uf.find(y)
+	if rootX == rootY {
+		return
+	}
+	
+	// Union by rank: attach smaller tree under root of deeper tree
+	if uf.rank[rootX] < uf.rank[rootY] {
+		uf.parent[rootX] = rootY
+	} else if uf.rank[rootX] > uf.rank[rootY] {
+		uf.parent[rootY] = rootX
+	} else {
+		uf.parent[rootY] = rootX
+		uf.rank[rootX]++
+	}
+}
+
 // safePromoteData provides thread-safe access to promotion data
 type safePromoteData struct {
 	mu   sync.RWMutex
@@ -842,24 +885,49 @@ func buildConnectedComponents(assets []utils.TAsset, assetKeys map[string][]stri
 		assetIDToIndex[asset.ID] = i
 	}
 
-	// Create adjacency list where assets are connected if they share any grouping key
-	// TODO: For very large groups, consider deduping neighbors per node to reduce list sizes
-	// (e.g., use map[int]bool per node before appending). DFS handles duplicates fine but
-	// this could improve memory usage for dense graphs.
-	adjacency := make([][]int, len(assets))
-	for _, assetIDs := range keyToAssets {
-		// Connect all assets that share this grouping key
-		for i, assetID1 := range assetIDs {
-			for j, assetID2 := range assetIDs {
-				if i != j {
-					idx1, ok1 := assetIDToIndex[assetID1]
-					idx2, ok2 := assetIDToIndex[assetID2]
-					if ok1 && ok2 {
-						adjacency[idx1] = append(adjacency[idx1], idx2)
-					}
-				}
+	// Convert keyToAssets from string IDs to indices to avoid repeated lookups
+	keyToIndices := make(map[string][]int)
+	for key, assetIDs := range keyToAssets {
+		indices := make([]int, 0, len(assetIDs))
+		for _, assetID := range assetIDs {
+			if idx, ok := assetIDToIndex[assetID]; ok {
+				indices = append(indices, idx)
 			}
 		}
+		if len(indices) > 1 { // Only store keys that connect multiple assets
+			keyToIndices[key] = indices
+		}
+	}
+
+	// Create adjacency list where assets are connected if they share any grouping key
+	// Use map[int]bool per node to deduplicate neighbors and reduce memory usage for dense graphs
+	neighborSets := make([]map[int]bool, len(assets))
+	for i := range neighborSets {
+		neighborSets[i] = make(map[int]bool)
+	}
+	
+	for _, indices := range keyToIndices {
+		// Connect all assets that share this grouping key
+		// Use i < j loop to set both directions once, halving map writes
+		for i := 0; i < len(indices); i++ {
+			for j := i + 1; j < len(indices); j++ {
+				idx1, idx2 := indices[i], indices[j]
+				// Set both directions for undirected connectivity
+				neighborSets[idx1][idx2] = true
+				neighborSets[idx2][idx1] = true
+			}
+		}
+	}
+	
+	// Convert neighbor sets to adjacency lists with deterministic order
+	adjacency := make([][]int, len(assets))
+	for i, neighborSet := range neighborSets {
+		adjacency[i] = make([]int, 0, len(neighborSet))
+		for neighbor := range neighborSet {
+			adjacency[i] = append(adjacency[i], neighbor)
+		}
+		// Sort neighbors for deterministic DFS traversal order
+		sort.Ints(adjacency[i])
 	}
 
 	// Find connected components using DFS
@@ -882,6 +950,77 @@ func buildConnectedComponents(assets []utils.TAsset, assetKeys map[string][]stri
 		logger.Debugf("Built %d connected components from %d assets", len(components), len(assets))
 		for i, comp := range components {
 			logger.Debugf("Component %d has %d assets", i, len(comp))
+		}
+	}
+
+	return components
+}
+
+// buildConnectedComponentsUnionFind uses Union-Find to compute connected components.
+// This is more memory-efficient for extremely large, dense graphs as it avoids 
+// materializing the full adjacency list. Complexity is near-linear: O(α(n) * edges).
+func buildConnectedComponentsUnionFind(assets []utils.TAsset, assetKeys map[string][]string, logger *logrus.Logger) [][]utils.TAsset {
+	if len(assets) == 0 {
+		return nil
+	}
+
+	// Build asset ID to index mapping
+	assetIDToIndex := make(map[string]int)
+	for i, asset := range assets {
+		assetIDToIndex[asset.ID] = i
+	}
+
+	// Initialize Union-Find structure
+	uf := newUnionFind(len(assets))
+
+	// Build a map from grouping keys to assets that have that key (same as standard approach)
+	keyToAssets := make(map[string][]string)
+	for assetID, keys := range assetKeys {
+		for _, key := range keys {
+			keyToAssets[key] = append(keyToAssets[key], assetID)
+		}
+	}
+
+	// Union assets that share grouping keys
+	for _, assetIDs := range keyToAssets {
+		if len(assetIDs) < 2 {
+			continue
+		}
+		
+		// Convert to indices, filtering out invalid asset IDs
+		indices := make([]int, 0, len(assetIDs))
+		for _, assetID := range assetIDs {
+			if idx, ok := assetIDToIndex[assetID]; ok {
+				indices = append(indices, idx)
+			}
+		}
+		
+		// Union all pairs - this creates the connected component
+		for i := 1; i < len(indices); i++ {
+			uf.union(indices[0], indices[i])
+		}
+	}
+
+	// Group assets by their root representative
+	componentMap := make(map[int][]utils.TAsset)
+	for i, asset := range assets {
+		root := uf.find(i)
+		componentMap[root] = append(componentMap[root], asset)
+	}
+
+	// Convert to slice and filter single-asset components
+	var components [][]utils.TAsset
+	for _, component := range componentMap {
+		if len(component) > 1 {
+			components = append(components, component)
+		}
+	}
+
+	// Log component statistics
+	if logger.IsLevelEnabled(logrus.DebugLevel) {
+		logger.Debugf("Built %d connected components from %d assets", len(components), len(assets))
+		for i, component := range components {
+			logger.Debugf("Component %d has %d assets", i, len(component))
 		}
 	}
 

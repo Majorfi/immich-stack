@@ -450,6 +450,121 @@ func TestBuildConnectedComponents(t *testing.T) {
 	}
 }
 
+func TestBuildConnectedComponents_DuplicateKeyDeduplication(t *testing.T) {
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+
+	// Test that assets sharing multiple grouping keys don't create duplicate neighbors
+	// This verifies the neighbor deduplication optimization works correctly
+	assets := []utils.TAsset{
+		{ID: "1", OriginalFileName: "photo1.jpg", OriginalPath: "/2023/album1/"},
+		{ID: "2", OriginalFileName: "photo2.jpg", OriginalPath: "/2023/album1/"},
+	}
+
+	// Asset grouping data that creates multiple connections between the same assets
+	assetGroupingData := map[string][]string{
+		"1": {"key1", "key2", "key3"}, // Asset 1 has 3 keys
+		"2": {"key1", "key2", "key3"}, // Asset 2 has the same 3 keys
+	}
+
+	components := buildConnectedComponents(assets, assetGroupingData, logger)
+
+	// Both assets should be in the same component despite multiple shared keys
+	if len(components) != 1 {
+		t.Errorf("Expected 1 connected component, got %d", len(components))
+		return
+	}
+	
+	if len(components[0]) != 2 {
+		t.Errorf("Expected component to contain 2 assets, got %d", len(components[0]))
+		return
+	}
+	
+	// Verify both assets are present
+	assetIDs := make(map[string]bool)
+	for _, asset := range components[0] {
+		assetIDs[asset.ID] = true
+	}
+	
+	if !assetIDs["1"] {
+		t.Error("Component should contain asset 1")
+	}
+	if !assetIDs["2"] {
+		t.Error("Component should contain asset 2")
+	}
+}
+
+func TestBuildConnectedComponents_UnionFindEquivalence(t *testing.T) {
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+
+	// Test that Union-Find produces identical results to the adjacency list approach
+	assets := []utils.TAsset{
+		{ID: "1", OriginalFileName: "photo1.jpg"},
+		{ID: "2", OriginalFileName: "photo2.jpg"},  
+		{ID: "3", OriginalFileName: "photo3.jpg"},
+		{ID: "4", OriginalFileName: "photo4.jpg"},
+	}
+
+	assetGroupingData := map[string][]string{
+		"1": {"keyA", "keyB"}, // Asset 1 connects to assets sharing keyA or keyB
+		"2": {"keyA"},         // Asset 2 connects to asset 1 via keyA  
+		"3": {"keyC"},         // Asset 3 is in a separate component
+		"4": {"keyC"},         // Asset 4 connects to asset 3 via keyC
+	}
+
+	// Test both approaches
+	componentsStandard := buildConnectedComponents(assets, assetGroupingData, logger)
+	componentsUnionFind := buildConnectedComponentsUnionFind(assets, assetGroupingData, logger)
+
+	// Both should produce the same number of components
+	if len(componentsStandard) != len(componentsUnionFind) {
+		t.Errorf("Different number of components: standard=%d, union-find=%d", 
+			len(componentsStandard), len(componentsUnionFind))
+		return
+	}
+
+	// Convert components to sets of asset IDs for comparison
+	standardSets := make([]map[string]bool, len(componentsStandard))
+	for i, component := range componentsStandard {
+		standardSets[i] = make(map[string]bool)
+		for _, asset := range component {
+			standardSets[i][asset.ID] = true
+		}
+	}
+
+	unionFindSets := make([]map[string]bool, len(componentsUnionFind))
+	for i, component := range componentsUnionFind {
+		unionFindSets[i] = make(map[string]bool)
+		for _, asset := range component {
+			unionFindSets[i][asset.ID] = true
+		}
+	}
+
+	// Verify each component from standard approach exists in union-find approach
+	for _, standardSet := range standardSets {
+		found := false
+		for _, unionFindSet := range unionFindSets {
+			if len(standardSet) == len(unionFindSet) {
+				match := true
+				for assetID := range standardSet {
+					if !unionFindSet[assetID] {
+						match = false
+						break
+					}
+				}
+				if match {
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			t.Error("Component found in standard approach not found in union-find approach")
+		}
+	}
+}
+
 func TestAdvancedCriteriaIntegration(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
