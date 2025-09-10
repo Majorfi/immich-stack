@@ -324,7 +324,11 @@ func TestStackByLegacyGroups_UnionSemantics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stacks, err := stackByLegacyGroups(tt.assets, tt.groups, "", "", logger)
+			config := CriteriaConfig{
+				Mode:   "advanced",
+				Groups: tt.groups,
+			}
+			stacks, err := stackByLegacyGroups(tt.assets, config, "", "", logger)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error but got none")
@@ -494,76 +498,6 @@ func TestBuildConnectedComponents_DuplicateKeyDeduplication(t *testing.T) {
 	}
 }
 
-func TestBuildConnectedComponents_UnionFindEquivalence(t *testing.T) {
-	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
-
-	// Test that Union-Find produces identical results to the adjacency list approach
-	assets := []utils.TAsset{
-		{ID: "1", OriginalFileName: "photo1.jpg"},
-		{ID: "2", OriginalFileName: "photo2.jpg"},  
-		{ID: "3", OriginalFileName: "photo3.jpg"},
-		{ID: "4", OriginalFileName: "photo4.jpg"},
-	}
-
-	assetGroupingData := map[string][]string{
-		"1": {"keyA", "keyB"}, // Asset 1 connects to assets sharing keyA or keyB
-		"2": {"keyA"},         // Asset 2 connects to asset 1 via keyA  
-		"3": {"keyC"},         // Asset 3 is in a separate component
-		"4": {"keyC"},         // Asset 4 connects to asset 3 via keyC
-	}
-
-	// Test both approaches
-	componentsStandard := buildConnectedComponents(assets, assetGroupingData, logger)
-	componentsUnionFind := buildConnectedComponentsUnionFind(assets, assetGroupingData, logger)
-
-	// Both should produce the same number of components
-	if len(componentsStandard) != len(componentsUnionFind) {
-		t.Errorf("Different number of components: standard=%d, union-find=%d", 
-			len(componentsStandard), len(componentsUnionFind))
-		return
-	}
-
-	// Convert components to sets of asset IDs for comparison
-	standardSets := make([]map[string]bool, len(componentsStandard))
-	for i, component := range componentsStandard {
-		standardSets[i] = make(map[string]bool)
-		for _, asset := range component {
-			standardSets[i][asset.ID] = true
-		}
-	}
-
-	unionFindSets := make([]map[string]bool, len(componentsUnionFind))
-	for i, component := range componentsUnionFind {
-		unionFindSets[i] = make(map[string]bool)
-		for _, asset := range component {
-			unionFindSets[i][asset.ID] = true
-		}
-	}
-
-	// Verify each component from standard approach exists in union-find approach
-	for _, standardSet := range standardSets {
-		found := false
-		for _, unionFindSet := range unionFindSets {
-			if len(standardSet) == len(unionFindSet) {
-				match := true
-				for assetID := range standardSet {
-					if !unionFindSet[assetID] {
-						match = false
-						break
-					}
-				}
-				if match {
-					found = true
-					break
-				}
-			}
-		}
-		if !found {
-			t.Error("Component found in standard approach not found in union-find approach")
-		}
-	}
-}
 
 func TestAdvancedCriteriaIntegration(t *testing.T) {
 	logger := logrus.New()

@@ -91,3 +91,17 @@ func Contains(list []string, s string) bool {
 	}
 	return false
 }
+
+/**************************************************************************************************
+** BoolToString converts a boolean value to its string representation. It returns "true"
+** for a true input and "false" for a false input.
+**
+** @param b - The boolean value to convert
+** @return string - The string "true" or "false"
+**************************************************************************************************/
+func BoolToString(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}

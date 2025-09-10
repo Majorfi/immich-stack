@@ -7,6 +7,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+
+	"github.com/majorfi/immich-stack/pkg/utils"
 )
 
 /**************************************************************************************************
@@ -52,15 +55,10 @@ func extractSequencePattern(keyword string) (prefix string, digits int) {
 		return "", 0
 	}
 
-	if strings.HasPrefix(keyword, "sequence:") {
-		pattern := strings.TrimPrefix(keyword, "sequence:")
-
-		// Check if it's a digit count
+	if pattern, found := strings.CutPrefix(keyword, "sequence:"); found {
 		if n, err := strconv.Atoi(pattern); err == nil {
 			return "", n
 		}
-
-		// Otherwise it's a prefix pattern
 		return pattern, 0
 	}
 
@@ -73,7 +71,6 @@ func extractSequencePattern(keyword string) (prefix string, digits int) {
 ** Special handling for empty string: acts as negative match for files without other substrings.
 **************************************************************************************************/
 func getPromoteIndex(value string, promoteList []string) int {
-	// Single loop to check for empty string and matches
 	emptyStringIndex := -1
 	hasNonEmptyStrings := false
 	loweredValue := strings.ToLower(value)
@@ -81,11 +78,10 @@ func getPromoteIndex(value string, promoteList []string) int {
 	for idx, promote := range promoteList {
 		if promote == "" {
 			if emptyStringIndex == -1 {
-				emptyStringIndex = idx // Only record the first empty string
+				emptyStringIndex = idx
 			}
 		} else if promote != "biggestNumber" {
 			hasNonEmptyStrings = true
-			// Check for match while we're iterating
 			loweredPromote := strings.ToLower(promote)
 			if strings.Contains(loweredValue, loweredPromote) {
 				return idx
@@ -96,7 +92,6 @@ func getPromoteIndex(value string, promoteList []string) int {
 	// If we have an empty string, handle it based on whether there are other non-empty strings
 	if emptyStringIndex >= 0 {
 		if !hasNonEmptyStrings {
-			// If only empty string in promote list, it matches all files
 			return emptyStringIndex
 		}
 
@@ -413,7 +408,6 @@ func shouldUseSequenceMatching(filename string, promoteList []string) bool {
 ** @return string - The match mode to use ("sequence", "mixed", or "contains")
 **************************************************************************************************/
 func detectPromoteMatchMode(promoteList []string, sampleFilename string) string {
-	// Check if promote list contains sequence keyword
 	hasSequenceKeyword := false
 	hasNonSequenceItems := false
 
@@ -521,4 +515,232 @@ func isSequencePattern(promoteList []string) bool {
 	}
 
 	return true
+}
+
+/**************************************************************************************************
+** Thread-safe promotion data management
+**************************************************************************************************/
+
+// safePromoteData provides thread-safe access to promotion data
+type safePromoteData struct {
+	mu   sync.RWMutex
+	data map[string]map[string]string
+}
+
+func (s *safePromoteData) Set(assetID string, values map[string]string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data[assetID] = values
+}
+
+func (s *safePromoteData) Get(assetID string) (map[string]string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	values, exists := s.data[assetID]
+	return values, exists
+}
+
+/**************************************************************************************************
+** getRegexPromoteIndex returns the promotion index for an asset based on regex promotion rules.
+** It checks each criteria with regex promotion configured and returns the index of the
+** promotion value in the promote_keys list.
+**
+** @param assetID - The ID of the asset to check
+** @param promoteData - Thread-safe map of asset ID to promotion values
+** @param criteria - The criteria used for stacking
+** @param promotionMaps - Pre-computed maps for O(1) promotion key lookup
+** @return int - The promotion index (lower is higher priority), or -1 if no match
+**************************************************************************************************/
+func getRegexPromoteIndex(assetID string, promoteData *safePromoteData, criteria []utils.TCriteria, promotionMaps map[int]map[string]int) int {
+	assetPromoteValues, exists := promoteData.Get(assetID)
+	if !exists {
+		return -1
+	}
+
+	// Check each criteria for regex promotion configuration
+	lowestIndex := -1
+	for i, c := range criteria {
+		promoteMap, hasPromoteMap := promotionMaps[i]
+		if !hasPromoteMap {
+			continue
+		}
+
+		criteriaIdentifier := buildCriteriaIdentifier(c.Key, i)
+		promoteValue, hasValue := assetPromoteValues[criteriaIdentifier]
+		if !hasValue {
+			continue
+		}
+
+		// O(1) lookup using pre-computed map
+		if idx, found := promoteMap[promoteValue]; found {
+			// Use the lowest index found across all criteria
+			if lowestIndex == -1 || idx < lowestIndex {
+				lowestIndex = idx
+			}
+		}
+	}
+
+	return lowestIndex
+}
+
+/**************************************************************************************************
+** buildPromotionMaps creates pre-computed promotion maps for O(1) lookup during sorting.
+** This avoids repeated string searches when processing large asset lists.
+**
+** @param criteria - List of criteria to build promotion maps for
+** @return map[int]map[string]int - Maps criteria index to (promoteKey -> priority)
+**************************************************************************************************/
+func buildPromotionMaps(criteria []utils.TCriteria) map[int]map[string]int {
+	promotionMaps := make(map[int]map[string]int)
+	for i, c := range criteria {
+		if c.Regex != nil && c.Regex.PromoteIndex != nil && len(c.Regex.PromoteKeys) > 0 {
+			promoteMap := make(map[string]int)
+			for idx, key := range c.Regex.PromoteKeys {
+				promoteMap[key] = idx
+			}
+			promotionMaps[i] = promoteMap
+		}
+	}
+	return promotionMaps
+}
+
+/**************************************************************************************************
+** buildCriteriaIdentifier creates a unique identifier for a criteria by combining its key and index.
+** This prevents collisions when multiple criteria use the same key for promotions.
+**************************************************************************************************/
+func buildCriteriaIdentifier(key string, index int) string {
+	return fmt.Sprintf("%s:%d", key, index)
+}
+
+/**************************************************************************************************
+** extractLargestNumberSuffix finds a numeric suffix at the end of the base filename (before the
+** extension), but ONLY if it appears after a delimiter. If no delimiters are present, always
+** return 0. If delimiters are present, split the base filename using them and check the last part
+** for a numeric suffix. If no numeric suffix is found after a delimiter, return 0.
+**
+** @param filename - The filename to analyze
+** @param delimiters - Slice of delimiters to split the base filename (required for suffix)
+** @return int - The numeric suffix, or 0 if none found or no delimiter present
+**************************************************************************************************/
+func extractLargestNumberSuffix(filename string, delimiters []string) int {
+	base := filename
+	ext := filepath.Ext(base)
+	if ext != "" {
+		base = base[:len(base)-len(ext)]
+	}
+	if len(delimiters) == 0 {
+		return 0
+	}
+	parts := []string{base}
+	for _, delim := range delimiters {
+		temp := []string{}
+		for _, part := range parts {
+			temp = append(temp, strings.Split(part, delim)...)
+		}
+		parts = temp
+	}
+	if len(parts) < 2 {
+		return 0
+	}
+	last := parts[len(parts)-1]
+	match := utils.NumericSuffixPattern.FindStringSubmatch(last)
+	if len(match) < 2 {
+		return 0
+	}
+	n, err := strconv.Atoi(match[1])
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+/**************************************************************************************************
+** sortStack sorts a stack of assets based on filename and extension priority.
+** The order is:
+** 1. Regex-based promotion (if criteria has regex with promote_index)
+** 2. Promoted filenames (PARENT_FILENAME_PROMOTE, comma-separated, order matters)
+** 3. Promoted extensions (PARENT_EXT_PROMOTE, comma-separated, order matters)
+** 4. Extension priority (jpeg > jpg > png > others)
+** 5. Alphabetical order (case-sensitive)
+**
+** @param stack - List of assets to sort
+** @param parentFilenamePromote - Comma-separated list of filename substrings to promote
+** @param parentExtPromote - Comma-separated list of extensions to promote
+** @param delimiters - Delimiters to use for numeric suffix extraction
+** @param stackCriteria - The criteria used to create this stack (for regex promotion)
+** @param promoteData - Thread-safe map of asset ID to promotion values from regex criteria
+** @param promotionMaps - Pre-computed maps for O(1) promotion key lookup
+** @return []utils.TAsset - Sorted list of assets
+**************************************************************************************************/
+func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtPromote string, delimiters []string, stackCriteria []utils.TCriteria, promoteData *safePromoteData, promotionMaps map[int]map[string]int) []utils.TAsset {
+	promoteSubstrings := parsePromoteList(parentFilenamePromote)
+	if len(promoteSubstrings) == 0 && parentFilenamePromote != "" {
+		promoteSubstrings = utils.DefaultParentFilenamePromote
+	}
+
+	promoteExtensions := parsePromoteList(parentExtPromote)
+	if len(promoteExtensions) == 0 {
+		promoteExtensions = utils.DefaultParentExtPromote
+	}
+
+	// Detect the best match mode based on promote list and filenames
+	matchMode := "contains"
+	if len(stack) > 0 {
+		matchMode = detectPromoteMatchMode(promoteSubstrings, stack[0].OriginalFileName)
+	}
+
+	sort.SliceStable(stack, func(i, j int) bool {
+		// First, check regex-based promotion
+		iRegexPromoteIdx := getRegexPromoteIndex(stack[i].ID, promoteData, stackCriteria, promotionMaps)
+		jRegexPromoteIdx := getRegexPromoteIndex(stack[j].ID, promoteData, stackCriteria, promotionMaps)
+
+		// If both have regex promotion values, compare them
+		if iRegexPromoteIdx >= 0 && jRegexPromoteIdx >= 0 {
+			if iRegexPromoteIdx != jRegexPromoteIdx {
+				return iRegexPromoteIdx < jRegexPromoteIdx
+			}
+		} else if iRegexPromoteIdx >= 0 {
+			// i has regex promotion, j doesn't - i comes first
+			return true
+		} else if jRegexPromoteIdx >= 0 {
+			// j has regex promotion, i doesn't - j comes first
+			return false
+		}
+
+		// Fall back to filename promotion
+		iOriginalFileNameNoExt := filepath.Base(stack[i].OriginalFileName)
+		jOriginalFileNameNoExt := filepath.Base(stack[j].OriginalFileName)
+		iPromoteIdx := getPromoteIndexWithMode(iOriginalFileNameNoExt, promoteSubstrings, matchMode)
+		jPromoteIdx := getPromoteIndexWithMode(jOriginalFileNameNoExt, promoteSubstrings, matchMode)
+		if iPromoteIdx != jPromoteIdx {
+			return iPromoteIdx < jPromoteIdx
+		}
+
+		// If both have the same promote index and 'biggestNumber' is in promoteSubstrings, use largest number as priority
+		if utils.Contains(promoteSubstrings, "biggestNumber") && iPromoteIdx < len(promoteSubstrings) {
+			iNum := extractLargestNumberSuffix(iOriginalFileNameNoExt, delimiters)
+			jNum := extractLargestNumberSuffix(jOriginalFileNameNoExt, delimiters)
+			if iNum != jNum {
+				return iNum > jNum // highest number first
+			}
+		}
+
+		extI := strings.ToLower(filepath.Ext(iOriginalFileNameNoExt))
+		extJ := strings.ToLower(filepath.Ext(jOriginalFileNameNoExt))
+		iExtPromoteIdx := getPromoteIndex(extI, promoteExtensions)
+		jExtPromoteIdx := getPromoteIndex(extJ, promoteExtensions)
+		if iExtPromoteIdx != jExtPromoteIdx {
+			return iExtPromoteIdx < jExtPromoteIdx
+		}
+
+		rankI := getExtensionRank(extI)
+		rankJ := getExtensionRank(extJ)
+		if rankI != rankJ {
+			return rankI > rankJ
+		}
+
+		return iOriginalFileNameNoExt < jOriginalFileNameNoExt
+	})
+
+	return stack
 }
