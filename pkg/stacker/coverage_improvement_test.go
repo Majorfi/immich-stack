@@ -50,7 +50,7 @@ func TestStackBy_ErrorCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("CRITERIA", tt.criteria)
 			
-			stacks, err := StackBy(tt.assets, tt.promoteList, "", "", logger)
+			stacks, err := StackBy(tt.assets, tt.criteria, "", "", logger)
 			if tt.expectError {
 				assert.Error(t, err)
 				if err != nil && tt.errorPart != "" {
@@ -416,4 +416,3 @@ func TestEvaluateExpression_ErrorCases(t *testing.T) {
 		})
 	}
 }
-
