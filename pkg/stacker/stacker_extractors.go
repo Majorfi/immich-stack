@@ -247,9 +247,9 @@ func applyRegexWithPromote(input string, pattern string, index int, promoteIndex
 
 	matches := regex.FindStringSubmatch(input)
 	if matches == nil {
-		// No match found - in legacy mode, this means the asset may be excluded from stacking
-		// or grouped by other criteria if multiple criteria are specified.
-		// For complex regex filtering, consider using advanced mode.
+		// No match found - returns empty values. Caller is responsible for handling unmatched cases.
+		// If specific behavior is required for unmatched assets, implement it in the calling code.
+		// This function does not perform any mode-specific logic.
 		return "", "", nil
 	}
 
