@@ -116,7 +116,7 @@ type TUserResponse struct {
 ** TCriteriaGroup represents the intermediate “groups” format (AND/OR per group).
 ** This is kept for backward compatibility and for users who prefer simpler grouping,
 ** but it is superseded by the expression-based format (`TCriteriaExpression`).
-** Prefer expressions for new configurations; groups are considered deprecated.
+** Prefer expressions for new configurations; groups remain supported as a simpler, legacy option.
 **************************************************************************************************/
 type TCriteriaGroup struct {
     Operator string      `json:"operator"` // "AND" or "OR"
