@@ -1569,3 +1569,58 @@ func TestPrecompileRegexes(t *testing.T) {
 		})
 	}
 }
+
+/************************************************************************************************
+** Test ParseCriteria function (currently 0% coverage)
+************************************************************************************************/
+func TestParseCriteria(t *testing.T) {
+	tests := []struct {
+		name        string
+		criteria    string
+		expectMode  string
+		expectError bool
+	}{
+		{
+			name:        "valid legacy criteria",
+			criteria:    `[{"key":"originalFileName","split":{"delimiters":["~","."],"index":0}}]`,
+			expectMode:  "legacy",
+			expectError: false,
+		},
+		{
+			name:        "valid advanced criteria",
+			criteria:    `{"mode":"advanced","groups":[{"criteria":[{"key":"originalFileName"}]}]}`,
+			expectMode:  "advanced",
+			expectError: false,
+		},
+		{
+			name:        "empty criteria string uses default",
+			criteria:    "",
+			expectMode:  "legacy",
+			expectError: false,
+		},
+		{
+			name:        "invalid JSON returns error",
+			criteria:    `{"invalid":json}`,
+			expectMode:  "",
+			expectError: true,
+		},
+		{
+			name:        "valid expression criteria",
+			criteria:    `{"mode":"expression","expression":{"criteria":{"key":"originalFileName"}}}`,
+			expectMode:  "expression",
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config, err := ParseCriteria(tt.criteria)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectMode, config.Mode)
+			}
+		})
+	}
+}

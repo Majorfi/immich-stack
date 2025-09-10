@@ -140,3 +140,93 @@ func TestCompile(t *testing.T) {
 		t.Error("Expected error for invalid regex")
 	}
 }
+
+func TestEvictLRUEdgeCases(t *testing.T) {
+	// Test eviction on empty cache
+	t.Run("evict from empty cache", func(t *testing.T) {
+		cache := NewLRUCache(1)
+		// This should not panic or cause issues
+		cache.evictLRU()
+
+		// Verify cache is still functional
+		regex := regexp.MustCompile("test")
+		cache.Put("test", regex)
+		if result, ok := cache.Get("test"); !ok || result != regex {
+			t.Error("Cache should still work after evicting from empty cache")
+		}
+	})
+
+	// Test eviction when cache has nil node (edge case)
+	t.Run("evict with single item", func(t *testing.T) {
+		cache := NewLRUCache(1)
+		
+		// Add one item
+		regex1 := regexp.MustCompile("pattern1")
+		cache.Put("pattern1", regex1)
+		
+		// Add second item, should evict first
+		regex2 := regexp.MustCompile("pattern2")
+		cache.Put("pattern2", regex2)
+		
+		// First should be evicted
+		if _, ok := cache.Get("pattern1"); ok {
+			t.Error("First pattern should have been evicted")
+		}
+		
+		// Second should still be there
+		if _, ok := cache.Get("pattern2"); !ok {
+			t.Error("Second pattern should still be cached")
+		}
+	})
+}
+
+func TestNumericSuffixPattern(t *testing.T) {
+	// Test the global NumericSuffixPattern variable
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"123", true},
+		{"001", true},
+		{"0", true},
+		{"abc", false},
+		{"123abc", false},
+		{"abc123", false},
+		{"", false},
+		{"12.3", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := NumericSuffixPattern.MatchString(tt.input)
+			if result != tt.expected {
+				t.Errorf("NumericSuffixPattern.MatchString(%q) = %v, expected %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDefaultCacheUsage(t *testing.T) {
+	// Test that the default cache is being used by RegexCompile
+	t.Run("default cache usage", func(t *testing.T) {
+		pattern := "test_default_cache_pattern"
+		
+		// Clear any existing cache entry by using a unique pattern
+		// First call should compile and cache
+		regex1, err := RegexCompile(pattern)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		
+		// Second call should return the same cached instance
+		regex2, err := RegexCompile(pattern)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		
+		// Should be the exact same instance from cache
+		if regex1 != regex2 {
+			t.Error("Expected same regex instance from cache")
+		}
+	})
+}
