@@ -107,9 +107,12 @@ type LoadEnvConfig struct {
 ** @return LoadEnvConfig - Configuration result with logger and any validation error
 **************************************************************************************************/
 func LoadEnvForTesting() LoadEnvConfig {
-	_ = godotenv.Load()
-	logger := configureLogger()
+	godotenv.Load()
 
+	logger := configureLogger()
+	if criteria == "" {
+		criteria = os.Getenv("CRITERIA")
+	}
 	if apiKey == "" {
 		apiKey = os.Getenv("API_KEY")
 	}
