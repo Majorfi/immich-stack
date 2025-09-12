@@ -2,14 +2,13 @@
 
 Immich Stack allows you to define custom criteria for grouping photos using a JSON configuration. This gives you fine-grained control over how photos are grouped into stacks.
 
-## Basic Structure
+## Criteria Formats
 
-The `CRITERIA` environment variable accepts a JSON array of criteria objects. Each criterion has:
+The `CRITERIA` environment variable supports three formats with increasing complexity and power:
 
-- `key`: The field to group by
-- Optional configuration (split, regex, delta, etc.)
+### 1. Legacy Array Format (Simple)
 
-Example:
+Basic format where ALL criteria must match (AND logic):
 
 ```json
 [
@@ -27,6 +26,63 @@ Example:
     }
   }
 ]
+```
+
+### 2. Advanced Groups Format (Medium Complexity)
+
+Supports multiple grouping strategies with configurable AND/OR logic per group:
+
+```json
+{
+  "mode": "advanced",
+  "groups": [
+    {
+      "operator": "AND",
+      "criteria": [
+        { "key": "originalFileName", "regex": { "key": "PXL_", "index": 0 } },
+        { "key": "localDateTime", "delta": { "milliseconds": 1000 } }
+      ]
+    }
+  ]
+}
+```
+
+### 3. Advanced Expression Format (Maximum Power)
+
+Supports unlimited nested logical expressions with AND, OR, and NOT operations:
+
+```json
+{
+  "mode": "advanced",
+  "expression": {
+    "operator": "AND",
+    "children": [
+      {
+        "operator": "OR",
+        "children": [
+          {
+            "criteria": {
+              "key": "originalFileName",
+              "regex": { "key": "PXL_", "index": 0 }
+            }
+          },
+          {
+            "criteria": {
+              "key": "originalPath",
+              "split": { "delimiters": ["/"], "index": 2 }
+            }
+          }
+        ]
+      },
+      {
+        "criteria": {
+          "key": "localDateTime",
+          "delta": { "milliseconds": 1000 }
+        }
+      }
+    ]
+  }
+}
 ```
 
 ## Available Keys
@@ -187,6 +243,142 @@ For example, with a file named `PXL_20230503_152823814.jpg`:
 Choose **split** for simple cases like separating by `~`, `.`, or `/`.
 Choose **regex** for complex patterns like extracting dates, validating formats, or advanced text processing.
 
+## Expression Format Deep Dive
+
+The advanced expression format provides the most powerful grouping capabilities through recursive logical expressions.
+
+### Expression Structure
+
+Each expression node has one of two forms:
+
+**Criteria Node (Leaf):**
+
+```json
+{
+  "criteria": {
+    "key": "originalFileName",
+    "regex": { "key": "PXL_", "index": 0 }
+  }
+}
+```
+
+**Operator Node (Branch):**
+
+```json
+{
+  "operator": "AND",
+  "children": [
+    // Array of child expressions
+  ]
+}
+```
+
+### Supported Operators
+
+| Operator | Description                   | Children Required |
+| -------- | ----------------------------- | ----------------- |
+| `AND`    | All children must match       | 1 or more         |
+| `OR`     | At least one child must match | 1 or more         |
+| `NOT`    | Child must NOT match          | Exactly 1         |
+
+### Expression Examples
+
+**Simple AND condition:**
+
+```json
+{
+  "operator": "AND",
+  "children": [
+    {
+      "criteria": {
+        "key": "originalFileName",
+        "regex": { "key": "PXL_", "index": 0 }
+      }
+    },
+    {
+      "criteria": { "key": "localDateTime", "delta": { "milliseconds": 1000 } }
+    }
+  ]
+}
+```
+
+**OR condition for multiple camera types:**
+
+```json
+{
+  "operator": "OR",
+  "children": [
+    {
+      "criteria": {
+        "key": "originalFileName",
+        "regex": { "key": "PXL_", "index": 0 }
+      }
+    },
+    {
+      "criteria": {
+        "key": "originalFileName",
+        "regex": { "key": "IMG_", "index": 0 }
+      }
+    },
+    {
+      "criteria": {
+        "key": "originalFileName",
+        "regex": { "key": "DSC", "index": 0 }
+      }
+    }
+  ]
+}
+```
+
+**NOT condition to exclude archived photos:**
+
+```json
+{
+  "operator": "NOT",
+  "children": [{ "criteria": { "key": "isArchived" } }]
+}
+```
+
+**Complex nested expression:**
+
+```json
+{
+  "operator": "AND",
+  "children": [
+    {
+      "operator": "OR",
+      "children": [
+        {
+          "criteria": {
+            "key": "originalFileName",
+            "regex": { "key": "PXL_", "index": 0 }
+          }
+        },
+        {
+          "criteria": {
+            "key": "originalFileName",
+            "regex": { "key": "IMG_", "index": 0 }
+          }
+        }
+      ]
+    },
+    {
+      "operator": "NOT",
+      "children": [{ "criteria": { "key": "isArchived" } }]
+    },
+    {
+      "criteria": { "key": "localDateTime", "delta": { "milliseconds": 2000 } }
+    }
+  ]
+}
+```
+
+This complex example groups assets that:
+
+1. Have filenames starting with "PXL*" OR "IMG*"
+2. AND are NOT archived
+3. AND were taken within 2 seconds of each other
+
 ## Delta Configuration
 
 The `delta` configuration allows for flexible time matching:
@@ -207,9 +399,11 @@ This is useful for:
 - Different time zones
 - Camera clock differences
 
-## Examples
+## Examples by Format
 
-### Basic Filename Grouping
+### Legacy Array Format Examples
+
+**Basic Filename Grouping:**
 
 ```json
 [
@@ -223,7 +417,7 @@ This is useful for:
 ]
 ```
 
-### Regex-Based Date Grouping
+**Regex-Based Date Grouping:**
 
 ```json
 [
@@ -237,61 +431,7 @@ This is useful for:
 ]
 ```
 
-This groups all Pixel camera photos taken on the same date.
-
-### Time-Based Grouping
-
-```json
-[
-  {
-    "key": "localDateTime",
-    "delta": {
-      "milliseconds": 5000
-    }
-  }
-]
-```
-
-### Directory-Based Grouping
-
-```json
-[
-  {
-    "key": "originalPath",
-    "split": {
-      "delimiters": ["/"],
-      "index": 2
-    }
-  }
-]
-```
-
-This will group photos by their directory name (e.g., all photos in the "vacation" directory will be grouped together).
-
-### Advanced: Regex Path and Filename Combination
-
-```json
-[
-  {
-    "key": "originalFileName",
-    "regex": {
-      "key": "PXL_(\\d{8})_\\d{9}",
-      "index": 1
-    }
-  },
-  {
-    "key": "originalPath",
-    "regex": {
-      "key": "photos/\\d{4}/([^/]+)/",
-      "index": 1
-    }
-  }
-]
-```
-
-This groups photos by both the date extracted from the filename AND the folder name from the path.
-
-### Combined Path and Time Criteria
+**Combined Path and Time Criteria:**
 
 ```json
 [
@@ -311,7 +451,352 @@ This groups photos by both the date extracted from the filename AND the folder n
 ]
 ```
 
-This will group photos that are both in the same directory and taken within 1 second of each other.
+### Advanced Groups Format Examples
+
+**Multiple Camera Types with OR Logic:**
+
+```json
+{
+  "mode": "advanced",
+  "groups": [
+    {
+      "operator": "OR",
+      "criteria": [
+        { "key": "originalFileName", "regex": { "key": "PXL_", "index": 0 } },
+        { "key": "originalFileName", "regex": { "key": "IMG_", "index": 0 } },
+        { "key": "originalFileName", "regex": { "key": "DSC", "index": 0 } }
+      ]
+    }
+  ]
+}
+```
+
+**Group by Directory OR Timestamp:**
+
+```json
+{
+  "mode": "advanced",
+  "groups": [
+    {
+      "operator": "OR",
+      "criteria": [
+        { "key": "originalPath", "split": { "delimiters": ["/"], "index": 2 } },
+        { "key": "localDateTime", "delta": { "milliseconds": 1000 } }
+      ]
+    }
+  ]
+}
+```
+
+### Advanced Expression Format Examples
+
+**Complex Multi-Camera Setup:**
+
+```json
+{
+  "mode": "advanced",
+  "expression": {
+    "operator": "AND",
+    "children": [
+      {
+        "operator": "OR",
+        "children": [
+          {
+            "criteria": {
+              "key": "originalFileName",
+              "regex": { "key": "PXL_(\\d{8})", "index": 1 }
+            }
+          },
+          {
+            "criteria": {
+              "key": "originalFileName",
+              "regex": { "key": "IMG_(\\d{8})", "index": 1 }
+            }
+          }
+        ]
+      },
+      {
+        "criteria": {
+          "key": "localDateTime",
+          "delta": { "milliseconds": 2000 }
+        }
+      }
+    ]
+  }
+}
+```
+
+This groups photos from Pixel or iPhone cameras that were taken on the same date AND within 2 seconds of each other.
+
+**Exclude Archived Photos from Grouping:**
+
+```json
+{
+  "mode": "advanced",
+  "expression": {
+    "operator": "AND",
+    "children": [
+      {
+        "criteria": {
+          "key": "originalFileName",
+          "split": { "delimiters": ["~", "."], "index": 0 }
+        }
+      },
+      {
+        "operator": "NOT",
+        "children": [{ "criteria": { "key": "isArchived" } }]
+      }
+    ]
+  }
+}
+```
+
+**Advanced Professional Workflow:**
+
+```json
+{
+  "mode": "advanced",
+  "expression": {
+    "operator": "AND",
+    "children": [
+      {
+        "operator": "OR",
+        "children": [
+          {
+            "operator": "AND",
+            "children": [
+              {
+                "criteria": {
+                  "key": "originalPath",
+                  "regex": { "key": "/RAW/", "index": 0 }
+                }
+              },
+              {
+                "criteria": {
+                  "key": "originalFileName",
+                  "regex": { "key": "\\.(CR3|NEF|ARW)$", "index": 0 }
+                }
+              }
+            ]
+          },
+          {
+            "operator": "AND",
+            "children": [
+              {
+                "criteria": {
+                  "key": "originalPath",
+                  "regex": { "key": "/JPEG/", "index": 0 }
+                }
+              },
+              {
+                "criteria": {
+                  "key": "originalFileName",
+                  "regex": { "key": "\\.jpe?g$", "index": 0 }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "criteria": {
+          "key": "localDateTime",
+          "delta": { "milliseconds": 5000 }
+        }
+      },
+      {
+        "operator": "NOT",
+        "children": [{ "criteria": { "key": "isTrashed" } }]
+      }
+    ]
+  }
+}
+```
+
+This complex professional workflow:
+
+1. Groups either (RAW files in /RAW/ folder) OR (JPEG files in /JPEG/ folder)
+2. AND taken within 5 seconds
+3. AND NOT in trash
+
+## Advanced Grouping Behavior
+
+### Expression-Based Grouping
+
+Advanced mode with expressions performs both **filtering** and **grouping** based on the leaf criteria values that actually match for each asset:
+
+1. **Filter phase**: Only assets that match the expression are considered for stacking
+2. **Grouping phase**: Matching assets are grouped by the specific criteria values that contributed to their match
+3. **Sorting phase**: Each group is sorted using the same promotion/delimiter rules as legacy mode
+
+**Key differences from legacy mode:**
+
+- **Regex criteria**: Use the matched portion as the grouping key (e.g., `PXL_` instead of full filename)
+- **OR branches**: Only values from the first matching branch are included in the grouping key
+- **NOT operations**: Contribute no values to grouping keys (used purely for filtering)
+
+> **Note:** In OR expressions, only the first matching branch contributes to the grouping key. Branch order matters—criteria are evaluated in the order they appear in the expression.
+
+#### OR Branch Order Impact
+
+When using OR expressions, the order of branches is critical because **only the first matching branch contributes values to the grouping key**. This means assets will be grouped differently depending on which branch matches first.
+
+**Example - Order affects grouping:**
+
+Consider these assets:
+
+- `IMG_001.jpg` (in `/photos/2023/` folder)
+- `IMG_002.jpg` (in `/photos/2023/` folder)
+- `PXL_001.jpg` (in `/photos/2024/` folder)
+
+**Configuration A (filename first):**
+
+```json
+{
+  "operator": "OR",
+  "children": [
+    {
+      "criteria": {
+        "key": "originalFileName",
+        "regex": { "key": "^([A-Z]+)_", "index": 1 }
+      }
+    },
+    {
+      "criteria": {
+        "key": "originalPath",
+        "regex": { "key": "(\\d{4})", "index": 1 }
+      }
+    }
+  ]
+}
+```
+
+**Resulting grouping keys:**
+
+- `IMG_001.jpg` → `originalFileName=IMG` (first branch matched)
+- `IMG_002.jpg` → `originalFileName=IMG` (first branch matched)
+- `PXL_001.jpg` → `originalFileName=PXL` (first branch matched)
+
+**Result:** 2 stacks (IMG group + PXL group)
+
+**Configuration B (path first):**
+
+```json
+{
+  "operator": "OR",
+  "children": [
+    {
+      "criteria": {
+        "key": "originalPath",
+        "regex": { "key": "(\\d{4})", "index": 1 }
+      }
+    },
+    {
+      "criteria": {
+        "key": "originalFileName",
+        "regex": { "key": "^([A-Z]+)_", "index": 1 }
+      }
+    }
+  ]
+}
+```
+
+**Resulting grouping keys:**
+
+- `IMG_001.jpg` → `originalPath=2023` (first branch matched)
+- `IMG_002.jpg` → `originalPath=2023` (first branch matched)
+- `PXL_001.jpg` → `originalPath=2024` (first branch matched)
+
+**Result:** 2 different stacks (2023 group + 2024 group)
+
+> **💡 Best Practice:** Put your most specific/preferred grouping criteria first in OR expressions. For example, if you want to primarily group by camera model but fall back to date, put the camera model criterion first.
+
+**Example - Multiple stacks from one expression:**
+
+```json
+{
+  "mode": "advanced",
+  "expression": {
+    "operator": "AND",
+    "children": [
+      {
+        "operator": "OR",
+        "children": [
+          {
+            "criteria": {
+              "key": "originalFileName",
+              "regex": { "key": "^PXL_", "index": 0 }
+            }
+          },
+          {
+            "criteria": {
+              "key": "originalFileName",
+              "regex": { "key": "^IMG_", "index": 0 }
+            }
+          }
+        ]
+      },
+      {
+        "criteria": {
+          "key": "localDateTime",
+          "delta": { "milliseconds": 1000 }
+        }
+      }
+    ]
+  }
+}
+```
+
+This creates separate stacks for:
+
+- All PXL photos taken within the same time window: `originalFileName=PXL_|localDateTime=2023-01-01T12:00:00.000000000Z`
+- All IMG photos taken within the same time window: `originalFileName=IMG_|localDateTime=2023-01-01T12:00:00.000000000Z`
+
+### OR Groups Union Semantics
+
+In groups-based advanced mode, OR groups use "union" semantics instead of "exact match" semantics:
+
+- **Legacy behavior**: Assets must share identical matching criteria to be grouped
+- **Advanced behavior**: Assets are grouped if they share ANY matching criteria from OR groups
+
+This creates connected components where assets that share any criteria keys are linked together.
+
+**Example:**
+
+```json
+{
+  "mode": "advanced",
+  "groups": [
+    {
+      "operator": "OR",
+      "criteria": [
+        { "key": "originalPath", "split": { "delimiters": ["/"], "index": 2 } },
+        { "key": "localDateTime", "delta": { "milliseconds": 1000 } }
+      ]
+    }
+  ]
+}
+```
+
+Assets that share either the same folder OR the same time window will be connected and grouped together, even if they don't share both criteria.
+
+### BiggestNumber Support in Advanced Mode
+
+For `biggestNumber` sorting to work in advanced mode, you must specify `delimiters` in the `originalFileName.split.delimiters` configuration:
+
+```json
+{
+  "mode": "advanced",
+  "expression": {
+    "criteria": {
+      "key": "originalFileName",
+      "split": { "delimiters": ["~", "."], "index": 0 }
+    }
+  }
+}
+```
+
+Without delimiters specified, `biggestNumber` sorting falls back to alphabetical ordering.
 
 ## Best Practices
 
@@ -334,10 +819,24 @@ This will group photos that are both in the same directory and taken within 1 se
    - Use online regex testers to validate patterns
    - Remember that index 0 is the full match, capture groups start at index 1
 
-4. **Testing:**
+4. **Boolean Criteria (Advanced Mode):**
+
+   - Boolean criteria (`isArchived`, `isFavorite`, `isTrashed`, etc.) are filter-only
+   - They don't contribute values to grouping keys—used purely for inclusion/exclusion
+   - Use them to filter assets before applying other grouping criteria
+
+5. **Testing:**
    - Use `DRY_RUN=true` to test configurations
    - Check logs for grouping results
    - Adjust criteria based on results
+
+## Common Gotchas
+
+> **⚠️ Important Behaviors to Remember:**
+>
+> - **OR branch order matters**: Only the first matching OR branch contributes to grouping keys
+> - **Boolean criteria are filter-only**: `isArchived`, `isFavorite`, etc. don't contribute grouping values
+> - **biggestNumber in advanced mode**: Requires `filename.split.delimiters` to be specified in the expression/criteria
 
 ## Common Regex Patterns
 

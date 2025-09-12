@@ -1270,7 +1270,7 @@ func TestExtractOriginalFileNameRegexPromotion(t *testing.T) {
 				Key: "originalFileName",
 				Regex: &utils.TRegex{
 					Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
-					Index:        1, // Date for grouping
+					Index:        1,             // Date for grouping
 					PromoteIndex: &promoteIndex, // Suffix for promotion
 				},
 			},
@@ -1282,7 +1282,7 @@ func TestExtractOriginalFileNameRegexPromotion(t *testing.T) {
 			name:     "regex with promote_index - no suffix",
 			filename: "PXL_20230503_152823814.jpg",
 			criteria: utils.TCriteria{
-				Key: "originalFileName", 
+				Key: "originalFileName",
 				Regex: &utils.TRegex{
 					Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
 					Index:        1,
@@ -1344,7 +1344,7 @@ func TestExtractOriginalFileNameRegexPromotion(t *testing.T) {
 ************************************************************************************************/
 func TestStackByWithRegexPromotion(t *testing.T) {
 	promoteIndex := 3
-	
+
 	tests := []struct {
 		name     string
 		assets   []utils.TAsset
@@ -1364,17 +1364,17 @@ func TestStackByWithRegexPromotion(t *testing.T) {
 					Key: "originalFileName",
 					Regex: &utils.TRegex{
 						Key:          `PXL_(\d{8})_(\d{9})(_\w+)?\.jpg`,
-						Index:        1, // Group by date
-						PromoteIndex: &promoteIndex, // Promote by suffix
+						Index:        1,                                     // Group by date
+						PromoteIndex: &promoteIndex,                         // Promote by suffix
 						PromoteKeys:  []string{"_MP", "_edit", "_crop", ""}, // Order of promotion
 					},
 				},
 			},
 			expected: []string{
-				"PXL_20230503_152823814_MP.jpg",    // _MP has highest priority
-				"PXL_20230503_152823814_edit.jpg",  // _edit is second
-				"PXL_20230503_152823814_crop.jpg",  // _crop is third
-				"PXL_20230503_152823814.jpg",       // empty suffix is last
+				"PXL_20230503_152823814_MP.jpg",   // _MP has highest priority
+				"PXL_20230503_152823814_edit.jpg", // _edit is second
+				"PXL_20230503_152823814_crop.jpg", // _crop is third
+				"PXL_20230503_152823814.jpg",      // empty suffix is last
 			},
 		},
 	}
@@ -1393,10 +1393,233 @@ func TestStackByWithRegexPromotion(t *testing.T) {
 			// Check the order of assets in the stack
 			stack := stacks[0]
 			require.Len(t, stack, len(tt.expected))
-			
+
 			for i, expectedFilename := range tt.expected {
 				assert.Equal(t, expectedFilename, stack[i].OriginalFileName,
 					"Asset at position %d should be %s", i, expectedFilename)
+			}
+		})
+	}
+}
+
+/************************************************************************************************
+** Test stacking with regex promotion prioritizing unedited files (empty string first)
+************************************************************************************************/
+func TestStackByWithRegexPromotion_UneditedFirst(t *testing.T) {
+	logger := logrus.New()
+
+	assets := []utils.TAsset{
+		{ID: "1", OriginalFileName: "IMG_1234.jpg"},
+		{ID: "2", OriginalFileName: "IMG_1234_edit.jpg"},
+		{ID: "3", OriginalFileName: "IMG_1234-edited.jpg"},
+		{ID: "4", OriginalFileName: "IMG_1234.cropped.jpg"},
+		{ID: "5", OriginalFileName: "IMG_1234_crop.jpg"},
+	}
+
+	// Regex captures:
+	//  - Group 1: base name without suffix and extension (e.g., IMG_1234)
+	//  - Group 3: the edit token (crop|cropped|edit|edited) if present, else empty string
+	//  - Group 4: file extension
+	criteriaJSON := `[{"key":"originalFileName","regex":{"key":"^(.*?)([._-](crop|cropped|edit|edited).*)?\\.([^.]+)$","index":1,"promote_index":3,"promote_keys":["","edited","edit","cropped","crop"]}}]`
+	t.Setenv("CRITERIA", criteriaJSON)
+
+	stacks, err := StackBy(assets, "", "", "", logger)
+	require.NoError(t, err)
+	require.Len(t, stacks, 1, "Expected exactly one stack for same base name")
+
+	stack := stacks[0]
+	require.Len(t, stack, len(assets))
+
+	// Expect unedited first, then edited variants in the order of promote_keys
+	expected := []string{
+		"IMG_1234.jpg",         // empty promote value
+		"IMG_1234-edited.jpg",  // "edited"
+		"IMG_1234_edit.jpg",    // "edit"
+		"IMG_1234.cropped.jpg", // "cropped"
+		"IMG_1234_crop.jpg",    // "crop"
+	}
+
+	for i, want := range expected {
+		assert.Equal(t, want, stack[i].OriginalFileName, "position %d should be %s", i, want)
+	}
+}
+
+/************************************************************************************************
+** Test applyCriteriaWithPromote handles multiple regex promotions on same key without collision
+************************************************************************************************/
+func TestApplyCriteriaWithPromoteMultipleRegex(t *testing.T) {
+	asset := utils.TAsset{
+		ID:               "test-asset",
+		OriginalFileName: "IMG_001.jpg",
+	}
+
+	// Two criteria with same key but different promotion configurations
+	criteria := []utils.TCriteria{
+		{
+			Key: "originalFileName",
+			Regex: &utils.TRegex{
+				Key:          "^(IMG)_(\\d+)",
+				Index:        1,                        // Extract "IMG" 
+				PromoteIndex: &[]int{1}[0],             // Use captured group 1 for promotion
+				PromoteKeys:  []string{"IMG", "PXL"},
+			},
+		},
+		{
+			Key: "originalFileName", 
+			Regex: &utils.TRegex{
+				Key:          "^([A-Z]+)_(\\d+)",
+				Index:        2,                        // Extract "001"
+				PromoteIndex: &[]int{2}[0],             // Use captured group 2 for promotion  
+				PromoteKeys:  []string{"001", "002"},
+			},
+		},
+	}
+
+	values, promoteValues, err := applyCriteriaWithPromote(asset, criteria)
+	require.NoError(t, err)
+
+	// Verify both criteria extracted values
+	assert.Equal(t, []string{"IMG", "001"}, values)
+
+	// Verify both promotion values are stored with unique keys (no collision)
+	assert.Len(t, promoteValues, 2, "Should have promotion values from both criteria")
+	assert.Equal(t, "IMG", promoteValues["originalFileName:0"], "First criteria should store IMG")
+	assert.Equal(t, "001", promoteValues["originalFileName:1"], "Second criteria should store 001")
+
+	// Verify that neither promotion value overwrote the other
+	assert.NotEqual(t, promoteValues["originalFileName:0"], promoteValues["originalFileName:1"],
+		"Promotion values should be different (no collision)")
+}
+
+
+/************************************************************************************************
+** Test unified PrecompileRegexes function with different source types
+************************************************************************************************/
+func TestPrecompileRegexes(t *testing.T) {
+	tests := []struct {
+		name           string
+		criteriaSource interface{}
+		expectError    bool
+		errorPart      string
+	}{
+		{
+			name: "legacy criteria slice with valid regex",
+			criteriaSource: []utils.TCriteria{
+				{Key: "originalFileName", Regex: &utils.TRegex{Key: "^IMG_.*"}},
+			},
+			expectError: false,
+		},
+		{
+			name: "legacy criteria slice with invalid regex",
+			criteriaSource: []utils.TCriteria{
+				{Key: "originalFileName", Regex: &utils.TRegex{Key: "("}},
+			},
+			expectError: true,
+			errorPart:   "failed to compile regex",
+		},
+		{
+			name: "criteria groups with valid regex",
+			criteriaSource: []utils.TCriteriaGroup{
+				{
+					Criteria: []utils.TCriteria{
+						{Key: "originalFileName", Regex: &utils.TRegex{Key: "^IMG_.*"}},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "single criteria with valid regex",
+			criteriaSource: utils.TCriteria{
+				Key:   "originalFileName",
+				Regex: &utils.TRegex{Key: "^IMG_.*"},
+			},
+			expectError: false,
+		},
+		{
+			name: "expression with valid regex",
+			criteriaSource: &utils.TCriteriaExpression{
+				Criteria: &utils.TCriteria{
+					Key:   "originalFileName",
+					Regex: &utils.TRegex{Key: "^IMG_.*"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:           "unsupported type",
+			criteriaSource: "invalid_type",
+			expectError:    true,
+			errorPart:      "unsupported criteria source type",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := PrecompileRegexes(tt.criteriaSource)
+			
+			if tt.expectError {
+				assert.Error(t, err, "Expected error")
+				if tt.errorPart != "" {
+					assert.Contains(t, err.Error(), tt.errorPart)
+				}
+			} else {
+				assert.NoError(t, err, "Expected no error")
+			}
+		})
+	}
+}
+
+/************************************************************************************************
+** Test ParseCriteria function (currently 0% coverage)
+************************************************************************************************/
+func TestParseCriteria(t *testing.T) {
+	tests := []struct {
+		name        string
+		criteria    string
+		expectMode  string
+		expectError bool
+	}{
+		{
+			name:        "valid legacy criteria",
+			criteria:    `[{"key":"originalFileName","split":{"delimiters":["~","."],"index":0}}]`,
+			expectMode:  "legacy",
+			expectError: false,
+		},
+		{
+			name:        "valid advanced criteria",
+			criteria:    `{"mode":"advanced","groups":[{"criteria":[{"key":"originalFileName"}]}]}`,
+			expectMode:  "advanced",
+			expectError: false,
+		},
+		{
+			name:        "empty criteria string uses default",
+			criteria:    "",
+			expectMode:  "legacy",
+			expectError: false,
+		},
+		{
+			name:        "invalid JSON returns error",
+			criteria:    `{"invalid":json}`,
+			expectMode:  "",
+			expectError: true,
+		},
+		{
+			name:        "valid expression criteria",
+			criteria:    `{"mode":"expression","expression":{"criteria":{"key":"originalFileName"}}}`,
+			expectMode:  "expression",
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config, err := ParseCriteria(tt.criteria)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectMode, config.Mode)
 			}
 		})
 	}

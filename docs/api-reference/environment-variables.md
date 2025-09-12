@@ -99,6 +99,146 @@ When `PARENT_FILENAME_PROMOTE` contains a numeric sequence pattern (e.g., `0000,
 | ---------- | ----------------------------- | ------- | ----------------------------------------------------- |
 | `CRITERIA` | Custom grouping criteria JSON | -       | See [Custom Criteria](../features/custom-criteria.md) |
 
+The `CRITERIA` environment variable supports three formats for flexible asset stacking:
+
+### Legacy Array Format
+
+Simple array of criteria where ALL conditions must match (AND logic):
+
+```json
+[
+  {
+    "key": "originalFileName",
+    "split": { "delimiters": ["~", "."], "index": 0 }
+  },
+  { "key": "localDateTime", "delta": { "milliseconds": 1000 } }
+]
+```
+
+### Advanced Groups Format
+
+Flexible format supporting multiple grouping strategies with OR/AND logic:
+
+```json
+{
+  "mode": "advanced",
+  "groups": [
+    {
+      "operator": "AND",
+      "criteria": [
+        {
+          "key": "originalFileName",
+          "regex": { "key": "PXL_\\d{8}_\\d+", "index": 0 }
+        },
+        {
+          "key": "localDateTime",
+          "delta": { "milliseconds": 1000 }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Advanced Expression Format
+
+Most powerful format supporting unlimited nested logical expressions with AND, OR, and NOT operations:
+
+```json
+{
+  "mode": "advanced",
+  "expression": {
+    "operator": "AND",
+    "children": [
+      {
+        "operator": "OR",
+        "children": [
+          {
+            "criteria": {
+              "key": "originalFileName",
+              "regex": { "key": "PXL_\\d{8}_\\d+", "index": 0 }
+            }
+          },
+          {
+            "criteria": {
+              "key": "originalPath",
+              "split": { "delimiters": ["/"], "index": 2 }
+            }
+          }
+        ]
+      },
+      {
+        "criteria": {
+          "key": "localDateTime",
+          "delta": { "milliseconds": 1000 }
+        }
+      }
+    ]
+  }
+}
+```
+
+**Format Features:**
+
+| Format         | Complexity | Use Case                     | Logic Support                     |
+| -------------- | ---------- | ---------------------------- | --------------------------------- |
+| **Legacy**     | Simple     | Basic grouping               | AND only                          |
+| **Groups**     | Medium     | Multiple grouping strategies | AND/OR per group                  |
+| **Expression** | Advanced   | Complex logical conditions   | Unlimited nesting with AND/OR/NOT |
+
+**Expression Format Benefits:**
+
+- **Unlimited Nesting**: Create complex logical trees with multiple levels
+- **Full Logic Support**: AND, OR, and NOT operators at any level
+- **Precise Control**: Express any logical combination of criteria
+- **Backward Compatible**: All legacy formats continue to work unchanged
+
+**Complex Expression Example:**
+
+```json
+{
+  "mode": "advanced",
+  "expression": {
+    "operator": "AND",
+    "children": [
+      {
+        "operator": "OR",
+        "children": [
+          {
+            "criteria": {
+              "key": "originalFileName",
+              "regex": { "key": "PXL_", "index": 0 }
+            }
+          },
+          {
+            "criteria": {
+              "key": "originalFileName",
+              "regex": { "key": "IMG_", "index": 0 }
+            }
+          }
+        ]
+      },
+      {
+        "operator": "NOT",
+        "children": [{ "criteria": { "key": "isArchived" } }]
+      },
+      {
+        "criteria": {
+          "key": "localDateTime",
+          "delta": { "milliseconds": 2000 }
+        }
+      }
+    ]
+  }
+}
+```
+
+This example groups assets that:
+
+- Have filenames starting with "PXL*" OR "IMG*"
+- AND are NOT archived
+- AND were taken within 2 seconds of each other
+
 ## Logging
 
 | Variable     | Description                       | Default | Example |
@@ -139,10 +279,70 @@ PARENT_FILENAME_PROMOTE=edit,raw
 PARENT_EXT_PROMOTE=.jpg,.dng
 ```
 
-### Custom Criteria
+### Custom Criteria - Legacy Array Format
 
 ```sh
 CRITERIA='[{"key":"originalFileName","split":{"delimiters":["~","."],"index":0}},{"key":"localDateTime","delta":{"milliseconds":1000}}]'
+```
+
+### Custom Criteria - Advanced Groups Format
+
+```sh
+# Filter PXL files AND group by timestamp
+CRITERIA='{
+  "mode": "advanced",
+  "groups": [
+    {
+      "operator": "AND",
+      "criteria": [
+        {"key": "originalFileName", "regex": {"key": "PXL_\\d{8}_\\d+", "index": 0}},
+        {"key": "localDateTime", "delta": {"milliseconds": 1000}}
+      ]
+    }
+  ]
+}'
+
+# Group by same directory OR same timestamp
+CRITERIA='{
+  "mode": "advanced",
+  "groups": [
+    {
+      "operator": "OR",
+      "criteria": [
+        {"key": "originalPath", "split": {"delimiters": ["/"], "index": 2}},
+        {"key": "localDateTime", "delta": {"milliseconds": 1000}}
+      ]
+    }
+  ]
+}'
+```
+
+### Custom Criteria - Advanced Expression Format
+
+```sh
+# Complex multi-camera setup with exclusions
+CRITERIA='{
+  "mode": "advanced",
+  "expression": {
+    "operator": "AND",
+    "children": [
+      {
+        "operator": "OR",
+        "children": [
+          {"criteria": {"key": "originalFileName", "regex": {"key": "PXL_", "index": 0}}},
+          {"criteria": {"key": "originalFileName", "regex": {"key": "IMG_", "index": 0}}}
+        ]
+      },
+      {
+        "operator": "NOT",
+        "children": [
+          {"criteria": {"key": "isArchived"}}
+        ]
+      },
+      {"criteria": {"key": "localDateTime", "delta": {"milliseconds": 2000}}}
+    ]
+  }
+}'
 ```
 
 ## Best Practices

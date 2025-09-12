@@ -245,11 +245,11 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 		** Adding info logs, but only if we are not in debug mode.
 		******************************************************************************************/
 		{
-			if logger.Level != logrus.DebugLevel {
+			if !logger.IsLevelEnabled(logrus.DebugLevel) {
 				logger.Infof("--------------------------------")
 				logger.Infof("%d/%d Key: %s", i+1, len(stacks), stack[0].OriginalFileName)
 			}
-			if logger.Level != logrus.DebugLevel {
+			if !logger.IsLevelEnabled(logrus.DebugLevel) {
 				logger.WithFields(logrus.Fields{
 					"Name": stack[0].OriginalFileName,
 					"ID":   stack[0].ID,

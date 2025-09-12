@@ -6,6 +6,8 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"time"
@@ -39,7 +41,23 @@ var removeSingleAssetStacks bool
 ** @return *logrus.Logger - Configured logger instance
 **************************************************************************************************/
 func configureLogger() *logrus.Logger {
+	return configureLoggerWithOutput(nil)
+}
+
+/**************************************************************************************************
+** configureLoggerWithOutput is like configureLogger but accepts an optional output writer
+** for testing purposes. If output is nil, uses the default output.
+**
+** @param output - Optional output writer for testing
+** @return *logrus.Logger - Configured logger instance
+**************************************************************************************************/
+func configureLoggerWithOutput(output io.Writer) *logrus.Logger {
 	logger := logrus.New()
+
+	// Set output if provided (for testing)
+	if output != nil {
+		logger.SetOutput(output)
+	}
 
 	// Set log level - flag takes precedence over environment variable
 	level := logLevel
@@ -75,19 +93,28 @@ func configureLogger() *logrus.Logger {
 }
 
 /**************************************************************************************************
-** Loads environment variables and command-line flags, with flags taking precedence over env
-** variables. Handles critical configuration like API credentials and operation modes.
-**
-** @param logger - Logger instance for outputting configuration status and errors
+** LoadEnvConfig represents the result of environment loading, including any validation errors.
 **************************************************************************************************/
-func loadEnv() *logrus.Logger {
+type LoadEnvConfig struct {
+	Logger *logrus.Logger
+	Error  error
+}
+
+/**************************************************************************************************
+** LoadEnvForTesting loads environment variables and validates configuration without calling Fatal().
+** Returns errors instead of terminating, allowing tests to verify error conditions.
+**
+** @return LoadEnvConfig - Configuration result with logger and any validation error
+**************************************************************************************************/
+func LoadEnvForTesting() LoadEnvConfig {
 	_ = godotenv.Load()
 	logger := configureLogger()
+
 	if apiKey == "" {
 		apiKey = os.Getenv("API_KEY")
 	}
 	if apiKey == "" {
-		logger.Fatal("API_KEY is not set")
+		return LoadEnvConfig{Logger: logger, Error: fmt.Errorf("API_KEY is not set")}
 	}
 	if apiURL == "" {
 		apiURL = os.Getenv("API_URL")
@@ -116,12 +143,12 @@ func loadEnv() *logrus.Logger {
 	}
 	if resetStacks {
 		if runMode != "once" {
-			logger.Fatal("RESET_STACKS can only be used in 'once' run mode. Aborting.")
+			return LoadEnvConfig{Logger: logger, Error: fmt.Errorf("RESET_STACKS can only be used in 'once' run mode")}
 		}
 		confirmReset := os.Getenv("CONFIRM_RESET_STACK")
 		const requiredConfirm = "I acknowledge all my current stacks will be deleted and new one will be created"
 		if confirmReset != requiredConfirm {
-			logger.Fatalf("To use RESET_STACKS, you must set CONFIRM_RESET_STACK to: '%s'", requiredConfirm)
+			return LoadEnvConfig{Logger: logger, Error: fmt.Errorf("to use RESET_STACKS, you must set CONFIRM_RESET_STACK to: '%s'", requiredConfirm)}
 		}
 		logger.Info("RESET_STACKS is set to true, all existing stacks will be deleted")
 	}
@@ -153,8 +180,19 @@ func loadEnv() *logrus.Logger {
 			parentExtPromote = envVal
 		}
 	}
-	if criteria == "" {
-		criteria = os.Getenv("CRITERIA")
+	return LoadEnvConfig{Logger: logger, Error: nil}
+}
+
+/**************************************************************************************************
+** Loads environment variables and command-line flags, with flags taking precedence over env
+** variables. Handles critical configuration like API credentials and operation modes.
+**
+** @param logger - Logger instance for outputting configuration status and errors
+**************************************************************************************************/
+func loadEnv() *logrus.Logger {
+	config := LoadEnvForTesting()
+	if config.Error != nil {
+		config.Logger.Fatal(config.Error.Error())
 	}
-	return logger
+	return config.Logger
 }
