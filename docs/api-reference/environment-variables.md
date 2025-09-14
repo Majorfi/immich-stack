@@ -18,13 +18,18 @@ This document provides a complete reference of all environment variables support
 
 ## Stack Management
 
-| Variable                     | Description                                  | Default | Example              |
-| ---------------------------- | -------------------------------------------- | ------- | -------------------- |
-| `RESET_STACKS`               | Delete all existing stacks before processing | false   | `true`               |
-| `CONFIRM_RESET_STACK`        | Confirmation message for reset               | -       | `"I acknowledge..."` |
-| `REPLACE_STACKS`             | Replace stacks for new groups                | false   | `true`               |
-| `DRY_RUN`                    | Simulate actions without making changes      | false   | `true`               |
-| `REMOVE_SINGLE_ASSET_STACKS` | Remove stacks containing only one asset      | false   | `true`               |
+| Variable                     | Description                                                            | Default | Example              |
+| ---------------------------- | ---------------------------------------------------------------------- | ------- | -------------------- |
+| `RESET_STACKS`               | Delete all existing stacks before processing (only in `RUN_MODE=once`) | false   | `true`               |
+| `CONFIRM_RESET_STACK`        | Confirmation message for reset                                         | -       | `"I acknowledge..."` |
+| `REPLACE_STACKS`             | Replace stacks for new groups                                          | false   | `true`               |
+| `DRY_RUN`                    | Simulate actions without making changes                                | false   | `true`               |
+| `REMOVE_SINGLE_ASSET_STACKS` | Remove stacks containing only one asset                                | false   | `true`               |
+
+Note:
+
+- `RESET_STACKS` can only be used when `RUN_MODE=once`. Using it in `cron` mode results in an error.
+- `CONFIRM_RESET_STACK` must match the exact confirmation phrase shown in the examples.
 
 ## Parent Selection
 
@@ -271,6 +276,8 @@ REPLACE_STACKS=true
 DRY_RUN=false
 REMOVE_SINGLE_ASSET_STACKS=true
 ```
+
+This operation requires `RUN_MODE=once`.
 
 ### Parent Selection
 

@@ -49,7 +49,7 @@ immich-stack [command] [flags]
 
 | Flag                           | Env Var                      | Description                                                                                                                  |
 | ------------------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `--reset-stacks`               | `RESET_STACKS`               | Delete all existing stacks before processing                                                                                 |
+| `--reset-stacks`               | `RESET_STACKS`               | Delete all existing stacks before processing (only in `RUN_MODE=once`)                                                       |
 | `--confirm-reset-stack`        | `CONFIRM_RESET_STACK`        | Required for RESET_STACKS. Must be set to: 'I acknowledge all my current stacks will be deleted and new one will be created' |
 | `--replace-stacks`             | `REPLACE_STACKS`             | Replace stacks for new groups                                                                                                |
 | `--dry-run`                    | `DRY_RUN`                    | Simulate actions without making changes                                                                                      |
@@ -134,6 +134,8 @@ immich-stack \
   --confirm-reset-stack "I acknowledge all my current stacks will be deleted and new one will be created" \
   --api-key your_key
 ```
+
+Note: `--reset-stacks` only works when `--run-mode` is `once` (or `RUN_MODE=once`).
 
 ### Remove Single-Asset Stacks
 

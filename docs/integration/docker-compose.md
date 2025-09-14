@@ -18,6 +18,7 @@ services:
       - DRY_RUN=${DRY_RUN:-false}
       - RESET_STACKS=${RESET_STACKS:-false}
       - CONFIRM_RESET_STACK=${CONFIRM_RESET_STACK}
+      # Note: RESET_STACKS requires RUN_MODE=once; it will error in cron mode
       - REPLACE_STACKS=${REPLACE_STACKS:-false}
       - PARENT_FILENAME_PROMOTE=${PARENT_FILENAME_PROMOTE:-edit}
       - PARENT_EXT_PROMOTE=${PARENT_EXT_PROMOTE:-.jpg,.dng}
@@ -54,16 +55,17 @@ To integrate with an existing Immich installation:
      image: ghcr.io/majorfi/immich-stack:latest
      environment:
        - API_KEY=${API_KEY}
-       - API_URL=${API_URL:-http://immich-server:2283/api}
-       - DRY_RUN=${DRY_RUN:-false}
-       - RESET_STACKS=${RESET_STACKS:-false}
-       - CONFIRM_RESET_STACK=${CONFIRM_RESET_STACK}
-       - REPLACE_STACKS=${REPLACE_STACKS:-false}
-       - PARENT_FILENAME_PROMOTE=${PARENT_FILENAME_PROMOTE:-edit}
-       - PARENT_EXT_PROMOTE=${PARENT_EXT_PROMOTE:-.jpg,.dng}
-       - WITH_ARCHIVED=${WITH_ARCHIVED:-false}
-       - WITH_DELETED=${WITH_DELETED:-false}
-       - RUN_MODE=${RUN_MODE:-once}
+     - API_URL=${API_URL:-http://immich-server:2283/api}
+     - DRY_RUN=${DRY_RUN:-false}
+     - RESET_STACKS=${RESET_STACKS:-false}
+     - CONFIRM_RESET_STACK=${CONFIRM_RESET_STACK}
+      # Note: RESET_STACKS requires RUN_MODE=once; it will error in cron mode
+     - REPLACE_STACKS=${REPLACE_STACKS:-false}
+     - PARENT_FILENAME_PROMOTE=${PARENT_FILENAME_PROMOTE:-edit}
+     - PARENT_EXT_PROMOTE=${PARENT_EXT_PROMOTE:-.jpg,.dng}
+     - WITH_ARCHIVED=${WITH_ARCHIVED:-false}
+     - WITH_DELETED=${WITH_DELETED:-false}
+     - RUN_MODE=${RUN_MODE:-once}
        - CRON_INTERVAL=${CRON_INTERVAL:-86400}
      volumes:
        - ./logs:/app/logs

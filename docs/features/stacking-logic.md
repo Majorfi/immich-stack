@@ -131,7 +131,7 @@ The stacker includes several safety features:
 
 - **Dry Run Mode:** Use `--dry-run` or `DRY_RUN=true` to simulate actions without making changes
 - **Stack Replacement:** Use `--replace-stacks` or `REPLACE_STACKS=true` to replace existing stacks
-- **Stack Reset:** Use `--reset-stacks` or `RESET_STACKS=true` with confirmation to delete all stacks
+- **Stack Reset:** Use `--reset-stacks` or `RESET_STACKS=true` with confirmation to delete all stacks (requires `RUN_MODE=once`)
 - **Confirmation Required:** Stack reset requires explicit confirmation via `CONFIRM_RESET_STACK`
 
 ## Logging

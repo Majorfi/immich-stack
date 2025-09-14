@@ -64,12 +64,12 @@ Control which files become stack parents using:
 
 2. **Reset Stacks:**
 
-   ```sh
-   RESET_STACKS=true
-   CONFIRM_RESET_STACK="I acknowledge all my current stacks will be deleted and new one will be created"
-   ```
+```sh
+RESET_STACKS=true
+CONFIRM_RESET_STACK="I acknowledge all my current stacks will be deleted and new one will be created"
+```
 
-   Deletes all existing stacks before processing
+Deletes all existing stacks before processing. This requires `RUN_MODE=once`; using it in `cron` mode results in an error. The confirmation text must match exactly as shown above.
 
 3. **Replace Stacks:**
    ```sh
