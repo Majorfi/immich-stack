@@ -11,6 +11,8 @@ API_KEY=your_immich_api_key
 API_URL=http://immich-server:2283/api
 RUN_MODE=cron
 CRON_INTERVAL=60
+# Optional: Enable file logging for persistent logs
+# LOG_FILE=/app/logs/immich-stack.log
 EOL
 
 # Run with Docker (using Docker Hub)
@@ -18,6 +20,11 @@ docker run -d --name immich-stack --env-file .env -v ./logs:/app/logs majorfi/im
 
 # Or using GitHub Container Registry
 docker run -d --name immich-stack --env-file .env -v ./logs:/app/logs ghcr.io/majorfi/immich-stack:latest
+
+# View logs
+docker logs -f immich-stack
+
+# If LOG_FILE is set, logs are also saved to ./logs/immich-stack.log
 ```
 
 ## Documentation

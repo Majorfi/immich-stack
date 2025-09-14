@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -54,9 +55,30 @@ func configureLogger() *logrus.Logger {
 func configureLoggerWithOutput(output io.Writer) *logrus.Logger {
 	logger := logrus.New()
 
-	// Set output if provided (for testing)
+	// Set output - file logging if LOG_FILE is set, otherwise stdout
 	if output != nil {
+		// Testing mode - use provided output
 		logger.SetOutput(output)
+	} else if logFile := os.Getenv("LOG_FILE"); logFile != "" {
+		// File logging enabled - write to both stdout and file
+		if err := os.MkdirAll(utils.GetDir(logFile), 0755); err != nil {
+			logger.Warnf("Failed to create log directory: %v, falling back to stdout only", err)
+			logger.SetOutput(os.Stdout)
+		} else {
+			file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+			if err != nil {
+				logger.Warnf("Failed to open log file %s: %v, falling back to stdout only", logFile, err)
+				logger.SetOutput(os.Stdout)
+			} else {
+				// Write to both stdout and file
+				multiWriter := io.MultiWriter(os.Stdout, file)
+				logger.SetOutput(multiWriter)
+				logger.Infof("Logging to file: %s", logFile)
+			}
+		}
+	} else {
+		// Default to stdout only
+		logger.SetOutput(os.Stdout)
 	}
 
 	// Set log level - flag takes precedence over environment variable
@@ -98,6 +120,69 @@ func configureLoggerWithOutput(output io.Writer) *logrus.Logger {
 type LoadEnvConfig struct {
 	Logger *logrus.Logger
 	Error  error
+}
+
+/**************************************************************************************************
+** logStartupSummary logs a concise summary of the current configuration at startup.
+** Shows the resolved configuration values for all major settings.
+**
+** @param logger - Logger instance to output the summary
+**************************************************************************************************/
+func logStartupSummary(logger *logrus.Logger) {
+	// Build summary based on format
+	if format := os.Getenv("LOG_FORMAT"); format == "json" {
+		logger.WithFields(logrus.Fields{
+			"runMode":                 runMode,
+			"cronInterval":            cronInterval,
+			"logLevel":                logger.GetLevel().String(),
+			"logFormat":               "json",
+			"logFile":                 os.Getenv("LOG_FILE"),
+			"dryRun":                  dryRun,
+			"replaceStacks":           replaceStacks,
+			"resetStacks":             resetStacks,
+			"withArchived":            withArchived,
+			"withDeleted":             withDeleted,
+			"removeSingleAssetStacks": removeSingleAssetStacks,
+			"criteria":                criteria,
+			"parentFilenamePromote":   parentFilenamePromote,
+			"parentExtPromote":        parentExtPromote,
+		}).Info("Configuration loaded")
+	} else {
+		// Build human-readable summary
+		var summary []string
+		summary = append(summary, fmt.Sprintf("mode=%s", runMode))
+		if runMode == "cron" {
+			summary = append(summary, fmt.Sprintf("interval=%ds", cronInterval))
+		}
+		summary = append(summary, fmt.Sprintf("level=%s", logger.GetLevel().String()))
+		summary = append(summary, fmt.Sprintf("format=%s", "text"))
+		if logFile := os.Getenv("LOG_FILE"); logFile != "" {
+			summary = append(summary, fmt.Sprintf("file=%s", logFile))
+		}
+		if dryRun {
+			summary = append(summary, "dry-run=true")
+		}
+		if replaceStacks {
+			summary = append(summary, "replace=true")
+		}
+		if resetStacks {
+			summary = append(summary, "reset=true")
+		}
+		if withArchived {
+			summary = append(summary, "archived=true")
+		}
+		if withDeleted {
+			summary = append(summary, "deleted=true")
+		}
+		if removeSingleAssetStacks {
+			summary = append(summary, "remove-single=true")
+		}
+		if criteria != "" {
+			summary = append(summary, fmt.Sprintf("criteria=%s", criteria))
+		}
+		
+		logger.Infof("Starting with config: %s", strings.Join(summary, ", "))
+	}
 }
 
 /**************************************************************************************************
@@ -183,6 +268,10 @@ func LoadEnvForTesting() LoadEnvConfig {
 			parentExtPromote = envVal
 		}
 	}
+	
+	// Log startup configuration summary
+	logStartupSummary(logger)
+	
 	return LoadEnvConfig{Logger: logger, Error: nil}
 }
 
