@@ -30,6 +30,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info} # Options: trace, debug, info, warn, error
       - LOG_FORMAT=${LOG_FORMAT:-text} # Options: text, json
       - LOG_FILE=${LOG_FILE} # Set to /app/logs/immich-stack.log to enable file logging
+      - CRITERIA=${CRITERIA}
     volumes:
       - ./logs:/app/logs # Required if using LOG_FILE for persistent logging
     restart: on-failure
@@ -75,6 +76,7 @@ To integrate with an existing Immich installation:
        - LOG_LEVEL=${LOG_LEVEL:-info}
        - LOG_FORMAT=${LOG_FORMAT:-text}
        - LOG_FILE=${LOG_FILE}  # Set to /app/logs/immich-stack.log for file logging
+       - CRITERIA=${CRITERIA}
      volumes:
        - ./logs:/app/logs  # Required if using LOG_FILE
      restart: on-failure
