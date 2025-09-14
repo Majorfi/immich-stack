@@ -1,5 +1,9 @@
 package utils
 
+import (
+	"path/filepath"
+)
+
 /**************************************************************************************************
 ** AreArraysEqual checks if two string arrays contain the same elements, regardless of their order.
 ** Uses frequency counting to ensure elements appear the same number of times in both arrays.
@@ -104,4 +108,15 @@ func BoolToString(b bool) string {
 		return "true"
 	}
 	return "false"
+}
+
+/**************************************************************************************************
+** GetDir extracts the directory path from a file path. Returns the parent directory
+** of the given file path.
+**
+** @param filePath - The full file path
+** @return string - The directory path
+**************************************************************************************************/
+func GetDir(filePath string) string {
+	return filepath.Dir(filePath)
 }

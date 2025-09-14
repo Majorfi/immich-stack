@@ -26,8 +26,12 @@ services:
       - WITH_DELETED=${WITH_DELETED:-false}
       - RUN_MODE=${RUN_MODE:-once}
       - CRON_INTERVAL=${CRON_INTERVAL:-86400}
+      # Logging configuration (optional)
+      - LOG_LEVEL=${LOG_LEVEL:-info} # Options: trace, debug, info, warn, error
+      - LOG_FORMAT=${LOG_FORMAT:-text} # Options: text, json
+      - LOG_FILE=${LOG_FILE} # Set to /app/logs/immich-stack.log to enable file logging
     volumes:
-      - ./logs:/app/logs
+      - ./logs:/app/logs # Required if using LOG_FILE for persistent logging
     restart: on-failure
 ```
 
@@ -67,8 +71,12 @@ To integrate with an existing Immich installation:
      - WITH_DELETED=${WITH_DELETED:-false}
      - RUN_MODE=${RUN_MODE:-once}
        - CRON_INTERVAL=${CRON_INTERVAL:-86400}
+       # Logging configuration (optional)
+       - LOG_LEVEL=${LOG_LEVEL:-info}
+       - LOG_FORMAT=${LOG_FORMAT:-text}
+       - LOG_FILE=${LOG_FILE}  # Set to /app/logs/immich-stack.log for file logging
      volumes:
-       - ./logs:/app/logs
+       - ./logs:/app/logs  # Required if using LOG_FILE
      restart: on-failure
      depends_on:
        immich-server:
@@ -80,3 +88,52 @@ To integrate with an existing Immich installation:
    docker compose down
    docker compose up -d
    ```
+
+## Logging Configuration
+
+### Viewing Logs
+
+To view logs from the container:
+
+```sh
+# Real-time logs
+docker logs -f immich_stack
+
+# Last 100 lines
+docker logs --tail 100 immich_stack
+```
+
+### File Logging
+
+By default, logs only appear in `docker logs`. To enable persistent file logging:
+
+1. Set the `LOG_FILE` environment variable in your `.env`:
+
+   ```sh
+   LOG_FILE=/app/logs/immich-stack.log
+   ```
+
+2. Ensure the volume mount exists in docker-compose.yml:
+
+   ```yaml
+   volumes:
+     - ./logs:/app/logs
+   ```
+
+3. Logs will now be written to both:
+   - Container stdout (viewable with `docker logs`)
+   - The file `./logs/immich-stack.log` on your host
+
+### Log Levels and Formats
+
+Adjust logging verbosity and format:
+
+```sh
+# Debug level for troubleshooting
+LOG_LEVEL=debug
+
+# JSON format for log aggregation tools
+LOG_FORMAT=json
+```
+
+**Note**: Without `LOG_FILE` set, the `/app/logs` directory will remain empty even if mounted.

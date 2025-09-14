@@ -45,10 +45,12 @@ All configuration is done through environment variables. See [Environment Variab
 
 The container uses one volume:
 
-- `/app/logs`: For storing log files
+- `/app/logs`: For storing log files (only used when `LOG_FILE` is set)
   ```bash
   -v ./logs:/app/logs
   ```
+
+**Note**: The `/app/logs` directory will remain empty unless you set the `LOG_FILE` environment variable. Without it, logs only appear in `docker logs`.
 
 ### Network
 
@@ -88,6 +90,44 @@ docker logs immich-stack
 
 # Follow logs
 docker logs -f immich-stack
+
+# View last 100 lines
+docker logs --tail 100 immich-stack
+```
+
+### File Logging
+
+To enable persistent file logging:
+
+1. Add `LOG_FILE` to your `.env`:
+
+   ```bash
+   LOG_FILE=/app/logs/immich-stack.log
+   ```
+
+2. Mount the logs volume:
+
+   ```bash
+   -v ./logs:/app/logs
+   ```
+
+3. Logs will be written to both:
+   - Container stdout (viewable with `docker logs`)
+   - The file `./logs/immich-stack.log` on your host
+
+### Log Configuration
+
+Control log verbosity and format:
+
+```bash
+# Debug logging
+LOG_LEVEL=debug
+
+# JSON format for structured logging
+LOG_FORMAT=json
+
+# Enable file logging
+LOG_FILE=/app/logs/immich-stack.log
 ```
 
 ### Stop Container

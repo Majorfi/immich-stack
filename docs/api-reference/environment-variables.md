@@ -246,10 +246,35 @@ This example groups assets that:
 
 ## Logging
 
-| Variable     | Description                       | Default | Example |
-| ------------ | --------------------------------- | ------- | ------- |
-| `LOG_LEVEL`  | Log level (debug,info,warn,error) | info    | `debug` |
-| `LOG_FORMAT` | Log format (json,text)            | text    | `json`  |
+| Variable     | Description                                | Default | Example                      |
+| ------------ | ------------------------------------------ | ------- | ---------------------------- |
+| `LOG_LEVEL`  | Log level (trace,debug,info,warn,error)    | info    | `debug`                      |
+| `LOG_FORMAT` | Log format (json,text)                     | text    | `json`                       |
+| `LOG_FILE`   | Optional file path for dual logging output | -       | `/app/logs/immich-stack.log` |
+
+### File Logging
+
+When `LOG_FILE` is set, logs are written to both stdout (visible in `docker logs`) and the specified file. This is useful for:
+
+- Persistent log storage across container restarts
+- Log aggregation and analysis
+- Debugging issues after they occur
+
+To enable file logging with Docker:
+
+1. Set the `LOG_FILE` environment variable to a path inside the container
+2. Mount a host directory to persist logs
+
+Example Docker Compose configuration:
+
+```yaml
+environment:
+  - LOG_FILE=/app/logs/immich-stack.log
+volumes:
+  - ./logs:/app/logs
+```
+
+If the log file cannot be created (e.g., permission issues), the application gracefully falls back to stdout-only logging.
 
 ## Examples
 

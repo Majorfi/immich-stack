@@ -10,6 +10,8 @@ API_KEY=your_immich_api_key
 API_URL=http://immich-server:2283/api
 RUN_MODE=cron
 CRON_INTERVAL=60
+# Optional: Enable file logging for persistent logs
+# LOG_FILE=/app/logs/immich-stack.log
 EOL
 ```
 

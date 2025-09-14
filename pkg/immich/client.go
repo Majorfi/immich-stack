@@ -173,10 +173,19 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 		return nil, fmt.Errorf("error fetching stacks: %w", err)
 	}
 
+	// Log info when starting reset stacks operation
+	if c.resetStacks {
+		if len(stacks) > 0 {
+			c.logger.Infof("🔄 Starting reset stacks operation - will delete %d existing stacks", len(stacks))
+		} else {
+			c.logger.Infof("🔄 Reset stacks operation - no existing stacks to delete")
+		}
+	}
+
 	// Handle single-asset stacks and reset if needed
 	for _, stack := range stacks {
 		if c.resetStacks {
-			c.logger.Infof("🔄 Resetting stack %s", stack.PrimaryAssetID)
+			c.logger.Debugf("🔄 Resetting stack %s", stack.PrimaryAssetID)
 			if err := c.DeleteStack(stack.ID, utils.REASON_RESET_STACK); err != nil {
 				c.logger.Errorf("Error deleting stack: %v", err)
 			}
@@ -191,7 +200,7 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 		if c.dryRun {
 			return nil, nil
 		}
-		c.logger.Warningf(`⚠️ Done resetting stacks.`)
+		c.logger.Warnf(`⚠️ Done resetting stacks.`)
 		c.resetStacks = false
 		return map[string]utils.TStack{}, nil
 	}
