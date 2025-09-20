@@ -1379,6 +1379,200 @@ func TestPixelPhoneStacking(t *testing.T) {
 }
 
 // Test to verify the exact regex extraction
+func TestEditedPhotoPromotion(t *testing.T) {
+	// Test case for edited photos with ~ suffix
+	// Original photo: PXL_20250823_193751711.jpg
+	// Edited photo: PXL_20250823_193751711~2.jpg
+	// The edited photo should be promoted over the original
+	tests := []struct {
+		name          string
+		inputOrder    []string
+		expectedOrder []string
+		promoteStr    string
+		desc          string
+	}{
+		{
+			name: "Edited photo with ~2 should be promoted over original",
+			inputOrder: []string{
+				"PXL_20250823_193751711.jpg",
+				"PXL_20250823_193751711~2.jpg",
+			},
+			expectedOrder: []string{
+				"PXL_20250823_193751711~2.jpg",
+				"PXL_20250823_193751711.jpg",
+			},
+			promoteStr: "biggestNumber",
+			desc:       "Edited photo with ~2 should come before original",
+		},
+		{
+			name: "Multiple edited versions - highest number first",
+			inputOrder: []string{
+				"PXL_20250823_193751711.jpg",
+				"PXL_20250823_193751711~2.jpg",
+				"PXL_20250823_193751711~3.jpg",
+				"PXL_20250823_193751711~5.jpg",
+			},
+			expectedOrder: []string{
+				"PXL_20250823_193751711~5.jpg",
+				"PXL_20250823_193751711~3.jpg",
+				"PXL_20250823_193751711~2.jpg",
+				"PXL_20250823_193751711.jpg",
+			},
+			promoteStr: "biggestNumber",
+			desc:       "Multiple edits should be sorted by highest number first",
+		},
+		{
+			name: "Edited with explicit ~ promote pattern",
+			inputOrder: []string{
+				"PXL_20250823_193751711.jpg",
+				"PXL_20250823_193751711~2.jpg",
+			},
+			expectedOrder: []string{
+				"PXL_20250823_193751711~2.jpg",
+				"PXL_20250823_193751711.jpg",
+			},
+			promoteStr: "~2",
+			desc:       "Explicit ~2 promote should work",
+		},
+		{
+			name: "Real-world test from issue",
+			inputOrder: []string{
+				"PXL_20250628_123043121.RAW-01.COVER.jpg",
+				"PXL_20250628_123043121.RAW-01.COVER~2.jpg",
+			},
+			expectedOrder: []string{
+				"PXL_20250628_123043121.RAW-01.COVER~2.jpg",
+				"PXL_20250628_123043121.RAW-01.COVER.jpg",
+			},
+			promoteStr: "biggestNumber",
+			desc:       "Real example from issue should promote edited version",
+		},
+		{
+			name: "Test with default promote list",
+			inputOrder: []string{
+				"PXL_20250823_193751711.jpg",
+				"PXL_20250823_193751711~2.jpg",
+				"PXL_20250823_193751711_edit.jpg",
+			},
+			expectedOrder: []string{
+				"PXL_20250823_193751711_edit.jpg", // edit comes first
+				"PXL_20250823_193751711~2.jpg",    // then biggest number
+				"PXL_20250823_193751711.jpg",      // original last
+			},
+			promoteStr: "edit,crop,hdr,biggestNumber",
+			desc:       "Default promote list should handle edits properly",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			assets := make([]utils.TAsset, len(tt.inputOrder))
+			for i, f := range tt.inputOrder {
+				assets[i] = assetFactory(f, time.Now())
+			}
+
+			// Act
+			result := sortStack(assets, tt.promoteStr, "", []string{"~", "."}, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
+
+			// Assert
+			for i, expectedFile := range tt.expectedOrder {
+				assert.Equal(t, expectedFile, result[i].OriginalFileName,
+					"%s: Position %d expected %s but got %s",
+					tt.desc, i, expectedFile, result[i].OriginalFileName)
+			}
+		})
+	}
+}
+
+func TestPixelEditedPhotoPromotion(t *testing.T) {
+	// Test case specifically for Pixel phone edited photos
+	// The user reported that edited photos (~2) are not being promoted
+	tests := []struct {
+		name          string
+		assets        []utils.TAsset
+		promoteStr    string
+		expectedFirst string
+		desc          string
+	}{
+		{
+			name: "Pixel edited photo should be promoted with default settings",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "PXL_20250823_193751711.jpg",
+					LocalDateTime:    "2025-08-23T19:37:51.000Z",
+				},
+				{
+					OriginalFileName: "PXL_20250823_193751711~2.jpg",
+					LocalDateTime:    "2025-08-23T19:37:51.000Z",
+				},
+			},
+			promoteStr:    "edit,crop,hdr,biggestNumber", // Default promote list
+			expectedFirst: "PXL_20250823_193751711~2.jpg",
+			desc:          "With default settings, edited photo should be promoted",
+		},
+		{
+			name: "Pixel RAW edited photo from real issue",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "PXL_20250628_123043121.RAW-01.COVER.jpg",
+					LocalDateTime:    "2025-06-28T12:30:43.121Z",
+				},
+				{
+					OriginalFileName: "PXL_20250628_123043121.RAW-01.COVER~2.jpg",
+					LocalDateTime:    "2025-06-28T12:30:43.121Z",
+				},
+			},
+			promoteStr:    "edit,crop,hdr,biggestNumber",
+			expectedFirst: "PXL_20250628_123043121.RAW-01.COVER~2.jpg",
+			desc:          "Real example from issue should promote edited version",
+		},
+		{
+			name: "Multiple edits - highest number should be first",
+			assets: []utils.TAsset{
+				{
+					OriginalFileName: "PXL_20250823_193751711.jpg",
+					LocalDateTime:    "2025-08-23T19:37:51.000Z",
+				},
+				{
+					OriginalFileName: "PXL_20250823_193751711~2.jpg",
+					LocalDateTime:    "2025-08-23T19:37:51.000Z",
+				},
+				{
+					OriginalFileName: "PXL_20250823_193751711~3.jpg",
+					LocalDateTime:    "2025-08-23T19:37:51.000Z",
+				},
+				{
+					OriginalFileName: "PXL_20250823_193751711~5.jpg",
+					LocalDateTime:    "2025-08-23T19:37:51.000Z",
+				},
+			},
+			promoteStr:    "edit,crop,hdr,biggestNumber",
+			expectedFirst: "PXL_20250823_193751711~5.jpg",
+			desc:          "Highest numbered edit should be promoted first",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Sort using our stacker with default delimiters
+			delimiters := []string{"~", "."} // Default delimiters
+			sorted := sortStack(tt.assets, tt.promoteStr, "", delimiters, utils.DefaultCriteria, &safePromoteData{data: make(map[string]map[string]string)}, make(map[int]map[string]int))
+
+			// Check the first item is what we expect
+			assert.Equal(t, tt.expectedFirst, sorted[0].OriginalFileName,
+				"%s: Expected %s to be first but got %s",
+				tt.desc, tt.expectedFirst, sorted[0].OriginalFileName)
+
+			// Log the full order for debugging
+			t.Logf("Sorted order for %s:", tt.name)
+			for i, asset := range sorted {
+				t.Logf("  [%d] %s", i, asset.OriginalFileName)
+			}
+		})
+	}
+}
+
 func TestPixelRegexExtraction(t *testing.T) {
 	testCases := []struct {
 		filename string
