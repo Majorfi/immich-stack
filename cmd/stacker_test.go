@@ -660,6 +660,128 @@ func TestSubcommandRequiresAPIKey(t *testing.T) {
 }
 
 /**************************************************************************************************
+** Test getOriginalStackIDs function with edge cases
+**************************************************************************************************/
+func TestGetOriginalStackIDs(t *testing.T) {
+	tests := []struct {
+		name               string
+		stack              []utils.TAsset
+		expectedParentID   string
+		expectedChildrenIDs []string
+		expectedOriginalIDs []string
+	}{
+		{
+			name:                "Empty stack returns empty results",
+			stack:               []utils.TAsset{},
+			expectedParentID:    "",
+			expectedChildrenIDs: nil,
+			expectedOriginalIDs: nil,
+		},
+		{
+			name: "Stack with nil Stack field returns empty results",
+			stack: []utils.TAsset{
+				{ID: "asset1", Stack: nil},
+			},
+			expectedParentID:    "",
+			expectedChildrenIDs: nil,
+			expectedOriginalIDs: nil,
+		},
+		{
+			name: "Stack with empty Assets array returns only parentID",
+			stack: []utils.TAsset{
+				{
+					ID: "asset1",
+					Stack: &utils.TStack{
+						ID:             "stack1",
+						PrimaryAssetID: "parent1",
+						Assets:         []utils.TAsset{}, // Empty Assets array - the bug case
+					},
+				},
+			},
+			expectedParentID:    "parent1",
+			expectedChildrenIDs: nil,
+			expectedOriginalIDs: []string{"parent1"},
+		},
+		{
+			name: "Stack with one asset returns only parentID",
+			stack: []utils.TAsset{
+				{
+					ID: "asset1",
+					Stack: &utils.TStack{
+						ID:             "stack1",
+						PrimaryAssetID: "parent1",
+						Assets: []utils.TAsset{
+							{ID: "parent1"},
+						},
+					},
+				},
+			},
+			expectedParentID:    "parent1",
+			expectedChildrenIDs: nil,
+			expectedOriginalIDs: []string{"parent1"},
+		},
+		{
+			name: "Stack with multiple assets returns parent and children",
+			stack: []utils.TAsset{
+				{
+					ID: "asset1",
+					Stack: &utils.TStack{
+						ID:             "stack1",
+						PrimaryAssetID: "parent1",
+						Assets: []utils.TAsset{
+							{ID: "parent1"},
+							{ID: "child1"},
+							{ID: "child2"},
+						},
+					},
+				},
+			},
+			expectedParentID:    "parent1",
+			expectedChildrenIDs: []string{"child1", "child2"},
+			expectedOriginalIDs: []string{"parent1", "child1", "child2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parentID, childrenIDs, originalStackIDs := getOriginalStackIDs(tt.stack)
+
+			if parentID != tt.expectedParentID {
+				t.Errorf("Expected parentID '%s', got '%s'", tt.expectedParentID, parentID)
+			}
+
+			if tt.expectedChildrenIDs == nil && childrenIDs != nil {
+				t.Errorf("Expected nil childrenIDs, got %v", childrenIDs)
+			} else if tt.expectedChildrenIDs != nil && childrenIDs == nil {
+				t.Errorf("Expected childrenIDs %v, got nil", tt.expectedChildrenIDs)
+			} else if len(childrenIDs) != len(tt.expectedChildrenIDs) {
+				t.Errorf("Expected %d childrenIDs, got %d", len(tt.expectedChildrenIDs), len(childrenIDs))
+			} else {
+				for i, expected := range tt.expectedChildrenIDs {
+					if childrenIDs[i] != expected {
+						t.Errorf("Expected childrenIDs[%d] to be '%s', got '%s'", i, expected, childrenIDs[i])
+					}
+				}
+			}
+
+			if tt.expectedOriginalIDs == nil && originalStackIDs != nil {
+				t.Errorf("Expected nil originalStackIDs, got %v", originalStackIDs)
+			} else if tt.expectedOriginalIDs != nil && originalStackIDs == nil {
+				t.Errorf("Expected originalStackIDs %v, got nil", tt.expectedOriginalIDs)
+			} else if len(originalStackIDs) != len(tt.expectedOriginalIDs) {
+				t.Errorf("Expected %d originalStackIDs, got %d", len(tt.expectedOriginalIDs), len(originalStackIDs))
+			} else {
+				for i, expected := range tt.expectedOriginalIDs {
+					if originalStackIDs[i] != expected {
+						t.Errorf("Expected originalStackIDs[%d] to be '%s', got '%s'", i, expected, originalStackIDs[i])
+					}
+				}
+			}
+		})
+	}
+}
+
+/**************************************************************************************************
 ** Test boolean environment variable overrides
 **************************************************************************************************/
 func TestBooleanEnvironmentOverrides(t *testing.T) {

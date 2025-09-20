@@ -52,8 +52,7 @@ func getOriginalStackIDs(stack []utils.TAsset) (string, []string, []string) {
 		return "", nil, nil
 	}
 	parentID := stack[0].Stack.PrimaryAssetID
-	
-	// Handle case where Assets array is empty or has only one element
+
 	var childrenIDs []string
 	if len(stack[0].Stack.Assets) > 1 {
 		childrenIDs = make([]string, len(stack[0].Stack.Assets)-1)
@@ -61,7 +60,7 @@ func getOriginalStackIDs(stack []utils.TAsset) (string, []string, []string) {
 			childrenIDs[i] = asset.ID
 		}
 	}
-	
+
 	originalStackIDs := append([]string{parentID}, childrenIDs...)
 	return parentID, childrenIDs, originalStackIDs
 }
