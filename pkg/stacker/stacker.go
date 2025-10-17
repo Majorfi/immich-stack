@@ -103,6 +103,12 @@ func stackByLegacy(assets []utils.TAsset, stackingCriteria []utils.TCriteria, pa
 			promoteData.Set(asset.ID, assetPromoteValues)
 		}
 	}
+	
+	// Merge groups that should be together based on time proximity
+	groups, err := mergeTimeBasedGroups(groups, stackingCriteria)
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge time-based groups: %w", err)
+	}
 
 	// Count how many valid stacks we'll have (groups with 2+ assets)
 	validStackCount := 0
@@ -195,6 +201,12 @@ func stackByAdvanced(assets []utils.TAsset, config CriteriaConfig, parentFilenam
 		if len(promVals) > 0 {
 			promoteData.Set(asset.ID, promVals)
 		}
+	}
+
+	// Merge groups that should be together based on time proximity
+	stackGroups, err := mergeTimeBasedGroups(stackGroups, exprCriteria)
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge time-based groups: %w", err)
 	}
 
 	// Convert groups to stacks (filter out groups with < 2 assets)
