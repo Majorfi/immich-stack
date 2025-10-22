@@ -33,10 +33,10 @@ Note:
 
 ## Parent Selection
 
-| Variable                  | Description                                                                                                                                                       | Default | Example                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------- |
-| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames. Supports empty string for negative matching, the `sequence` keyword and automatic sequence detection for burst photos. | -       | `,_edited` or `edit,raw` or `COVER,sequence` or `0000,0001,0002,0003` |
-| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files                                                                                                                             | -       | `.jpg,.dng`                                                           |
+| Variable                  | Description                                                                                                                                                       | Default                             | Example                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------- |
+| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames. Supports empty string for negative matching, the `sequence` keyword and automatic sequence detection for burst photos. | `cover,edit,crop,hdr,biggestNumber` | `,_edited` or `edit,raw` or `COVER,sequence` or `0000,0001,0002,0003` |
+| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files                                                                                                                             | `.jpg,.png,.jpeg,.dng`              | `.jpg,.dng`                                                           |
 
 ### Empty String for Negative Matching
 
@@ -100,9 +100,33 @@ When `PARENT_FILENAME_PROMOTE` contains a numeric sequence pattern (e.g., `0000,
 
 ## Custom Criteria
 
-| Variable   | Description                   | Default | Example                                               |
-| ---------- | ----------------------------- | ------- | ----------------------------------------------------- |
-| `CRITERIA` | Custom grouping criteria JSON | -       | See [Custom Criteria](../features/custom-criteria.md) |
+| Variable   | Description                   | Default   | Example                                               |
+| ---------- | ----------------------------- | --------- | ----------------------------------------------------- |
+| `CRITERIA` | Custom grouping criteria JSON | See below | See [Custom Criteria](../features/custom-criteria.md) |
+
+### Default Criteria
+
+When `CRITERIA` is not set, the following default is used:
+
+```json
+[
+  {
+    "key": "originalFileName",
+    "split": { "delimiters": ["~", "."], "index": 0 }
+  },
+  {
+    "key": "localDateTime",
+    "delta": { "milliseconds": 1000 }
+  }
+]
+```
+
+This groups photos by:
+
+- Base filename (before `~` or `.`)
+- Time captured (within 1 second tolerance)
+
+### Custom Criteria Formats
 
 The `CRITERIA` environment variable supports three formats for flexible asset stacking:
 

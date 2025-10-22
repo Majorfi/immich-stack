@@ -23,7 +23,7 @@ The default configuration already includes `biggestNumber`:
 
 ```bash
 # Default value (no need to set if using defaults)
-PARENT_FILENAME_PROMOTE=edit,crop,hdr,biggestNumber
+PARENT_FILENAME_PROMOTE=cover,edit,crop,hdr,biggestNumber
 ```
 
 If you're not setting `PARENT_FILENAME_PROMOTE` explicitly, the defaults will handle edited photos correctly.
@@ -77,7 +77,7 @@ Sorted order (parent first):
 
 ```bash
 # Prioritizes edits, crops, HDR, and then numbered versions
-PARENT_FILENAME_PROMOTE=edit,crop,hdr,biggestNumber
+PARENT_FILENAME_PROMOTE=cover,edit,crop,hdr,biggestNumber
 ```
 
 ### For RAW+JPEG with Edits

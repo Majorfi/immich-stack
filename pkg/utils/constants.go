@@ -11,7 +11,7 @@ const TimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 /**************************************************************************************************
 ** DefaultCriteria is the default criteria for grouping photos. It groups photos by:
 ** 1. Original filename (before extension)
-** 2. Local capture time (with no delta as default)
+** 2. Local capture time (with 1 second delta to handle minor timestamp variations)
 **************************************************************************************************/
 var DefaultCriteria = []TCriteria{
 	{
@@ -24,7 +24,7 @@ var DefaultCriteria = []TCriteria{
 	{
 		Key: "localDateTime",
 		Delta: &TDelta{
-			Milliseconds: 0, // No delta by default
+			Milliseconds: 1000, // 1 second delta to handle minor timestamp variations
 		},
 	},
 }
@@ -33,7 +33,7 @@ var DefaultCriteria = []TCriteria{
 ** DefaultParentFilenamePromote is the default parent filename promote for grouping photos.
 ** It promotes the filename of the original filename.
 **************************************************************************************************/
-var DefaultParentFilenamePromote = []string{"edit", "crop", "hdr", "biggestNumber"}
+var DefaultParentFilenamePromote = []string{"cover", "edit", "crop", "hdr", "biggestNumber"}
 var DefaultParentFilenamePromoteString = strings.Join(DefaultParentFilenamePromote, ",")
 
 /**************************************************************************************************
