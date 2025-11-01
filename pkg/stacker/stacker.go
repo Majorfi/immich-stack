@@ -103,7 +103,7 @@ func stackByLegacy(assets []utils.TAsset, stackingCriteria []utils.TCriteria, pa
 			promoteData.Set(asset.ID, assetPromoteValues)
 		}
 	}
-	
+
 	// Merge groups that should be together based on time proximity
 	groups, err := mergeTimeBasedGroups(groups, stackingCriteria)
 	if err != nil {

@@ -1459,17 +1459,17 @@ func TestApplyCriteriaWithPromoteMultipleRegex(t *testing.T) {
 			Key: "originalFileName",
 			Regex: &utils.TRegex{
 				Key:          "^(IMG)_(\\d+)",
-				Index:        1,                        // Extract "IMG" 
-				PromoteIndex: &[]int{1}[0],             // Use captured group 1 for promotion
+				Index:        1,            // Extract "IMG"
+				PromoteIndex: &[]int{1}[0], // Use captured group 1 for promotion
 				PromoteKeys:  []string{"IMG", "PXL"},
 			},
 		},
 		{
-			Key: "originalFileName", 
+			Key: "originalFileName",
 			Regex: &utils.TRegex{
 				Key:          "^([A-Z]+)_(\\d+)",
-				Index:        2,                        // Extract "001"
-				PromoteIndex: &[]int{2}[0],             // Use captured group 2 for promotion  
+				Index:        2,            // Extract "001"
+				PromoteIndex: &[]int{2}[0], // Use captured group 2 for promotion
 				PromoteKeys:  []string{"001", "002"},
 			},
 		},
@@ -1490,7 +1490,6 @@ func TestApplyCriteriaWithPromoteMultipleRegex(t *testing.T) {
 	assert.NotEqual(t, promoteValues["originalFileName:0"], promoteValues["originalFileName:1"],
 		"Promotion values should be different (no collision)")
 }
-
 
 /************************************************************************************************
 ** Test unified PrecompileRegexes function with different source types
@@ -1557,7 +1556,7 @@ func TestPrecompileRegexes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := PrecompileRegexes(tt.criteriaSource)
-			
+
 			if tt.expectError {
 				assert.Error(t, err, "Expected error")
 				if tt.errorPart != "" {

@@ -13,12 +13,12 @@ func TestBuildExpressionGroupingKey(t *testing.T) {
 	logger.SetLevel(logrus.DebugLevel)
 
 	tests := []struct {
-		name         string
-		asset        utils.TAsset
-		expression   *utils.TCriteriaExpression
-		criteria     []utils.TCriteria
-		expectedKey  string
-		expectError  bool
+		name        string
+		asset       utils.TAsset
+		expression  *utils.TCriteriaExpression
+		criteria    []utils.TCriteria
+		expectedKey string
+		expectError bool
 	}{
 		{
 			name: "Simple AND expression with filename and time",
@@ -169,7 +169,7 @@ func TestStackByAdvanced(t *testing.T) {
 				{ID: "2", OriginalFileName: "PXL_20230101_002.jpg", LocalDateTime: "2023-01-01T12:00:00Z"}, // Same group
 				{ID: "3", OriginalFileName: "IMG_20230201_001.jpg", LocalDateTime: "2023-02-01T12:00:00Z"},
 				{ID: "4", OriginalFileName: "IMG_20230201_002.jpg", LocalDateTime: "2023-02-01T12:00:00Z"}, // Different group
-				{ID: "5", OriginalFileName: "DSC_001.jpg", LocalDateTime: "2023-03-01T12:00:00Z"},         // No match
+				{ID: "5", OriginalFileName: "DSC_001.jpg", LocalDateTime: "2023-03-01T12:00:00Z"},          // No match
 			},
 			config: CriteriaConfig{
 				Mode: "advanced",
@@ -276,7 +276,7 @@ func TestStackByLegacyGroups_UnionSemantics(t *testing.T) {
 					Operator: "OR",
 					Criteria: []utils.TCriteria{
 						{Key: "originalPath", Split: &utils.TSplit{Delimiters: []string{"/"}, Index: 2}}, // Extract folder
-						{Key: "localDateTime", Delta: &utils.TDelta{Milliseconds: 1000}},               // Time grouping
+						{Key: "localDateTime", Delta: &utils.TDelta{Milliseconds: 1000}},                 // Time grouping
 					},
 				},
 			},
@@ -478,18 +478,18 @@ func TestBuildConnectedComponents_DuplicateKeyDeduplication(t *testing.T) {
 		t.Errorf("Expected 1 connected component, got %d", len(components))
 		return
 	}
-	
+
 	if len(components[0]) != 2 {
 		t.Errorf("Expected component to contain 2 assets, got %d", len(components[0]))
 		return
 	}
-	
+
 	// Verify both assets are present
 	assetIDs := make(map[string]bool)
 	for _, asset := range components[0] {
 		assetIDs[asset.ID] = true
 	}
-	
+
 	if !assetIDs["1"] {
 		t.Error("Component should contain asset 1")
 	}
@@ -497,7 +497,6 @@ func TestBuildConnectedComponents_DuplicateKeyDeduplication(t *testing.T) {
 		t.Error("Component should contain asset 2")
 	}
 }
-
 
 func TestAdvancedCriteriaIntegration(t *testing.T) {
 	logger := logrus.New()

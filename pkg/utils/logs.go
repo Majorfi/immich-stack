@@ -1,5 +1,5 @@
 // Package utils provides some simple 'prettier' logs for a basic go usage
-// DEPRECATED: This logging module is not used in the codebase. 
+// DEPRECATED: This logging module is not used in the codebase.
 // The application uses logrus for all logging functionality.
 // This file is kept for reference only and may be removed in future versions.
 package utils

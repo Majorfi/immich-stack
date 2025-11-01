@@ -178,7 +178,7 @@ func TestErrorCrash(t *testing.T) {
 			// Capture both stdout and stderr since spew.Printf might use either
 			oldStdout := os.Stdout
 			oldStderr := os.Stderr
-			
+
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 			os.Stderr = w
@@ -235,7 +235,7 @@ func TestError(t *testing.T) {
 			// Capture both stdout and stderr
 			oldStdout := os.Stdout
 			oldStderr := os.Stderr
-			
+
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 			os.Stderr = w
@@ -284,7 +284,7 @@ func TestSuccess(t *testing.T) {
 		t.Run(fmt.Sprintf("test_%d", i), func(t *testing.T) {
 			oldStdout := os.Stdout
 			oldStderr := os.Stderr
-			
+
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 			os.Stderr = w
@@ -324,7 +324,7 @@ func TestWarning(t *testing.T) {
 		t.Run(fmt.Sprintf("test_%d", i), func(t *testing.T) {
 			oldStdout := os.Stdout
 			oldStderr := os.Stderr
-			
+
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 			os.Stderr = w
@@ -375,7 +375,7 @@ func TestInfo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			oldStdout := os.Stdout
 			oldStderr := os.Stderr
-			
+
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 			os.Stderr = w
@@ -415,7 +415,7 @@ func TestDebug(t *testing.T) {
 		t.Run(fmt.Sprintf("test_%d", i), func(t *testing.T) {
 			oldStdout := os.Stdout
 			oldStderr := os.Stderr
-			
+
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 			os.Stderr = w
@@ -472,7 +472,7 @@ func TestPretty(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			oldStdout := os.Stdout
-			
+
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 

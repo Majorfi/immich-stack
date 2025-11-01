@@ -153,7 +153,7 @@ func TestInvalidCriteriaJSONEndToEnd(t *testing.T) {
 
 /**************************************************************************************************
 ** Test LoadEnv precedence and defaults with safe environment testing
-** 
+**
 ** NOTE: This test handles boolean flags (reset-stacks, dry-run, etc.) that don't take values.
 ** Boolean flags are only added to cmdArgs when their value is "true", otherwise they're omitted.
 **************************************************************************************************/
@@ -234,7 +234,7 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 			// Create command and set CLI flags
 			cmd := CreateTestableRootCommand()
 			var cmdArgs []string
-			
+
 			// Boolean flags that don't take values
 			booleanFlags := map[string]bool{
 				"reset-stacks":               true,
@@ -244,7 +244,7 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 				"with-deleted":               true,
 				"remove-single-asset-stacks": true,
 			}
-			
+
 			for key, val := range tt.cliFlags {
 				if booleanFlags[key] {
 					// Boolean flags: only add the flag if value is "true"
@@ -288,7 +288,7 @@ func TestLoadEnvPrecedenceAndValidation(t *testing.T) {
 				if parentExtPromote != tt.expectedExtPromo {
 					t.Errorf("Expected parentExtPromote '%s', got '%s'", tt.expectedExtPromo, parentExtPromote)
 				}
-				
+
 				// For the boolean flags test case, verify the boolean flags were parsed correctly
 				if tt.name == "Boolean CLI flags work correctly" {
 					if !dryRun {
@@ -664,9 +664,9 @@ func TestSubcommandRequiresAPIKey(t *testing.T) {
 **************************************************************************************************/
 func TestGetOriginalStackIDs(t *testing.T) {
 	tests := []struct {
-		name               string
-		stack              []utils.TAsset
-		expectedParentID   string
+		name                string
+		stack               []utils.TAsset
+		expectedParentID    string
 		expectedChildrenIDs []string
 		expectedOriginalIDs []string
 	}{

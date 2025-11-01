@@ -100,6 +100,24 @@ type TSearchResponse struct {
 }
 
 /**************************************************************************************************
+** TAlbum represents an Immich album with its metadata.
+**************************************************************************************************/
+type TAlbum struct {
+	ID               string   `json:"id"`                              // Album identifier
+	AlbumName        string   `json:"albumName"`                       // Album name
+	Description      string   `json:"description"`                     // Album description
+	CreatedAt        string   `json:"createdAt"`                       // Creation time
+	UpdatedAt        string   `json:"updatedAt"`                       // Last update time
+	OwnerID          string   `json:"ownerId"`                         // Owner identifier
+	Shared           bool     `json:"shared"`                          // Whether album is shared
+	AssetCount       int      `json:"assetCount"`                      // Number of assets
+	StartDate        string   `json:"startDate"`                       // Earliest asset date
+	EndDate          string   `json:"endDate"`                         // Latest asset date
+	AssetIDs         []string `json:"assets,omitempty"`                // Asset IDs (when fetching details)
+	AlbumThumbnailID string   `json:"albumThumbnailAssetId,omitempty"` // Thumbnail asset ID
+}
+
+/**************************************************************************************************
 ** TUserResponse represents a user as returned by the Immich API (UserResponseDto).
 ** This structure matches the Immich API response format for /users/me.
 **************************************************************************************************/
@@ -119,8 +137,8 @@ type TUserResponse struct {
 ** Prefer expressions for new configurations; groups remain supported as a simpler, legacy option.
 **************************************************************************************************/
 type TCriteriaGroup struct {
-    Operator string      `json:"operator"` // "AND" or "OR"
-    Criteria []TCriteria `json:"criteria"` // List of criteria in this group
+	Operator string      `json:"operator"` // "AND" or "OR"
+	Criteria []TCriteria `json:"criteria"` // List of criteria in this group
 }
 
 /**************************************************************************************************

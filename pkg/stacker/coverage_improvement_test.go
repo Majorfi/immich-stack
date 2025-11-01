@@ -14,7 +14,7 @@ import (
 ************************************************************************************************/
 func TestStackBy_ErrorCases(t *testing.T) {
 	logger := logrus.New()
-	
+
 	tests := []struct {
 		name        string
 		assets      []utils.TAsset
@@ -49,7 +49,7 @@ func TestStackBy_ErrorCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("CRITERIA", tt.criteria)
-			
+
 			stacks, err := StackBy(tt.assets, tt.criteria, "", "", logger)
 			if tt.expectError {
 				assert.Error(t, err)
@@ -66,7 +66,7 @@ func TestStackBy_ErrorCases(t *testing.T) {
 
 func TestStackBy_AdvancedMode(t *testing.T) {
 	logger := logrus.New()
-	
+
 	assets := []utils.TAsset{
 		{ID: "1", OriginalFileName: "IMG_001.jpg", LocalDateTime: "2023-01-01T12:00:00Z"},
 		{ID: "2", OriginalFileName: "IMG_002.jpg", LocalDateTime: "2023-01-01T12:00:00Z"},
@@ -90,17 +90,17 @@ func TestStackBy_AdvancedMode(t *testing.T) {
 	t.Setenv("CRITERIA", criteria)
 	stacks, err := StackBy(assets, "", "", "", logger)
 	require.NoError(t, err)
-	
+
 	// Should create stacks based on OR logic
 	assert.Greater(t, len(stacks), 0, "Should create at least one stack")
 }
 
 func TestStackBy_ExpressionMode(t *testing.T) {
 	logger := logrus.New()
-	
+
 	assets := []utils.TAsset{
 		{ID: "1", OriginalFileName: "IMG_001.jpg", IsArchived: true, LocalDateTime: "2023-01-01T12:00:00Z"},
-		{ID: "2", OriginalFileName: "IMG_002.jpg", IsArchived: true, LocalDateTime: "2023-01-01T12:00:00Z"},  
+		{ID: "2", OriginalFileName: "IMG_002.jpg", IsArchived: true, LocalDateTime: "2023-01-01T12:00:00Z"},
 		{ID: "3", OriginalFileName: "IMG_003.jpg", IsArchived: false, LocalDateTime: "2023-01-01T13:00:00Z"},
 	}
 
@@ -119,14 +119,14 @@ func TestStackBy_ExpressionMode(t *testing.T) {
 	t.Setenv("CRITERIA", criteria)
 	stacks, err := StackBy(assets, "", "", "", logger)
 	require.NoError(t, err)
-	
+
 	// Should create stacks based on archived status and time grouping
 	assert.Greater(t, len(stacks), 0, "Should create at least one stack")
 }
 
 func TestStackBy_EmptyAssets(t *testing.T) {
 	logger := logrus.New()
-	
+
 	stacks, err := StackBy([]utils.TAsset{}, "", "", "", logger)
 	require.NoError(t, err)
 	assert.Empty(t, stacks, "Empty assets should return empty stacks")
@@ -144,8 +144,8 @@ func TestEvaluateSingleCriteria_EdgeCases(t *testing.T) {
 		IsTrashed:        true,
 		IsOffline:        false,
 		HasMetadata:      true,
-		Type:            "IMAGE",
-		LocalDateTime:   "2023-01-01T12:00:00Z",
+		Type:             "IMAGE",
+		LocalDateTime:    "2023-01-01T12:00:00Z",
 	}
 
 	tests := []struct {
@@ -236,7 +236,7 @@ func TestEvaluateSingleCriteria_EdgeCases(t *testing.T) {
 }
 
 /************************************************************************************************
-** Tests to improve coverage for splitByDelimiters function (currently 76.9% coverage) 
+** Tests to improve coverage for splitByDelimiters function (currently 76.9% coverage)
 ************************************************************************************************/
 func TestSplitByDelimiters_EdgeCases(t *testing.T) {
 	tests := []struct {
@@ -365,8 +365,8 @@ func TestEvaluateExpression_ErrorCases(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name: "expression with neither criteria nor operator",
-			expr: &utils.TCriteriaExpression{},
+			name:     "expression with neither criteria nor operator",
+			expr:     &utils.TCriteriaExpression{},
 			expected: false,
 			wantErr:  true,
 		},

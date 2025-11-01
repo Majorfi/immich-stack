@@ -123,6 +123,96 @@ func (m *mockTransport) RoundTrip(*http.Request) (*http.Response, error) {
 	return m.response, nil
 }
 
+func TestFetchAllStacks(t *testing.T) {
+	tests := []struct {
+		name           string
+		stacksResponse string
+		expectedMap    map[string]string // assetID -> stackID mapping
+		wantErr        bool
+	}{
+		{
+			name: "stacks indexed by all asset IDs not just primary",
+			stacksResponse: `[
+				{
+					"id": "stack-123",
+					"primaryAssetId": "asset-a",
+					"assets": [
+						{"id": "asset-a"},
+						{"id": "asset-b"},
+						{"id": "asset-c"}
+					]
+				},
+				{
+					"id": "stack-456",
+					"primaryAssetId": "asset-x",
+					"assets": [
+						{"id": "asset-x"},
+						{"id": "asset-y"}
+					]
+				}
+			]`,
+			expectedMap: map[string]string{
+				"asset-a": "stack-123",
+				"asset-b": "stack-123",
+				"asset-c": "stack-123",
+				"asset-x": "stack-456",
+				"asset-y": "stack-456",
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty stacks",
+			stacksResponse: `[]`,
+			expectedMap:    map[string]string{},
+			wantErr:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			client := &Client{
+				apiKey: "test",
+				apiURL: "http://test/api",
+				logger: logrus.New(),
+				client: &http.Client{
+					Transport: &mockTransport{
+						response: &http.Response{
+							StatusCode: http.StatusOK,
+							Body:       io.NopCloser(strings.NewReader(tt.stacksResponse)),
+						},
+					},
+				},
+			}
+
+			// Act
+			stacksMap, err := client.FetchAllStacks()
+
+			// Assert
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, stacksMap)
+
+				// Verify that ALL assets (primary and children) are indexed
+				for assetID, expectedStackID := range tt.expectedMap {
+					stack, exists := stacksMap[assetID]
+					assert.True(t, exists, "Asset %s should be in stacksMap", assetID)
+					if exists {
+						assert.Equal(t, expectedStackID, stack.ID,
+							"Asset %s should map to stack %s", assetID, expectedStackID)
+					}
+				}
+
+				// Verify map size matches expected
+				assert.Equal(t, len(tt.expectedMap), len(stacksMap),
+					"stacksMap should contain entries for all assets in all stacks")
+			}
+		})
+	}
+}
+
 func TestModifyStack(t *testing.T) {
 	tests := []struct {
 		name    string

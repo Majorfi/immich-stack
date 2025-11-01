@@ -217,10 +217,11 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 		}
 	}
 
-	// Create lookup map
 	stacksMap := make(map[string]utils.TStack)
 	for _, stack := range stacks {
-		stacksMap[stack.PrimaryAssetID] = stack
+		for _, asset := range stack.Assets {
+			stacksMap[asset.ID] = stack
+		}
 	}
 
 	c.logger.Infof("📚 Fetched %d stacks", len(stacks))
@@ -468,5 +469,143 @@ func (c *Client) TrashAssets(assetIDs []string) error {
 	}
 
 	c.logger.Infof("🗑️  Moving %d assets to trash... done", len(assetIDs))
+	return nil
+}
+
+/**************************************************************************************************
+** FetchAlbums fetches all albums for the authenticated user.
+**
+** @return []utils.TAlbum - List of albums
+** @return error - Error if the request failed
+**************************************************************************************************/
+func (c *Client) FetchAlbums() ([]utils.TAlbum, error) {
+	var albums []utils.TAlbum
+	if err := c.doRequest(http.MethodGet, "/albums", nil, &albums); err != nil {
+		return nil, fmt.Errorf("failed to fetch albums: %w", err)
+	}
+	return albums, nil
+}
+
+/**************************************************************************************************
+** FetchAlbumAssets fetches all assets in a specific album.
+**
+** @param albumID - Album identifier
+** @return []utils.TAsset - List of assets in the album
+** @return error - Error if the request failed
+**************************************************************************************************/
+func (c *Client) FetchAlbumAssets(albumID string) ([]utils.TAsset, error) {
+	var response struct {
+		Assets []utils.TAsset `json:"assets"`
+	}
+	if err := c.doRequest(http.MethodGet, fmt.Sprintf("/albums/%s", albumID), nil, &response); err != nil {
+		return nil, fmt.Errorf("failed to fetch album assets: %w", err)
+	}
+	return response.Assets, nil
+}
+
+/**************************************************************************************************
+** CreateAlbum creates a new album with the given name and description.
+**
+** @param name - Album name
+** @param description - Album description
+** @return *utils.TAlbum - Created album
+** @return error - Error if the request failed
+**************************************************************************************************/
+func (c *Client) CreateAlbum(name, description string) (*utils.TAlbum, error) {
+	if c.dryRun {
+		c.logger.Infof("[DRY RUN] Would create album: %s", name)
+		return &utils.TAlbum{
+			ID:          "dry-run-id",
+			AlbumName:   name,
+			Description: description,
+		}, nil
+	}
+
+	payload := map[string]string{
+		"albumName":   name,
+		"description": description,
+	}
+
+	var album utils.TAlbum
+	if err := c.doRequest(http.MethodPost, "/albums", payload, &album); err != nil {
+		return nil, fmt.Errorf("failed to create album: %w", err)
+	}
+
+	return &album, nil
+}
+
+/**************************************************************************************************
+** AddAssetsToAlbum adds assets to an album.
+**
+** @param albumID - Album identifier
+** @param assetIDs - List of asset IDs to add
+** @return error - Error if the request failed
+**************************************************************************************************/
+func (c *Client) AddAssetsToAlbum(albumID string, assetIDs []string) error {
+	if len(assetIDs) == 0 {
+		return nil
+	}
+
+	if c.dryRun {
+		c.logger.Infof("[DRY RUN] Would add %d assets to album %s", len(assetIDs), albumID)
+		return nil
+	}
+
+	payload := map[string]interface{}{
+		"ids": assetIDs,
+	}
+
+	if err := c.doRequest(http.MethodPut, fmt.Sprintf("/albums/%s/assets", albumID), payload, nil); err != nil {
+		return fmt.Errorf("failed to add assets to album: %w", err)
+	}
+
+	return nil
+}
+
+/**************************************************************************************************
+** RemoveAssetsFromAlbum removes assets from an album.
+**
+** @param albumID - Album identifier
+** @param assetIDs - List of asset IDs to remove
+** @return error - Error if the request failed
+**************************************************************************************************/
+func (c *Client) RemoveAssetsFromAlbum(albumID string, assetIDs []string) error {
+	if len(assetIDs) == 0 {
+		return nil
+	}
+
+	if c.dryRun {
+		c.logger.Infof("[DRY RUN] Would remove %d assets from album %s", len(assetIDs), albumID)
+		return nil
+	}
+
+	payload := map[string]interface{}{
+		"ids": assetIDs,
+	}
+
+	if err := c.doRequest(http.MethodDelete, fmt.Sprintf("/albums/%s/assets", albumID), payload, nil); err != nil {
+		return fmt.Errorf("failed to remove assets from album: %w", err)
+	}
+
+	return nil
+}
+
+/**************************************************************************************************
+** UpdateAlbum updates an album's properties (used for archiving).
+**
+** @param albumID - Album identifier
+** @param updates - Map of properties to update
+** @return error - Error if the request failed
+**************************************************************************************************/
+func (c *Client) UpdateAlbum(albumID string, updates map[string]interface{}) error {
+	if c.dryRun {
+		c.logger.Infof("[DRY RUN] Would update album %s", albumID)
+		return nil
+	}
+
+	if err := c.doRequest(http.MethodPatch, fmt.Sprintf("/albums/%s", albumID), updates, nil); err != nil {
+		return fmt.Errorf("failed to update album: %w", err)
+	}
+
 	return nil
 }

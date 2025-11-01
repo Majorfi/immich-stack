@@ -51,8 +51,17 @@ func addSubcommands(rootCmd *cobra.Command) {
 		Run:   runFixTrash,
 	}
 
+	// var fixAlbumCmd = &cobra.Command{
+	// 	Use:   "fix-album [album name or ID]",
+	// 	Short: "Reorganize a single album for clean sharing",
+	// 	Long:  "Process a specific album to create an archived backup while keeping only JPG/primary photos in the original for clean sharing.",
+	// 	Args:  cobra.MinimumNArgs(1),
+	// 	Run:   runFixAlbum,
+	// }
+
 	rootCmd.AddCommand(duplicatesCmd)
 	rootCmd.AddCommand(fixTrashCmd)
+	// rootCmd.AddCommand(fixAlbumCmd)
 }
 
 /**************************************************************************************************

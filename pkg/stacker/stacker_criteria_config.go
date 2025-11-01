@@ -19,7 +19,6 @@ type CriteriaConfig struct {
 	Expression *utils.TCriteriaExpression // New nested expression format
 }
 
-
 /**************************************************************************************************
 ** getCriteriaConfig parses the provided criteria string and returns the configuration.
 ** If the criteria string is empty, it falls back to the CRITERIA environment variable.
@@ -65,11 +64,6 @@ func getCriteriaConfig(criteria string) (CriteriaConfig, error) {
 		Legacy: legacyCriteria,
 	}, nil
 }
-
-
-
-
-
 
 /**************************************************************************************************
 ** ParseCriteria is a small public wrapper around getCriteriaConfig for testing and callers

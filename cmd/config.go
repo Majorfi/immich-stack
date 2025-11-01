@@ -180,7 +180,7 @@ func logStartupSummary(logger *logrus.Logger) {
 		if criteria != "" {
 			summary = append(summary, fmt.Sprintf("criteria=%s", criteria))
 		}
-		
+
 		logger.Infof("Starting with config: %s", strings.Join(summary, ", "))
 	}
 }
@@ -268,10 +268,10 @@ func LoadEnvForTesting() LoadEnvConfig {
 			parentExtPromote = envVal
 		}
 	}
-	
+
 	// Log startup configuration summary
 	logStartupSummary(logger)
-	
+
 	return LoadEnvConfig{Logger: logger, Error: nil}
 }
 
