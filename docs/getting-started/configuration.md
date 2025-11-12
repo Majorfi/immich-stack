@@ -32,6 +32,8 @@ RUN_MODE=cron
 CRON_INTERVAL=3600  # Run every hour
 ```
 
+For detailed information about cron mode including state management, signal handling, monitoring, and best practices, see the [Cron Mode documentation](../features/cron-mode.md).
+
 ## Stack Management
 
 ### Parent Selection
