@@ -86,6 +86,34 @@ WITH_ARCHIVED=true  # Include archived assets
 WITH_DELETED=true   # Include deleted assets
 ```
 
+## Logging
+
+Configure logging output and verbosity:
+
+```sh
+LOG_LEVEL=info      # Options: trace, debug, info, warn, error
+LOG_FORMAT=text     # Options: text, json
+LOG_FILE=/app/logs/immich-stack.log  # Optional: enable dual logging (stdout + file)
+```
+
+### File Logging with Docker
+
+When using Docker, you can persist logs to a file by setting `LOG_FILE` and mounting a volume:
+
+```yaml
+services:
+  immich-stack:
+    image: majorfi/immich-stack:latest
+    environment:
+      - LOG_FILE=/app/logs/immich-stack.log
+      - LOG_LEVEL=info
+      - LOG_FORMAT=text
+    volumes:
+      - ./logs:/app/logs
+```
+
+The application automatically creates the log directory if it doesn't exist. If file logging fails (e.g., permission issues), it gracefully falls back to stdout-only logging.
+
 ## Custom Criteria
 
 Configure custom grouping criteria using the `CRITERIA` environment variable. See [Custom Criteria](../features/custom-criteria.md) for details.
@@ -106,11 +134,16 @@ PARENT_FILENAME_PROMOTE=edit,raw
 PARENT_EXT_PROMOTE=.jpg,.dng
 DRY_RUN=false
 RESET_STACKS=false
-REPLACE_STACKS=false
+REPLACE_STACKS=true
 
 # Asset inclusion
 WITH_ARCHIVED=false
 WITH_DELETED=false
+
+# Logging
+LOG_LEVEL=info
+LOG_FORMAT=text
+LOG_FILE=/app/logs/immich-stack.log
 
 # Custom criteria
 CRITERIA='[{"key":"originalFileName","split":{"delimiters":["~","."],"index":0}},{"key":"localDateTime","delta":{"milliseconds":1000}}]'

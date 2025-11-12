@@ -11,10 +11,10 @@ This document provides a complete reference of all environment variables support
 
 ## Run Mode Configuration
 
-| Variable        | Description                  | Default | Example |
-| --------------- | ---------------------------- | ------- | ------- |
-| `RUN_MODE`      | Run mode: "once" or "cron"   | "once"  | `cron`  |
-| `CRON_INTERVAL` | Interval in seconds for cron | 60      | `3600`  |
+| Variable        | Description                  | Default                       | Example |
+| --------------- | ---------------------------- | ----------------------------- | ------- |
+| `RUN_MODE`      | Run mode: "once" or "cron"   | "once"                        | `cron`  |
+| `CRON_INTERVAL` | Interval in seconds for cron | 86400 (when RUN_MODE is cron) | `3600`  |
 
 ## Stack Management
 
@@ -22,7 +22,7 @@ This document provides a complete reference of all environment variables support
 | ---------------------------- | ---------------------------------------------------------------------- | ------- | -------------------- |
 | `RESET_STACKS`               | Delete all existing stacks before processing (only in `RUN_MODE=once`) | false   | `true`               |
 | `CONFIRM_RESET_STACK`        | Confirmation message for reset                                         | -       | `"I acknowledge..."` |
-| `REPLACE_STACKS`             | Replace stacks for new groups                                          | false   | `true`               |
+| `REPLACE_STACKS`             | Replace stacks for new groups                                          | true    | `false`              |
 | `DRY_RUN`                    | Simulate actions without making changes                                | false   | `true`               |
 | `REMOVE_SINGLE_ASSET_STACKS` | Remove stacks containing only one asset                                | false   | `true`               |
 

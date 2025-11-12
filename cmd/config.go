@@ -33,6 +33,7 @@ var replaceStacks bool
 var replaceStacksFlagSet bool
 var withDeleted bool
 var logLevel string
+var logFormat string
 var removeSingleAssetStacks bool
 
 /**************************************************************************************************
@@ -99,8 +100,13 @@ func configureLoggerWithOutput(output io.Writer) *logrus.Logger {
 		logger.SetLevel(logrus.InfoLevel)
 	}
 
-	// Set log format from environment variable
-	if format := os.Getenv("LOG_FORMAT"); format == "json" {
+	// Set log format - flag takes precedence over environment variable
+	format := logFormat
+	if format == "" {
+		format = os.Getenv("LOG_FORMAT")
+	}
+
+	if format == "json" {
 		logger.SetFormatter(&logrus.JSONFormatter{
 			TimestampFormat: time.RFC3339,
 		})
