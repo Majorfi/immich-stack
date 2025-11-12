@@ -48,16 +48,32 @@ func getParentAndChildrenIDs(stack []utils.TAsset) (string, []string, []string) 
 ** @return originalStackIDs - Combined array of existing parent and child IDs
 **************************************************************************************************/
 func getOriginalStackIDs(stack []utils.TAsset) (string, []string, []string) {
-	if len(stack) == 0 || stack[0].Stack == nil {
+	if len(stack) == 0 {
 		return "", nil, nil
 	}
-	parentID := stack[0].Stack.PrimaryAssetID
 
-	var childrenIDs []string
-	if len(stack[0].Stack.Assets) > 1 {
-		childrenIDs = make([]string, len(stack[0].Stack.Assets)-1)
-		for i, asset := range stack[0].Stack.Assets[1:] {
-			childrenIDs[i] = asset.ID
+	var existingStack *utils.TStack
+	for _, asset := range stack {
+		if asset.Stack != nil {
+			existingStack = asset.Stack
+			break
+		}
+	}
+
+	if existingStack == nil {
+		return "", nil, nil
+	}
+
+	parentID := existingStack.PrimaryAssetID
+
+	if len(existingStack.Assets) == 0 {
+		return parentID, nil, []string{parentID}
+	}
+
+	childrenIDs := make([]string, 0, len(existingStack.Assets)-1)
+	for _, asset := range existingStack.Assets {
+		if asset.ID != parentID {
+			childrenIDs = append(childrenIDs, asset.ID)
 		}
 	}
 
@@ -271,6 +287,16 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 		}
 
 		/******************************************************************************************
+		** Add comparison debug logging.
+		******************************************************************************************/
+		if logger.IsLevelEnabled(logrus.DebugLevel) {
+			logger.Debugf("\tStack comparison:")
+			logger.Debugf("\t  Original: %v", originalStackIDs)
+			logger.Debugf("\t  Expected: %v", newStackIDs)
+			logger.Debugf("\t  REPLACE_STACKS: %v", replaceStacks)
+		}
+
+		/******************************************************************************************
 		** Delete children stacks if replaceStacks is true.
 		******************************************************************************************/
 		if replaceStacks {
@@ -278,6 +304,19 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 				client.DeleteStack(childID, utils.REASON_REPLACE_CHILD_STACK_WITH_NEW_ONE)
 			}
 		}
+
+		/******************************************************************************************
+		** Determine action type for logging.
+		******************************************************************************************/
+		var actionMsg string
+		if len(originalStackIDs) == 0 {
+			actionMsg = "\t🆕 Creating new stack"
+		} else if replaceStacks && len(childrenWithStack) > 0 {
+			actionMsg = "\t🔄 Replacing existing stack (deleted child stacks)"
+		} else {
+			actionMsg = "\t✏️  Updating stack configuration"
+		}
+		logger.Info(actionMsg)
 
 		/******************************************************************************************
 		** Modify the stack after a little delay to avoid self-rekt.

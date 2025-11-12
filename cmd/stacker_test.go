@@ -33,6 +33,7 @@ func resetGlobalConfig() {
 	resetStacks = false
 	dryRun = false
 	replaceStacks = true
+	replaceStacksFlagSet = false
 	withDeleted = false
 	logLevel = ""
 	removeSingleAssetStacks = false
@@ -717,7 +718,7 @@ func TestGetOriginalStackIDs(t *testing.T) {
 				},
 			},
 			expectedParentID:    "parent1",
-			expectedChildrenIDs: nil,
+			expectedChildrenIDs: []string{},
 			expectedOriginalIDs: []string{"parent1"},
 		},
 		{
@@ -739,6 +740,46 @@ func TestGetOriginalStackIDs(t *testing.T) {
 			expectedParentID:    "parent1",
 			expectedChildrenIDs: []string{"child1", "child2"},
 			expectedOriginalIDs: []string{"parent1", "child1", "child2"},
+		},
+		{
+			name: "PRIMARY BUG TEST: Parent NOT at index 0 - children derived correctly",
+			stack: []utils.TAsset{
+				{
+					ID: "asset1",
+					Stack: &utils.TStack{
+						ID:             "stack1",
+						PrimaryAssetID: "parentA",
+						Assets: []utils.TAsset{
+							{ID: "childB"},
+							{ID: "parentA"},
+							{ID: "childC"},
+						},
+					},
+				},
+			},
+			expectedParentID:    "parentA",
+			expectedChildrenIDs: []string{"childB", "childC"},
+			expectedOriginalIDs: []string{"parentA", "childB", "childC"},
+		},
+		{
+			name: "Parent at end of Assets array - children derived correctly",
+			stack: []utils.TAsset{
+				{
+					ID: "asset1",
+					Stack: &utils.TStack{
+						ID:             "stack1",
+						PrimaryAssetID: "parentC",
+						Assets: []utils.TAsset{
+							{ID: "childA"},
+							{ID: "childB"},
+							{ID: "parentC"},
+						},
+					},
+				},
+			},
+			expectedParentID:    "parentC",
+			expectedChildrenIDs: []string{"childA", "childB"},
+			expectedOriginalIDs: []string{"parentC", "childA", "childB"},
 		},
 	}
 

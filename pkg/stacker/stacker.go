@@ -2,6 +2,7 @@ package stacker
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
@@ -110,19 +111,26 @@ func stackByLegacy(assets []utils.TAsset, stackingCriteria []utils.TCriteria, pa
 		return nil, fmt.Errorf("failed to merge time-based groups: %w", err)
 	}
 
-	// Count how many valid stacks we'll have (groups with 2+ assets)
-	validStackCount := 0
+	// Convert map to slice and sort for deterministic processing order
+	groupSlice := make([][]utils.TAsset, 0, len(groups))
 	for _, group := range groups {
 		if len(group) > 1 {
-			validStackCount++
+			groupSlice = append(groupSlice, group)
 		}
 	}
 
-	result := make([][]utils.TAsset, 0, validStackCount)
-	for _, group := range groups {
-		if len(group) > 1 {
-			result = append(result, sortStack(group, parentFilenamePromote, parentExtPromote, delimiters, stackingCriteria, promoteData, promotionMaps))
+	// Sort groups by first asset's filename for consistent queue positions across runs
+	sort.Slice(groupSlice, func(i, j int) bool {
+		if len(groupSlice[i]) > 0 && len(groupSlice[j]) > 0 {
+			return groupSlice[i][0].OriginalFileName < groupSlice[j][0].OriginalFileName
 		}
+		return false
+	})
+
+	// Process sorted groups
+	result := make([][]utils.TAsset, 0, len(groupSlice))
+	for _, group := range groupSlice {
+		result = append(result, sortStack(group, parentFilenamePromote, parentExtPromote, delimiters, stackingCriteria, promoteData, promotionMaps))
 	}
 
 	logStackingResults("Legacy criteria stacking", len(result), len(assets), logger)

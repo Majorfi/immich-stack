@@ -322,18 +322,17 @@ func (c *Client) DeleteStack(stackID string, reason string) error {
 **************************************************************************************************/
 func (c *Client) ModifyStack(assetIDs []string) error {
 	if c.dryRun {
-		c.logger.Infof("\t🟢 Success! Stack created (dry run)")
 		return nil
 	}
 
 	if err := c.doRequest(http.MethodPost, "/stacks", map[string]interface{}{
 		"assetIds": assetIDs,
 	}, nil); err != nil {
-		c.logger.Errorf("Error modifying stack: %v", err)
+		c.logger.Errorf("\t❌ Stack operation failed: %v", err)
 		return fmt.Errorf("error modifying stack: %w", err)
 	}
 
-	c.logger.Info("\t🟢 Success! Stack created")
+	c.logger.Debug("\t✅ API call successful")
 	return nil
 }
 

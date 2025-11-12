@@ -74,6 +74,11 @@ func CreateRootCommand() *cobra.Command {
 		Short: "Immich Stack CLI",
 		Long:  "A tool to automatically stack Immich assets.",
 		Run:   runStacker,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if cmd.Flags().Lookup("replace-stacks") != nil && cmd.Flags().Lookup("replace-stacks").Changed {
+				replaceStacksFlagSet = true
+			}
+		},
 	}
 
 	bindFlags(rootCmd)

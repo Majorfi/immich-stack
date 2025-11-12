@@ -30,6 +30,7 @@ var withArchived bool
 var resetStacks bool
 var dryRun bool
 var replaceStacks bool
+var replaceStacksFlagSet bool
 var withDeleted bool
 var logLevel string
 var removeSingleAssetStacks bool
@@ -246,8 +247,10 @@ func LoadEnvForTesting() LoadEnvConfig {
 	if dryRun {
 		logger.Info("DRY_RUN is set to true, no changes will be applied")
 	}
-	if !replaceStacks {
-		replaceStacks = os.Getenv("REPLACE_STACKS") == "true"
+	if !replaceStacksFlagSet {
+		if envReplace := os.Getenv("REPLACE_STACKS"); envReplace != "" {
+			replaceStacks = envReplace == "true"
+		}
 	}
 	if !withArchived {
 		withArchived = os.Getenv("WITH_ARCHIVED") == "true"
