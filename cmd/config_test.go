@@ -59,6 +59,37 @@ func TestStartupConfigurationSummary(t *testing.T) {
 				`"removeSingleAssetStacks":true`,
 			},
 		},
+		{
+			name: "text format with filter fields",
+			envVars: map[string]string{
+				"API_KEY":             "test-key",
+				"FILTER_ALBUM_IDS":    "album1,album2",
+				"FILTER_TAKEN_AFTER":  "2024-01-01T00:00:00Z",
+				"FILTER_TAKEN_BEFORE": "2024-12-31T23:59:59Z",
+			},
+			wantInLog: []string{
+				"Starting with config:",
+				"filter-albums=2",
+				"filter-after=2024-01-01T00:00:00Z",
+				"filter-before=2024-12-31T23:59:59Z",
+			},
+		},
+		{
+			name: "json format with filter fields",
+			envVars: map[string]string{
+				"API_KEY":             "test-key",
+				"LOG_FORMAT":          "json",
+				"FILTER_ALBUM_IDS":    "album1,album2,album3",
+				"FILTER_TAKEN_AFTER":  "2024-06-01T00:00:00Z",
+				"FILTER_TAKEN_BEFORE": "2024-06-30T23:59:59Z",
+			},
+			wantInLog: []string{
+				"Configuration loaded",
+				`"filterAlbumIDs":["album1","album2","album3"]`,
+				`"filterTakenAfter":"2024-06-01T00:00:00Z"`,
+				`"filterTakenBefore":"2024-06-30T23:59:59Z"`,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -342,6 +373,7 @@ func resetTestEnv() {
 		"REPLACE_STACKS", "WITH_ARCHIVED", "WITH_DELETED",
 		"REMOVE_SINGLE_ASSET_STACKS", "CRITERIA",
 		"PARENT_FILENAME_PROMOTE", "PARENT_EXT_PROMOTE",
+		"FILTER_ALBUM_IDS", "FILTER_TAKEN_AFTER", "FILTER_TAKEN_BEFORE",
 	}
 
 	for _, env := range envVars {
@@ -363,4 +395,191 @@ func resetTestEnv() {
 	withDeleted = false
 	logLevel = ""
 	removeSingleAssetStacks = false
+	filterAlbumIDs = nil
+	filterTakenAfter = ""
+	filterTakenBefore = ""
+}
+
+/************************************************************************************************
+** Tests for FILTER_ALBUM_IDS environment variable parsing with whitespace handling
+************************************************************************************************/
+
+func TestFilterAlbumIDsParsing(t *testing.T) {
+	tests := []struct {
+		name     string
+		envValue string
+		expected []string
+	}{
+		{
+			name:     "simple list",
+			envValue: "album1,album2",
+			expected: []string{"album1", "album2"},
+		},
+		{
+			name:     "with spaces after comma",
+			envValue: "album1, album2, album3",
+			expected: []string{"album1", "album2", "album3"},
+		},
+		{
+			name:     "with leading and trailing spaces",
+			envValue: " album1 , album2 ",
+			expected: []string{"album1", "album2"},
+		},
+		{
+			name:     "empty entries filtered",
+			envValue: "album1,,album2",
+			expected: []string{"album1", "album2"},
+		},
+		{
+			name:     "only spaces filtered",
+			envValue: "album1,   ,album2",
+			expected: []string{"album1", "album2"},
+		},
+		{
+			name:     "single album",
+			envValue: "album1",
+			expected: []string{"album1"},
+		},
+		{
+			name:     "single album with spaces",
+			envValue: "  album1  ",
+			expected: []string{"album1"},
+		},
+		{
+			name:     "UUIDs with spaces",
+			envValue: "550e8400-e29b-41d4-a716-446655440000 , 660e8400-e29b-41d4-a716-446655440001",
+			expected: []string{"550e8400-e29b-41d4-a716-446655440000", "660e8400-e29b-41d4-a716-446655440001"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clear environment
+			resetTestEnv()
+
+			// Set required env vars
+			os.Setenv("API_KEY", "test-key")
+			os.Setenv("FILTER_ALBUM_IDS", tt.envValue)
+			defer resetTestEnv()
+
+			// Load config
+			config := LoadEnvForTesting()
+
+			// Assert
+			assert.NoError(t, config.Error)
+			assert.Equal(t, tt.expected, filterAlbumIDs, "filterAlbumIDs should be correctly parsed and trimmed")
+		})
+	}
+}
+
+func TestFilterAlbumIDsEmptyEnv(t *testing.T) {
+	// Clear environment
+	resetTestEnv()
+
+	// Set required env vars but NOT FILTER_ALBUM_IDS
+	os.Setenv("API_KEY", "test-key")
+	defer resetTestEnv()
+
+	// Load config
+	config := LoadEnvForTesting()
+
+	// Assert
+	assert.NoError(t, config.Error)
+	assert.Nil(t, filterAlbumIDs, "filterAlbumIDs should be nil when env var is not set")
+}
+
+/************************************************************************************************
+** Tests for date filter environment variable parsing with TrimSpace
+************************************************************************************************/
+
+func TestDateFilterEnvVarParsing(t *testing.T) {
+	tests := []struct {
+		name           string
+		envAfter       string
+		envBefore      string
+		expectedAfter  string
+		expectedBefore string
+	}{
+		{
+			name:           "valid dates without spaces",
+			envAfter:       "2024-01-01T00:00:00Z",
+			envBefore:      "2024-12-31T23:59:59Z",
+			expectedAfter:  "2024-01-01T00:00:00Z",
+			expectedBefore: "2024-12-31T23:59:59Z",
+		},
+		{
+			name:           "with leading space on after",
+			envAfter:       " 2024-01-01T00:00:00Z",
+			envBefore:      "",
+			expectedAfter:  "2024-01-01T00:00:00Z",
+			expectedBefore: "",
+		},
+		{
+			name:           "with trailing space on after",
+			envAfter:       "2024-01-01T00:00:00Z ",
+			envBefore:      "",
+			expectedAfter:  "2024-01-01T00:00:00Z",
+			expectedBefore: "",
+		},
+		{
+			name:           "with leading space on before",
+			envAfter:       "",
+			envBefore:      " 2024-12-31T23:59:59Z",
+			expectedAfter:  "",
+			expectedBefore: "2024-12-31T23:59:59Z",
+		},
+		{
+			name:           "with trailing space on before",
+			envAfter:       "",
+			envBefore:      "2024-12-31T23:59:59Z ",
+			expectedAfter:  "",
+			expectedBefore: "2024-12-31T23:59:59Z",
+		},
+		{
+			name:           "both with leading and trailing spaces",
+			envAfter:       "  2024-01-01T00:00:00Z  ",
+			envBefore:      "  2024-12-31T23:59:59Z  ",
+			expectedAfter:  "2024-01-01T00:00:00Z",
+			expectedBefore: "2024-12-31T23:59:59Z",
+		},
+		{
+			name:           "empty values",
+			envAfter:       "",
+			envBefore:      "",
+			expectedAfter:  "",
+			expectedBefore: "",
+		},
+		{
+			name:           "only whitespace becomes empty",
+			envAfter:       "   ",
+			envBefore:      "   ",
+			expectedAfter:  "",
+			expectedBefore: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clear environment
+			resetTestEnv()
+
+			// Set required env vars
+			os.Setenv("API_KEY", "test-key")
+			if tt.envAfter != "" {
+				os.Setenv("FILTER_TAKEN_AFTER", tt.envAfter)
+			}
+			if tt.envBefore != "" {
+				os.Setenv("FILTER_TAKEN_BEFORE", tt.envBefore)
+			}
+			defer resetTestEnv()
+
+			// Load config
+			config := LoadEnvForTesting()
+
+			// Assert
+			assert.NoError(t, config.Error)
+			assert.Equal(t, tt.expectedAfter, filterTakenAfter, "filterTakenAfter should be trimmed")
+			assert.Equal(t, tt.expectedBefore, filterTakenBefore, "filterTakenBefore should be trimmed")
+		})
+	}
 }
