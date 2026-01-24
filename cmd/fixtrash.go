@@ -28,6 +28,13 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 	logger := loadEnv()
 
 	/**********************************************************************************************
+	** Warn if filter flags are set (they have no effect on this command).
+	**********************************************************************************************/
+	if len(filterAlbumIDs) > 0 || filterTakenAfter != "" || filterTakenBefore != "" {
+		logger.Warnf("Filter flags (--filter-album-ids, --filter-taken-after, --filter-taken-before) have no effect on the fix-trash command")
+	}
+
+	/**********************************************************************************************
 	** Support multiple API keys (comma-separated).
 	**********************************************************************************************/
 	apiKeys := utils.RemoveEmptyStrings(func(keys []string) []string {
@@ -44,7 +51,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 		if i > 0 {
 			logger.Infof("\n")
 		}
-		client := immich.NewClient(apiURL, key, false, false, dryRun, withArchived, withDeleted, false, logger)
+		client := immich.NewClient(apiURL, key, false, false, dryRun, withArchived, withDeleted, false, nil, "", "", logger)
 		if client == nil {
 			logger.Errorf("Invalid client for API key: %s", key)
 			continue

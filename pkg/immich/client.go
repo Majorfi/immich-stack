@@ -39,6 +39,9 @@ type Client struct {
 	withArchived            bool
 	withDeleted             bool
 	removeSingleAssetStacks bool
+	filterAlbumIDs          []string
+	filterTakenAfter        string
+	filterTakenBefore       string
 	logger                  *logrus.Logger
 }
 
@@ -54,10 +57,13 @@ type Client struct {
 ** @param withArchived - Whether to include archived assets
 ** @param withDeleted - Whether to include deleted assets
 ** @param removeSingleAssetStacks - Whether to remove stacks with only one asset
+** @param filterAlbumIDs - Filter by album IDs (empty slice means no filter)
+** @param filterTakenAfter - Filter assets taken after this date (empty means no filter)
+** @param filterTakenBefore - Filter assets taken before this date (empty means no filter)
 ** @param logger - Logger instance for output
 ** @return *Client - Configured Immich client instance
 **************************************************************************************************/
-func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, removeSingleAssetStacks bool, logger *logrus.Logger) *Client {
+func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, removeSingleAssetStacks bool, filterAlbumIDs []string, filterTakenAfter string, filterTakenBefore string, logger *logrus.Logger) *Client {
 	if apiKey == "" {
 		return nil
 	}
@@ -96,6 +102,9 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 		withArchived:            withArchived,
 		withDeleted:             withDeleted,
 		removeSingleAssetStacks: removeSingleAssetStacks,
+		filterAlbumIDs:          filterAlbumIDs,
+		filterTakenAfter:        filterTakenAfter,
+		filterTakenBefore:       filterTakenBefore,
 		logger:                  logger,
 	}
 }
@@ -238,49 +247,109 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 ** @return error - Any error that occurred during the fetch
 **************************************************************************************************/
 func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]utils.TAsset, error) {
-	var allAssets []utils.TAsset
-	page := 1
+	// Resolve album filters (names to UUIDs) once
+	resolvedAlbumIDs, err := c.resolveAlbumFilters(c.filterAlbumIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate date filters once before processing (not inside loops)
+	var takenAfterTime, takenBeforeTime time.Time
+	if c.filterTakenAfter != "" {
+		takenAfterTime, err = time.Parse(time.RFC3339, c.filterTakenAfter)
+		if err != nil {
+			return nil, fmt.Errorf("invalid takenAfter date format (expected ISO 8601/RFC3339): %s", c.filterTakenAfter)
+		}
+	}
+	if c.filterTakenBefore != "" {
+		takenBeforeTime, err = time.Parse(time.RFC3339, c.filterTakenBefore)
+		if err != nil {
+			return nil, fmt.Errorf("invalid takenBefore date format (expected ISO 8601/RFC3339): %s", c.filterTakenBefore)
+		}
+	}
+	if c.filterTakenAfter != "" && c.filterTakenBefore != "" && !takenAfterTime.Before(takenBeforeTime) {
+		return nil, fmt.Errorf("takenAfter (%s) must be before takenBefore (%s)", c.filterTakenAfter, c.filterTakenBefore)
+	}
 
 	c.logger.Infof("⬇️  Fetching assets:")
-	for {
-		c.logger.Debugf("Fetching page %d", page)
-		var response utils.TSearchResponse
-		if err := c.doRequest(http.MethodPost, "/search/metadata", map[string]interface{}{
-			"size":         size,
-			"page":         page,
-			"order":        "asc",
-			"type":         "IMAGE",
-			"isVisible":    true,
-			"withStacked":  true,
-			"withArchived": c.withArchived,
-			"withDeleted":  c.withDeleted,
-		}, &response); err != nil {
-			c.logger.Errorf("Error fetching assets: %v", err)
-			return nil, fmt.Errorf("error fetching assets: %w", err)
-		}
 
-		// Enrich assets with stack information
-		for i := range response.Assets.Items {
-			asset := &response.Assets.Items[i]
-			if stack, ok := stacksMap[asset.ID]; ok {
-				asset.Stack = &stack
-			}
+	// If multiple albums specified, fetch each separately and deduplicate.
+	// This implements OR logic: assets in album1 OR album2 OR album3.
+	var albumFilters [][]string
+	if len(resolvedAlbumIDs) == 0 {
+		albumFilters = [][]string{nil} // No album filter
+	} else if len(resolvedAlbumIDs) == 1 {
+		albumFilters = [][]string{resolvedAlbumIDs}
+	} else {
+		for _, albumID := range resolvedAlbumIDs {
+			albumFilters = append(albumFilters, []string{albumID})
 		}
-
-		allAssets = append(allAssets, response.Assets.Items...)
-
-		// Handle string nextPage: empty string means no more pages
-		if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
-			break
-		}
-		nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
-		if err != nil || nextPageInt == 0 {
-			break
-		}
-		page = nextPageInt
 	}
-	c.logger.Infof("🌄 %d assets fetched", len(allAssets))
 
+	seen := make(map[string]bool)
+	var allAssets []utils.TAsset
+
+	for _, albumFilter := range albumFilters {
+		page := 1
+		for {
+			if len(albumFilter) > 0 {
+				c.logger.Debugf("Fetching page %d for album(s) %v", page, albumFilter)
+			} else {
+				c.logger.Debugf("Fetching page %d", page)
+			}
+			var response utils.TSearchResponse
+
+			payload := map[string]interface{}{
+				"size":         size,
+				"page":         page,
+				"order":        "asc",
+				"type":         "IMAGE",
+				"isVisible":    true,
+				"withStacked":  true,
+				"withArchived": c.withArchived,
+				"withDeleted":  c.withDeleted,
+			}
+			if len(albumFilter) > 0 {
+				payload["albumIds"] = albumFilter
+			}
+			if c.filterTakenAfter != "" {
+				payload["takenAfter"] = c.filterTakenAfter
+			}
+			if c.filterTakenBefore != "" {
+				payload["takenBefore"] = c.filterTakenBefore
+			}
+
+			if err := c.doRequest(http.MethodPost, "/search/metadata", payload, &response); err != nil {
+				c.logger.Errorf("Error fetching assets: %v", err)
+				return nil, fmt.Errorf("error fetching assets: %w", err)
+			}
+
+			// Enrich assets with stack information and deduplicate
+			for i := range response.Assets.Items {
+				asset := &response.Assets.Items[i]
+				if seen[asset.ID] {
+					continue
+				}
+				seen[asset.ID] = true
+				if stack, ok := stacksMap[asset.ID]; ok {
+					asset.Stack = &stack
+				}
+				allAssets = append(allAssets, *asset)
+			}
+
+			// Handle string nextPage: empty string means no more pages
+			if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
+				break
+			}
+			nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
+			if err != nil || nextPageInt == 0 {
+				break
+			}
+			page = nextPageInt
+		}
+	}
+
+	c.logger.Infof("🌄 %d assets fetched", len(allAssets))
 	return allAssets, nil
 }
 
@@ -483,6 +552,79 @@ func (c *Client) FetchAlbums() ([]utils.TAlbum, error) {
 		return nil, fmt.Errorf("failed to fetch albums: %w", err)
 	}
 	return albums, nil
+}
+
+/**************************************************************************************************
+** isUUID checks if a string is a valid UUID format.
+**************************************************************************************************/
+func isUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	for i, c := range s {
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			if c != '-' {
+				return false
+			}
+		} else {
+			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+/**************************************************************************************************
+** resolveAlbumFilters resolves album filters that may be names or UUIDs to actual UUIDs.
+** If a filter value is already a UUID, it's used directly. Otherwise, it's treated as an
+** album name and resolved by fetching albums from the API.
+**
+** @param filters - List of album IDs or names
+** @return []string - List of resolved album UUIDs
+** @return error - Error if album name resolution fails
+**************************************************************************************************/
+func (c *Client) resolveAlbumFilters(filters []string) ([]string, error) {
+	if len(filters) == 0 {
+		return nil, nil
+	}
+
+	var resolved []string
+	var namesToResolve []string
+
+	for _, filter := range filters {
+		if isUUID(filter) {
+			resolved = append(resolved, filter)
+		} else {
+			namesToResolve = append(namesToResolve, filter)
+		}
+	}
+
+	if len(namesToResolve) == 0 {
+		return resolved, nil
+	}
+
+	albums, err := c.FetchAlbums()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve album names: %w", err)
+	}
+
+	for _, name := range namesToResolve {
+		found := false
+		for _, album := range albums {
+			if album.AlbumName == name {
+				resolved = append(resolved, album.ID)
+				found = true
+				c.logger.Debugf("Resolved album name %q to ID %s", name, album.ID)
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("album not found: %q", name)
+		}
+	}
+
+	return resolved, nil
 }
 
 /**************************************************************************************************

@@ -35,6 +35,9 @@ var withDeleted bool
 var logLevel string
 var logFormat string
 var removeSingleAssetStacks bool
+var filterAlbumIDs []string
+var filterTakenAfter string
+var filterTakenBefore string
 
 /**************************************************************************************************
 ** Configures the logger based on command-line flags and environment variables. Sets up the
@@ -138,7 +141,7 @@ type LoadEnvConfig struct {
 func logStartupSummary(logger *logrus.Logger) {
 	// Build summary based on format
 	if format := os.Getenv("LOG_FORMAT"); format == "json" {
-		logger.WithFields(logrus.Fields{
+		fields := logrus.Fields{
 			"runMode":                 runMode,
 			"cronInterval":            cronInterval,
 			"logLevel":                logger.GetLevel().String(),
@@ -153,7 +156,17 @@ func logStartupSummary(logger *logrus.Logger) {
 			"criteria":                criteria,
 			"parentFilenamePromote":   parentFilenamePromote,
 			"parentExtPromote":        parentExtPromote,
-		}).Info("Configuration loaded")
+		}
+		if len(filterAlbumIDs) > 0 {
+			fields["filterAlbumIDs"] = filterAlbumIDs
+		}
+		if filterTakenAfter != "" {
+			fields["filterTakenAfter"] = filterTakenAfter
+		}
+		if filterTakenBefore != "" {
+			fields["filterTakenBefore"] = filterTakenBefore
+		}
+		logger.WithFields(fields).Info("Configuration loaded")
 	} else {
 		// Build human-readable summary
 		var summary []string
@@ -186,6 +199,15 @@ func logStartupSummary(logger *logrus.Logger) {
 		}
 		if criteria != "" {
 			summary = append(summary, fmt.Sprintf("criteria=%s", criteria))
+		}
+		if len(filterAlbumIDs) > 0 {
+			summary = append(summary, fmt.Sprintf("filter-albums=%d", len(filterAlbumIDs)))
+		}
+		if filterTakenAfter != "" {
+			summary = append(summary, fmt.Sprintf("filter-after=%s", filterTakenAfter))
+		}
+		if filterTakenBefore != "" {
+			summary = append(summary, fmt.Sprintf("filter-before=%s", filterTakenBefore))
 		}
 
 		logger.Infof("Starting with config: %s", strings.Join(summary, ", "))
@@ -276,6 +298,21 @@ func LoadEnvForTesting() LoadEnvConfig {
 		if envVal := os.Getenv("PARENT_EXT_PROMOTE"); envVal != "" {
 			parentExtPromote = envVal
 		}
+	}
+	if len(filterAlbumIDs) == 0 {
+		if envVal := os.Getenv("FILTER_ALBUM_IDS"); envVal != "" {
+			parts := strings.Split(envVal, ",")
+			for i := range parts {
+				parts[i] = strings.TrimSpace(parts[i])
+			}
+			filterAlbumIDs = utils.RemoveEmptyStrings(parts)
+		}
+	}
+	if filterTakenAfter == "" {
+		filterTakenAfter = strings.TrimSpace(os.Getenv("FILTER_TAKEN_AFTER"))
+	}
+	if filterTakenBefore == "" {
+		filterTakenBefore = strings.TrimSpace(os.Getenv("FILTER_TAKEN_BEFORE"))
 	}
 
 	// Log startup configuration summary
