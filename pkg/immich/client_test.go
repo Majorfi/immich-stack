@@ -522,6 +522,20 @@ func TestFetchAssetsDateValidation(t *testing.T) {
 			wantErr:     true,
 			errContains: "invalid takenAfter date format",
 		},
+		{
+			name:        "inverted dates - takenAfter after takenBefore",
+			takenAfter:  "2024-12-31T23:59:59Z",
+			takenBefore: "2024-01-01T00:00:00Z",
+			wantErr:     true,
+			errContains: "takenAfter",
+		},
+		{
+			name:        "same date - takenAfter equals takenBefore",
+			takenAfter:  "2024-06-15T12:00:00Z",
+			takenBefore: "2024-06-15T12:00:00Z",
+			wantErr:     true,
+			errContains: "takenAfter",
+		},
 	}
 
 	for _, tt := range tests {

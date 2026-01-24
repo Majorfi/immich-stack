@@ -253,6 +253,24 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 		return nil, err
 	}
 
+	// Validate date filters once before processing (not inside loops)
+	var takenAfterTime, takenBeforeTime time.Time
+	if c.filterTakenAfter != "" {
+		takenAfterTime, err = time.Parse(time.RFC3339, c.filterTakenAfter)
+		if err != nil {
+			return nil, fmt.Errorf("invalid takenAfter date format (expected ISO 8601/RFC3339): %s", c.filterTakenAfter)
+		}
+	}
+	if c.filterTakenBefore != "" {
+		takenBeforeTime, err = time.Parse(time.RFC3339, c.filterTakenBefore)
+		if err != nil {
+			return nil, fmt.Errorf("invalid takenBefore date format (expected ISO 8601/RFC3339): %s", c.filterTakenBefore)
+		}
+	}
+	if c.filterTakenAfter != "" && c.filterTakenBefore != "" && !takenAfterTime.Before(takenBeforeTime) {
+		return nil, fmt.Errorf("takenAfter (%s) must be before takenBefore (%s)", c.filterTakenAfter, c.filterTakenBefore)
+	}
+
 	c.logger.Infof("⬇️  Fetching assets:")
 
 	// If multiple albums specified, fetch each separately and deduplicate.
@@ -274,7 +292,11 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 	for _, albumFilter := range albumFilters {
 		page := 1
 		for {
-			c.logger.Debugf("Fetching page %d", page)
+			if len(albumFilter) > 0 {
+				c.logger.Debugf("Fetching page %d for album(s) %v", page, albumFilter)
+			} else {
+				c.logger.Debugf("Fetching page %d", page)
+			}
 			var response utils.TSearchResponse
 
 			payload := map[string]interface{}{
@@ -291,15 +313,9 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 				payload["albumIds"] = albumFilter
 			}
 			if c.filterTakenAfter != "" {
-				if _, err := time.Parse(time.RFC3339, c.filterTakenAfter); err != nil {
-					return nil, fmt.Errorf("invalid takenAfter date format (expected ISO 8601/RFC3339): %s", c.filterTakenAfter)
-				}
 				payload["takenAfter"] = c.filterTakenAfter
 			}
 			if c.filterTakenBefore != "" {
-				if _, err := time.Parse(time.RFC3339, c.filterTakenBefore); err != nil {
-					return nil, fmt.Errorf("invalid takenBefore date format (expected ISO 8601/RFC3339): %s", c.filterTakenBefore)
-				}
 				payload["takenBefore"] = c.filterTakenBefore
 			}
 
