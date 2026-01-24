@@ -98,6 +98,50 @@ When `PARENT_FILENAME_PROMOTE` contains a numeric sequence pattern (e.g., `0000,
 | `WITH_ARCHIVED` | Include archived assets in processing | false   | `true`  |
 | `WITH_DELETED`  | Include deleted assets in processing  | false   | `true`  |
 
+## Asset Filtering
+
+| Variable              | Description                                           | Default | Example                  |
+| --------------------- | ----------------------------------------------------- | ------- | ------------------------ |
+| `FILTER_ALBUM_IDS`    | Filter by album IDs or names (comma-separated)        | -       | `album-uuid-1,My Photos` |
+| `FILTER_TAKEN_AFTER`  | Only process assets taken after this date (ISO 8601)  | -       | `2024-01-01T00:00:00Z`   |
+| `FILTER_TAKEN_BEFORE` | Only process assets taken before this date (ISO 8601) | -       | `2024-12-31T23:59:59Z`   |
+
+### Album Filtering
+
+Album filters accept both UUIDs and album names:
+
+```sh
+# By UUID
+FILTER_ALBUM_IDS=550e8400-e29b-41d4-a716-446655440000
+
+# By name
+FILTER_ALBUM_IDS=Vacation Photos
+
+# Multiple albums (OR logic - assets from ANY album)
+FILTER_ALBUM_IDS=album-uuid-1,Vacation Photos,Family
+```
+
+When multiple albums are specified, assets from **any** of the albums are processed (OR logic).
+
+### Date Range Filtering
+
+Date filters use ISO 8601 (RFC3339) format:
+
+```sh
+# Assets from 2024 only
+FILTER_TAKEN_AFTER=2024-01-01T00:00:00Z
+FILTER_TAKEN_BEFORE=2024-12-31T23:59:59Z
+
+# Assets from last month
+FILTER_TAKEN_AFTER=2024-11-01T00:00:00Z
+```
+
+Valid date formats:
+
+- `2024-01-15T10:30:00Z` (UTC)
+- `2024-01-15T10:30:00+00:00` (with timezone offset)
+- `2024-01-15T10:30:00-05:00` (EST timezone)
+
 ## Custom Criteria
 
 | Variable   | Description                   | Default   | Example                                               |
@@ -399,6 +443,24 @@ CRITERIA='{
     ]
   }
 }'
+```
+
+### Asset Filtering
+
+```sh
+# Filter by specific album
+FILTER_ALBUM_IDS=550e8400-e29b-41d4-a716-446655440000
+
+# Filter by multiple albums (OR logic)
+FILTER_ALBUM_IDS=album-1,Vacation Photos,Family Events
+
+# Filter by date range
+FILTER_TAKEN_AFTER=2024-01-01T00:00:00Z
+FILTER_TAKEN_BEFORE=2024-12-31T23:59:59Z
+
+# Combined: specific album and date range
+FILTER_ALBUM_IDS=My Photos
+FILTER_TAKEN_AFTER=2024-06-01T00:00:00Z
 ```
 
 ## Best Practices
