@@ -255,16 +255,17 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 
 	c.logger.Infof("⬇️  Fetching assets:")
 
-	// If multiple albums, fetch each separately (OR logic) and deduplicate
+	// If multiple albums specified, fetch each separately and deduplicate.
+	// This implements OR logic: assets in album1 OR album2 OR album3.
 	var albumFilters [][]string
-	if len(resolvedAlbumIDs) > 1 {
-		for _, albumID := range resolvedAlbumIDs {
-			albumFilters = append(albumFilters, []string{albumID})
-		}
+	if len(resolvedAlbumIDs) == 0 {
+		albumFilters = [][]string{nil} // No album filter
 	} else if len(resolvedAlbumIDs) == 1 {
 		albumFilters = [][]string{resolvedAlbumIDs}
 	} else {
-		albumFilters = [][]string{nil} // No album filter
+		for _, albumID := range resolvedAlbumIDs {
+			albumFilters = append(albumFilters, []string{albumID})
+		}
 	}
 
 	seen := make(map[string]bool)
@@ -290,9 +291,15 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 				payload["albumIds"] = albumFilter
 			}
 			if c.filterTakenAfter != "" {
+				if _, err := time.Parse(time.RFC3339, c.filterTakenAfter); err != nil {
+					return nil, fmt.Errorf("invalid takenAfter date format (expected ISO 8601/RFC3339): %s", c.filterTakenAfter)
+				}
 				payload["takenAfter"] = c.filterTakenAfter
 			}
 			if c.filterTakenBefore != "" {
+				if _, err := time.Parse(time.RFC3339, c.filterTakenBefore); err != nil {
+					return nil, fmt.Errorf("invalid takenBefore date format (expected ISO 8601/RFC3339): %s", c.filterTakenBefore)
+				}
 				payload["takenBefore"] = c.filterTakenBefore
 			}
 

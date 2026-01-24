@@ -301,14 +301,18 @@ func LoadEnvForTesting() LoadEnvConfig {
 	}
 	if len(filterAlbumIDs) == 0 {
 		if envVal := os.Getenv("FILTER_ALBUM_IDS"); envVal != "" {
-			filterAlbumIDs = utils.RemoveEmptyStrings(strings.Split(envVal, ","))
+			parts := strings.Split(envVal, ",")
+			for i := range parts {
+				parts[i] = strings.TrimSpace(parts[i])
+			}
+			filterAlbumIDs = utils.RemoveEmptyStrings(parts)
 		}
 	}
 	if filterTakenAfter == "" {
-		filterTakenAfter = os.Getenv("FILTER_TAKEN_AFTER")
+		filterTakenAfter = strings.TrimSpace(os.Getenv("FILTER_TAKEN_AFTER"))
 	}
 	if filterTakenBefore == "" {
-		filterTakenBefore = os.Getenv("FILTER_TAKEN_BEFORE")
+		filterTakenBefore = strings.TrimSpace(os.Getenv("FILTER_TAKEN_BEFORE"))
 	}
 
 	// Log startup configuration summary
