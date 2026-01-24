@@ -225,3 +225,61 @@ func TestBoolToString(t *testing.T) {
 		})
 	}
 }
+
+func TestGetDir(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "unix path with file",
+			input:    "/home/user/photos/image.jpg",
+			expected: "/home/user/photos",
+		},
+		{
+			name:     "unix path directory only",
+			input:    "/home/user/photos/",
+			expected: "/home/user/photos",
+		},
+		{
+			name:     "relative path",
+			input:    "photos/image.jpg",
+			expected: "photos",
+		},
+		{
+			name:     "file only no directory",
+			input:    "image.jpg",
+			expected: ".",
+		},
+		{
+			name:     "root path",
+			input:    "/image.jpg",
+			expected: "/",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: ".",
+		},
+		{
+			name:     "deep nested path",
+			input:    "/a/b/c/d/e/file.txt",
+			expected: "/a/b/c/d/e",
+		},
+		{
+			name:     "path with dots - resolved by filepath.Dir",
+			input:    "/home/user/../photos/image.jpg",
+			expected: "/home/photos",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetDir(tt.input)
+			if result != tt.expected {
+				t.Errorf("GetDir(%q) = %q, expected %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}

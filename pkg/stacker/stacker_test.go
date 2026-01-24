@@ -1577,3 +1577,316 @@ func TestPixelRegexExtraction(t *testing.T) {
 		})
 	}
 }
+
+func TestGetExtensionRank(t *testing.T) {
+	tests := []struct {
+		name     string
+		ext      string
+		expected int
+	}{
+		{
+			name:     "jpeg has highest rank",
+			ext:      ".jpeg",
+			expected: 4,
+		},
+		{
+			name:     "jpg has second highest rank",
+			ext:      ".jpg",
+			expected: 3,
+		},
+		{
+			name:     "png has third highest rank",
+			ext:      ".png",
+			expected: 2,
+		},
+		{
+			name:     "dng has default rank",
+			ext:      ".dng",
+			expected: 1,
+		},
+		{
+			name:     "cr2 has default rank",
+			ext:      ".cr2",
+			expected: 1,
+		},
+		{
+			name:     "arw has default rank",
+			ext:      ".arw",
+			expected: 1,
+		},
+		{
+			name:     "empty extension has default rank",
+			ext:      "",
+			expected: 1,
+		},
+		{
+			name:     "unknown extension has default rank",
+			ext:      ".xyz",
+			expected: 1,
+		},
+		{
+			name:     "uppercase JPG treated as default (case sensitive)",
+			ext:      ".JPG",
+			expected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getExtensionRank(tt.ext)
+			assert.Equal(t, tt.expected, result, "getExtensionRank(%q) should return %d", tt.ext, tt.expected)
+		})
+	}
+}
+
+func TestGetPromoteIndex(t *testing.T) {
+	tests := []struct {
+		name        string
+		value       string
+		promoteList []string
+		expected    int
+	}{
+		{
+			name:        "empty promote list",
+			value:       "photo.jpg",
+			promoteList: []string{},
+			expected:    0,
+		},
+		{
+			name:        "match first in list",
+			value:       "photo_edited.jpg",
+			promoteList: []string{"_edited", "_crop", "_raw"},
+			expected:    0,
+		},
+		{
+			name:        "match second in list",
+			value:       "photo_crop.jpg",
+			promoteList: []string{"_edited", "_crop", "_raw"},
+			expected:    1,
+		},
+		{
+			name:        "match last in list",
+			value:       "photo_raw.dng",
+			promoteList: []string{"_edited", "_crop", "_raw"},
+			expected:    2,
+		},
+		{
+			name:        "no match returns list length",
+			value:       "photo.jpg",
+			promoteList: []string{"_edited", "_crop"},
+			expected:    2,
+		},
+		{
+			name:        "case insensitive match",
+			value:       "photo_EDITED.jpg",
+			promoteList: []string{"_edited"},
+			expected:    0,
+		},
+		{
+			name:        "nil promote list",
+			value:       "photo.jpg",
+			promoteList: nil,
+			expected:    0,
+		},
+		{
+			name:        "empty string as first priority - no other matches",
+			value:       "photo.jpg",
+			promoteList: []string{"", "_edited", "_crop"},
+			expected:    0,
+		},
+		{
+			name:        "empty string as first priority - has other match",
+			value:       "photo_edited.jpg",
+			promoteList: []string{"", "_edited", "_crop"},
+			expected:    1,
+		},
+		{
+			name:        "empty string only in list",
+			value:       "photo.jpg",
+			promoteList: []string{""},
+			expected:    0,
+		},
+		{
+			name:        "biggestNumber keyword",
+			value:       "photo.jpg",
+			promoteList: []string{"_edited", "biggestNumber"},
+			expected:    1,
+		},
+		{
+			name:        "biggestNumber keyword - has match before",
+			value:       "photo_edited.jpg",
+			promoteList: []string{"_edited", "biggestNumber"},
+			expected:    0,
+		},
+		{
+			name:        "multiple empty strings - first one wins",
+			value:       "photo.jpg",
+			promoteList: []string{"_edited", "", "_crop", ""},
+			expected:    1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getPromoteIndex(tt.value, tt.promoteList)
+			assert.Equal(t, tt.expected, result, "getPromoteIndex(%q, %v) should return %d", tt.value, tt.promoteList, tt.expected)
+		})
+	}
+}
+
+func TestIsSequencePattern(t *testing.T) {
+	tests := []struct {
+		name        string
+		promoteList []string
+		expected    bool
+	}{
+		{
+			name:        "empty list",
+			promoteList: []string{},
+			expected:    false,
+		},
+		{
+			name:        "single item",
+			promoteList: []string{"0001"},
+			expected:    false,
+		},
+		{
+			name:        "sequential numbers",
+			promoteList: []string{"0001", "0002", "0003"},
+			expected:    true,
+		},
+		{
+			name:        "sequential with prefix",
+			promoteList: []string{"img1", "img2", "img3"},
+			expected:    true,
+		},
+		{
+			name:        "sequential with suffix",
+			promoteList: []string{"1_edit", "2_edit", "3_edit"},
+			expected:    true,
+		},
+		{
+			name:        "sequential with prefix and suffix",
+			promoteList: []string{"IMG_001.jpg", "IMG_002.jpg", "IMG_003.jpg"},
+			expected:    true,
+		},
+		{
+			name:        "non-sequential numbers",
+			promoteList: []string{"0001", "0003", "0002"},
+			expected:    true, // After sorting, it becomes sequential
+		},
+		{
+			name:        "non-numeric items",
+			promoteList: []string{"abc", "def", "ghi"},
+			expected:    false,
+		},
+		{
+			name:        "mixed numeric and non-numeric",
+			promoteList: []string{"img1", "abc", "img3"},
+			expected:    false,
+		},
+		{
+			name:        "different prefixes",
+			promoteList: []string{"img1", "photo2", "img3"},
+			expected:    false,
+		},
+		{
+			name:        "different suffixes",
+			promoteList: []string{"1.jpg", "2.png", "3.jpg"},
+			expected:    false,
+		},
+		{
+			name:        "biggestNumber keyword skipped",
+			promoteList: []string{"0001", "biggestNumber", "0002"},
+			expected:    true,
+		},
+		{
+			name:        "only biggestNumber",
+			promoteList: []string{"biggestNumber"},
+			expected:    false,
+		},
+		{
+			name:        "duplicate numbers",
+			promoteList: []string{"001", "001", "002"},
+			expected:    false, // Same number appears twice
+		},
+		{
+			name:        "large gap in sequence",
+			promoteList: []string{"0001", "0100"},
+			expected:    true, // Gaps are allowed
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isSequencePattern(tt.promoteList)
+			assert.Equal(t, tt.expected, result, "isSequencePattern(%v) should return %v", tt.promoteList, tt.expected)
+		})
+	}
+}
+
+func TestExtractSequencePattern(t *testing.T) {
+	tests := []struct {
+		name           string
+		keyword        string
+		expectedPrefix string
+		expectedDigits int
+	}{
+		{
+			name:           "plain sequence keyword",
+			keyword:        "sequence",
+			expectedPrefix: "",
+			expectedDigits: 0,
+		},
+		{
+			name:           "sequence with digit count",
+			keyword:        "sequence:4",
+			expectedPrefix: "",
+			expectedDigits: 4,
+		},
+		{
+			name:           "sequence with prefix",
+			keyword:        "sequence:IMG_",
+			expectedPrefix: "IMG_",
+			expectedDigits: 0,
+		},
+		{
+			name:           "sequence with complex prefix",
+			keyword:        "sequence:PXL_20250731_",
+			expectedPrefix: "PXL_20250731_",
+			expectedDigits: 0,
+		},
+		{
+			name:           "not a sequence keyword",
+			keyword:        "other",
+			expectedPrefix: "",
+			expectedDigits: 0,
+		},
+		{
+			name:           "empty string",
+			keyword:        "",
+			expectedPrefix: "",
+			expectedDigits: 0,
+		},
+		{
+			name:           "sequence with zero",
+			keyword:        "sequence:0",
+			expectedPrefix: "",
+			expectedDigits: 0,
+		},
+		{
+			name:           "sequence with large number",
+			keyword:        "sequence:10",
+			expectedPrefix: "",
+			expectedDigits: 10,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prefix, digits := extractSequencePattern(tt.keyword)
+			assert.Equal(t, tt.expectedPrefix, prefix, "extractSequencePattern(%q) prefix should be %q", tt.keyword, tt.expectedPrefix)
+			assert.Equal(t, tt.expectedDigits, digits, "extractSequencePattern(%q) digits should be %d", tt.keyword, tt.expectedDigits)
+		})
+	}
+}

@@ -211,3 +211,86 @@ func TestPerformSlidingWindowGrouping(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAssetTimeField(t *testing.T) {
+	asset := utils.TAsset{
+		ID:             "test-asset",
+		FileCreatedAt:  "2024-01-15T10:30:00Z",
+		FileModifiedAt: "2024-01-15T11:00:00Z",
+		LocalDateTime:  "2024-01-15T10:30:00",
+		UpdatedAt:      "2024-01-15T12:00:00Z",
+	}
+
+	tests := []struct {
+		name     string
+		key      string
+		expected string
+	}{
+		{
+			name:     "fileCreatedAt",
+			key:      "fileCreatedAt",
+			expected: "2024-01-15T10:30:00Z",
+		},
+		{
+			name:     "fileModifiedAt",
+			key:      "fileModifiedAt",
+			expected: "2024-01-15T11:00:00Z",
+		},
+		{
+			name:     "localDateTime",
+			key:      "localDateTime",
+			expected: "2024-01-15T10:30:00",
+		},
+		{
+			name:     "updatedAt",
+			key:      "updatedAt",
+			expected: "2024-01-15T12:00:00Z",
+		},
+		{
+			name:     "unknown key returns empty",
+			key:      "unknownField",
+			expected: "",
+		},
+		{
+			name:     "empty key returns empty",
+			key:      "",
+			expected: "",
+		},
+		{
+			name:     "invalid key returns empty",
+			key:      "createdAt",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getAssetTimeField(asset, tt.key)
+			if result != tt.expected {
+				t.Errorf("getAssetTimeField(%q) = %q, want %q", tt.key, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetAssetTimeFieldWithEmptyAsset(t *testing.T) {
+	emptyAsset := utils.TAsset{}
+
+	tests := []struct {
+		key string
+	}{
+		{"fileCreatedAt"},
+		{"fileModifiedAt"},
+		{"localDateTime"},
+		{"updatedAt"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.key, func(t *testing.T) {
+			result := getAssetTimeField(emptyAsset, tt.key)
+			if result != "" {
+				t.Errorf("getAssetTimeField on empty asset for %q = %q, want empty string", tt.key, result)
+			}
+		})
+	}
+}
