@@ -174,7 +174,7 @@ func runStacker(cmd *cobra.Command, args []string) {
 			if i > 0 {
 				logger.Infof("\n")
 			}
-			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, logger)
+			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, filterAlbumIDs, filterTakenAfter, filterTakenBefore, logger)
 			if client == nil {
 				logger.Errorf("Invalid client for API key: %s", key)
 				continue
@@ -342,7 +342,7 @@ func runCronLoopForAllUsers(apiKeys []string, apiURL string, logger *logrus.Logg
 			if i > 0 {
 				logger.Infof("\n")
 			}
-			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, logger)
+			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, filterAlbumIDs, filterTakenAfter, filterTakenBefore, logger)
 			if client == nil {
 				logger.Errorf("Invalid client for API key: %s", key)
 				continue

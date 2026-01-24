@@ -32,6 +32,9 @@ func bindFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "", "Log level: debug, info, warn, error (or set LOG_LEVEL env var)")
 	rootCmd.PersistentFlags().StringVar(&logFormat, "log-format", "", "Log format: text, json (or set LOG_FORMAT env var)")
 	rootCmd.PersistentFlags().BoolVar(&removeSingleAssetStacks, "remove-single-asset-stacks", false, "Remove stacks with only one asset (or set REMOVE_SINGLE_ASSET_STACKS=true)")
+	rootCmd.PersistentFlags().StringSliceVar(&filterAlbumIDs, "filter-album-ids", nil, "Filter by album IDs, comma-separated (or set FILTER_ALBUM_IDS env var)")
+	rootCmd.PersistentFlags().StringVar(&filterTakenAfter, "filter-taken-after", "", "Filter assets taken after date, ISO 8601 (or set FILTER_TAKEN_AFTER env var)")
+	rootCmd.PersistentFlags().StringVar(&filterTakenBefore, "filter-taken-before", "", "Filter assets taken before date, ISO 8601 (or set FILTER_TAKEN_BEFORE env var)")
 }
 
 /**************************************************************************************************
