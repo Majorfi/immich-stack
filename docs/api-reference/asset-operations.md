@@ -130,19 +130,20 @@ All operations handle the following error cases:
    - Use appropriate error handling strategies
    - Log errors for debugging
 
-2. **Context Usage**
+1. **Context Usage**
 
    - Pass context through all operations
    - Use context for cancellation
    - Set appropriate timeouts
 
-3. **Asset Filtering**
+1. **Asset Filtering**
 
    - Use appropriate filters
    - Handle pagination properly
    - Consider performance implications
 
-4. **Asset Updates**
+1. **Asset Updates**
+
    - Validate changes before updating
    - Handle conflicts gracefully
    - Maintain data consistency

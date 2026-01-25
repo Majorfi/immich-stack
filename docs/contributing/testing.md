@@ -35,10 +35,10 @@ go tool cover -html=coverage.out
 When writing new tests:
 
 1. Use table-driven tests for similar test cases
-2. Test both success and failure scenarios
-3. Include edge cases
-4. Mock external dependencies
-5. Use descriptive test names
+1. Test both success and failure scenarios
+1. Include edge cases
+1. Mock external dependencies
+1. Use descriptive test names
 
 Example test structure:
 

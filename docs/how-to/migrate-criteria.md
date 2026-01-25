@@ -18,10 +18,10 @@ You might need to migrate criteria when:
 ### Core Safety Rules
 
 1. **Always use dry-run first**: Preview changes before applying
-2. **Backup your database**: Immich database before major migrations
-3. **Test with small subset**: Verify logic on small sample first
-4. **Document old configuration**: Save current criteria before changing
-5. **Monitor first run**: Watch logs closely for unexpected behavior
+1. **Backup your database**: Immich database before major migrations
+1. **Test with small subset**: Verify logic on small sample first
+1. **Document old configuration**: Save current criteria before changing
+1. **Monitor first run**: Watch logs closely for unexpected behavior
 
 ### Migration Strategies
 
@@ -68,7 +68,7 @@ Before starting any migration:
    echo "PARENT_FILENAME_PROMOTE=$PARENT_FILENAME_PROMOTE" >> old-criteria.env
    ```
 
-2. **Test new configuration with dry-run**:
+1. **Test new configuration with dry-run**:
 
    ```sh
    CRITERIA='[{"key":"originalFileName","split":{"delimiters":["."],"index":0}},{"key":"localDateTime","delta":{"milliseconds":2000}}]'
@@ -77,13 +77,13 @@ Before starting any migration:
    ./immich-stack
    ```
 
-3. **Review dry-run output**:
+1. **Review dry-run output**:
 
    - Check number of stacks that would be created
    - Verify parent selection looks correct
    - Ensure grouping logic is as expected
 
-4. **Execute clean slate migration**:
+1. **Execute clean slate migration**:
 
    ```sh
    RUN_MODE=once
@@ -94,7 +94,8 @@ Before starting any migration:
    ./immich-stack
    ```
 
-5. **Verify results**:
+1. **Verify results**:
+
    ```sh
    LOG_LEVEL=info
    ./immich-stack
@@ -147,7 +148,7 @@ CRITERIA='{"mode":"advanced","expression":{"operator":"AND","children":[{"criter
    echo "CRITERIA='$CRITERIA'" > old-criteria.env
    ```
 
-2. **Update criteria and enable replace mode**:
+1. **Update criteria and enable replace mode**:
 
    ```sh
    REPLACE_STACKS=true
@@ -156,12 +157,12 @@ CRITERIA='{"mode":"advanced","expression":{"operator":"AND","children":[{"criter
    ./immich-stack
    ```
 
-3. **Review which stacks will be replaced**:
+1. **Review which stacks will be replaced**:
 
    - Logs will show "Deleted Stack ... - replacing child stack with new one"
    - Count how many stacks will be affected
 
-4. **Execute replacement**:
+1. **Execute replacement**:
 
    ```sh
    REPLACE_STACKS=true
@@ -170,7 +171,7 @@ CRITERIA='{"mode":"advanced","expression":{"operator":"AND","children":[{"criter
    ./immich-stack
    ```
 
-5. **Monitor logs for unexpected replacements**
+1. **Monitor logs for unexpected replacements**
 
 ### Example: Adjusting Time Delta
 
@@ -219,7 +220,7 @@ CRITERIA='[{"key":"localDateTime","delta":{"milliseconds":2000}}]' \
    REPLACE_STACKS=false
    ```
 
-2. **Add new criteria**:
+1. **Add new criteria**:
 
    ```sh
    CRITERIA='[new criteria including previous logic]'
@@ -227,12 +228,13 @@ CRITERIA='[{"key":"localDateTime","delta":{"milliseconds":2000}}]' \
    ./immich-stack
    ```
 
-3. **Verify only new stacks are created**:
+1. **Verify only new stacks are created**:
 
    - Check logs for "Stack created" (not "replacing")
    - Verify existing stacks are skipped
 
-4. **Execute addition**:
+1. **Execute addition**:
+
    ```sh
    REPLACE_STACKS=false
    CRITERIA='[new criteria]'
@@ -402,14 +404,15 @@ If migration fails or produces unexpected results:
    docker stop immich-stack
    ```
 
-2. **Restore database backup**:
+1. **Restore database backup**:
 
    ```sh
    # Restore Immich database from backup
    # (Process varies by setup - consult Immich docs)
    ```
 
-3. **Revert to old configuration**:
+1. **Revert to old configuration**:
+
    ```sh
    source old-criteria.env
    ./immich-stack
@@ -423,9 +426,9 @@ If only some stacks are problematic:
 
    - Use Immich UI to find incorrectly stacked photos
 
-2. **Manually unstack in Immich UI**
+1. **Manually unstack in Immich UI**
 
-3. **Re-run with corrected criteria**:
+1. **Re-run with corrected criteria**:
 
    ```sh
    REPLACE_STACKS=true
@@ -436,13 +439,13 @@ If only some stacks are problematic:
 ## Migration Best Practices
 
 1. **Always Test First**: Use `DRY_RUN=true` before any migration
-2. **Backup Before Changing**: Database backups are essential
-3. **Start Small**: Test criteria on small subset first
-4. **Monitor Closely**: Watch logs during first real run
-5. **Validate Results**: Check sample stacks in UI after migration
-6. **Document Changes**: Keep log of what changed and why
-7. **Schedule Wisely**: Migrate during low-usage periods
-8. **Have Rollback Plan**: Know how to revert if needed
+1. **Backup Before Changing**: Database backups are essential
+1. **Start Small**: Test criteria on small subset first
+1. **Monitor Closely**: Watch logs during first real run
+1. **Validate Results**: Check sample stacks in UI after migration
+1. **Document Changes**: Keep log of what changed and why
+1. **Schedule Wisely**: Migrate during low-usage periods
+1. **Have Rollback Plan**: Know how to revert if needed
 
 ## Common Migration Mistakes
 
@@ -581,8 +584,8 @@ PARENT_FILENAME_PROMOTE=new,rules,here \
 If you encounter issues during migration:
 
 1. Collect full logs with `LOG_LEVEL=debug`
-2. Document old and new configurations
-3. Describe expected vs actual behavior
-4. Check if dry-run showed different results
-5. Verify database state via Immich API or UI
-6. Open issue on GitHub with details
+1. Document old and new configurations
+1. Describe expected vs actual behavior
+1. Check if dry-run showed different results
+1. Verify database state via Immich API or UI
+1. Open issue on GitHub with details

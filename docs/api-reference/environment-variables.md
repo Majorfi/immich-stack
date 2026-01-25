@@ -308,7 +308,7 @@ Most powerful format supporting unlimited nested logical expressions with AND, O
 
 This example groups assets that:
 
-- Have filenames starting with "PXL*" OR "IMG*"
+- Have filenames starting with "PXL\*" OR "IMG\*"
 - AND are NOT archived
 - AND were taken within 2 seconds of each other
 
@@ -331,7 +331,7 @@ When `LOG_FILE` is set, logs are written to both stdout (visible in `docker logs
 To enable file logging with Docker:
 
 1. Set the `LOG_FILE` environment variable to a path inside the container
-2. Mount a host directory to persist logs
+1. Mount a host directory to persist logs
 
 Example Docker Compose configuration:
 
@@ -471,19 +471,20 @@ FILTER_TAKEN_AFTER=2024-06-01T00:00:00Z
    - Use environment-specific .env files
    - Rotate API keys regularly
 
-2. **Configuration**
+1. **Configuration**
 
    - Use specific versions in production
    - Document all custom configurations
    - Test changes in development first
 
-3. **Monitoring**
+1. **Monitoring**
 
    - Enable debug logging when needed
    - Monitor cron job execution
    - Check stack operation results
 
-4. **Maintenance**
+1. **Maintenance**
+
    - Review and update configurations regularly
    - Clean up old stacks periodically
    - Monitor API usage and limits

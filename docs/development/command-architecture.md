@@ -217,10 +217,10 @@ logger.Error("Error occurred: %v", err)
 ### Potential Enhancements
 
 1. **Interactive Mode**: Add interactive prompts for configuration
-2. **Config Files**: Support for configuration files
-3. **Plugin System**: Allow external command plugins
-4. **Parallel Processing**: Process multiple users concurrently
-5. **Progress Indicators**: Add progress bars for long operations
+1. **Config Files**: Support for configuration files
+1. **Plugin System**: Allow external command plugins
+1. **Parallel Processing**: Process multiple users concurrently
+1. **Progress Indicators**: Add progress bars for long operations
 
 ### Command Ideas
 

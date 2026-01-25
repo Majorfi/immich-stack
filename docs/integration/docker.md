@@ -30,7 +30,8 @@ Immich Stack is available from two container registries:
    docker pull majorfi/immich-stack:latest
    ```
 
-2. **GitHub Container Registry**:
+1. **GitHub Container Registry**:
+
    ```bash
    docker pull ghcr.io/majorfi/immich-stack:latest
    ```
@@ -105,13 +106,14 @@ To enable persistent file logging:
    LOG_FILE=/app/logs/immich-stack.log
    ```
 
-2. Mount the logs volume:
+1. Mount the logs volume:
 
    ```bash
    -v ./logs:/app/logs
    ```
 
-3. Logs will be written to both:
+1. Logs will be written to both:
+
    - Container stdout (viewable with `docker logs`)
    - The file `./logs/immich-stack.log` on your host
 
@@ -167,17 +169,18 @@ docker run -d \
    - Use specific versions in production
    - Test new versions before updating
 
-2. **Resource Limits:**
+1. **Resource Limits:**
 
    - Set memory limits for large libraries
    - Monitor container resource usage
 
-3. **Backup:**
+1. **Backup:**
 
    - Backup your `.env` file
    - Consider backing up logs
 
-4. **Security:**
+1. **Security:**
+
    - Use Docker secrets for sensitive data
    - Restrict container capabilities
    - Use non-root user

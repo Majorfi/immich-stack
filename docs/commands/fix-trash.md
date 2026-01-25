@@ -9,16 +9,16 @@ When you delete a photo in Immich that's part of a stack (e.g., one photo from a
 This command:
 
 1. Scans your trash for deleted assets
-2. Identifies which active assets would stack with the trashed ones
-3. Moves those related assets to trash to maintain consistency
+1. Identifies which active assets would stack with the trashed ones
+1. Moves those related assets to trash to maintain consistency
 
 ## How It Works
 
 The command uses the same stacking criteria as the main stacking command. For each trashed asset:
 
 1. It combines the trashed asset with all active assets
-2. Runs the stacking algorithm to find matches
-3. Any active assets that would group with the trashed asset are marked for deletion
+1. Runs the stacking algorithm to find matches
+1. Any active assets that would group with the trashed asset are marked for deletion
 
 ## Usage
 
@@ -135,16 +135,16 @@ Add to a cron job for automatic cleanup:
 ## Important Notes
 
 1. **Uses Stacking Criteria**: The command uses the same criteria as the main stacking command
-2. **Irreversible**: Moving assets to trash cannot be undone through this tool
-3. **Performance**: For large libraries, analysis may take several minutes
-4. **Safety First**: Always use `--dry-run` first to preview changes
+1. **Irreversible**: Moving assets to trash cannot be undone through this tool
+1. **Performance**: For large libraries, analysis may take several minutes
+1. **Safety First**: Always use `--dry-run` first to preview changes
 
 ## Best Practices
 
 1. **Test with Dry Run**: Always run with `--dry-run` first
-2. **Review Debug Output**: Use `--log-level debug` to understand matching logic
-3. **Backup Important Data**: Ensure you have backups before running
-4. **Regular Maintenance**: Run periodically to maintain library consistency
+1. **Review Debug Output**: Use `--log-level debug` to understand matching logic
+1. **Backup Important Data**: Ensure you have backups before running
+1. **Regular Maintenance**: Run periodically to maintain library consistency
 
 ## Common Scenarios
 

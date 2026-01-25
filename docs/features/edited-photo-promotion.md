@@ -50,8 +50,8 @@ PARENT_FILENAME_PROMOTE=biggestNumber
 The `biggestNumber` keyword tells the stacker to:
 
 1. Split filenames by delimiters (default: `~` and `.`)
-2. Look for numeric suffixes in the last part
-3. Promote files with higher numbers first
+1. Look for numeric suffixes in the last part
+1. Promote files with higher numbers first
 
 ### Example Sorting
 
@@ -105,7 +105,7 @@ To verify your configuration is working:
 immich-stack --dry-run --parent-filename-promote=biggestNumber
 ```
 
-2. Check the logs for parent selection:
+1. Check the logs for parent selection:
 
 ```
 [INFO] Stack created with parent: PXL_20250823_193751711~2.jpg
@@ -116,8 +116,8 @@ immich-stack --dry-run --parent-filename-promote=biggestNumber
 ### Edited photos not being promoted?
 
 1. **Check your configuration**: Ensure `biggestNumber` is in your `PARENT_FILENAME_PROMOTE` list
-2. **Check delimiters**: The default delimiters are `~` and `.`. If your edited photos use different separators, you may need to adjust
-3. **Check for conflicts**: If you have other promote patterns that match before `biggestNumber`, they take priority
+1. **Check delimiters**: The default delimiters are `~` and `.`. If your edited photos use different separators, you may need to adjust
+1. **Check for conflicts**: If you have other promote patterns that match before `biggestNumber`, they take priority
 
 ### Want originals promoted instead?
 

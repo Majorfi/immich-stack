@@ -18,11 +18,11 @@ This guide helps you resolve common issues with Immich Stack.
    ```sh
    API_URL=http://immich-server:2283/api
    ```
-2. Check API key validity
+1. Check API key validity
    ```sh
    API_KEY=your_valid_api_key
    ```
-3. Ensure network connectivity
+1. Ensure network connectivity
    ```sh
    curl -I http://immich-server:2283/api
    ```
@@ -41,11 +41,11 @@ This guide helps you resolve common issues with Immich Stack.
    ```sh
    DRY_RUN=true
    ```
-2. Check stack criteria
+1. Check stack criteria
    ```sh
    CRITERIA='[{"key":"originalFileName","split":{"delimiters":["~","."],"index":0}}]'
    ```
-3. Verify asset data
+1. Verify asset data
    ```sh
    WITH_ARCHIVED=true
    WITH_DELETED=false
@@ -65,12 +65,12 @@ This guide helps you resolve common issues with Immich Stack.
    ```sh
    CRITERIA='[{"key":"localDateTime","delta":{"milliseconds":1000}}]'
    ```
-2. Check parent selection
+1. Check parent selection
    ```sh
    PARENT_FILENAME_PROMOTE=edit,raw
    PARENT_EXT_PROMOTE=.jpg,.dng
    ```
-3. Enable debug logging
+1. Enable debug logging
    ```sh
    LOG_LEVEL=debug
    ```
@@ -115,9 +115,9 @@ for _, asset := range stack.Assets {
 If you experienced this issue, update to the latest version and verify:
 
 1. Check logs no longer show same asset IDs repeatedly
-2. Stack count should increase steadily across runs
-3. Queue positions should progress sequentially
-4. "Success! Stack created" should only appear for genuinely new stacks
+1. Stack count should increase steadily across runs
+1. Queue positions should progress sequentially
+1. "Success! Stack created" should only appear for genuinely new stacks
 
 **Affected Users:**
 
@@ -156,7 +156,7 @@ If you experienced this issue, update to the latest version and verify:
    PARENT_FILENAME_PROMOTE=sequence:IMG_
    ```
 
-2. Use comma-separated numeric sequences for burst photos (Legacy)
+1. Use comma-separated numeric sequences for burst photos (Legacy)
 
    ```sh
    PARENT_FILENAME_PROMOTE=0000,0001,0002,0003
@@ -164,7 +164,7 @@ If you experienced this issue, update to the latest version and verify:
 
    The system will automatically detect this as a sequence and order photos correctly.
 
-3. The sequence detection works with various patterns:
+1. The sequence detection works with various patterns:
 
    ```sh
    # Pure numbers
@@ -177,11 +177,12 @@ If you experienced this issue, update to the latest version and verify:
    PARENT_FILENAME_PROMOTE=1a,2a,3a
    ```
 
-4. Files with numbers beyond your promote list are handled automatically:
+1. Files with numbers beyond your promote list are handled automatically:
 
    - If you specify `0000,0001,0002,0003` but have files up to `0999`, they will be sorted correctly at position 999
 
-5. Understanding `sequence:X` behavior:
+1. Understanding `sequence:X` behavior:
+
    - `sequence` - Matches any numeric sequence (1, 2, 10, 100, etc.)
    - `sequence:4` - Matches ONLY 4-digit numbers (0001, 0002, not 1, 10, 100)
    - `sequence:IMG_` - Matches only files with IMG\_ prefix followed by numbers
@@ -223,13 +224,13 @@ CONFIRM_RESET_STACK="I acknowledge all my current stacks will be deleted and new
    DRY_RUN=false
    ```
 
-2. Remove single-asset stacks (cleanup):
+1. Remove single-asset stacks (cleanup):
 
    ```sh
    REMOVE_SINGLE_ASSET_STACKS=true
    ```
 
-3. Process incrementally with filters:
+1. Process incrementally with filters:
 
    ```sh
    WITH_ARCHIVED=false
@@ -246,16 +247,17 @@ CONFIRM_RESET_STACK="I acknowledge all my current stacks will be deleted and new
    LOG_LEVEL=debug
    ```
 
-2. Review the logs carefully to verify expected behavior
+1. Review the logs carefully to verify expected behavior
 
-3. Execute the actual operation:
+1. Execute the actual operation:
 
    ```sh
    DRY_RUN=false
    REPLACE_STACKS=true
    ```
 
-4. Monitor logs for errors:
+1. Monitor logs for errors:
+
    ```sh
    docker logs -f immich-stack
    ```
@@ -265,8 +267,8 @@ CONFIRM_RESET_STACK="I acknowledge all my current stacks will be deleted and new
 If you need to revert to a previous state:
 
 1. Use Immich database backups (if available)
-2. Run complete reset with previous criteria configuration
-3. Manually adjust stacks via Immich UI for specific cases
+1. Run complete reset with previous criteria configuration
+1. Manually adjust stacks via Immich UI for specific cases
 
 ### Cron Mode Issues
 
@@ -282,11 +284,11 @@ If you need to revert to a previous state:
    ```sh
    RUN_MODE=cron
    ```
-2. Check interval setting
+1. Check interval setting
    ```sh
    CRON_INTERVAL=3600
    ```
-3. Monitor logs
+1. Monitor logs
    ```sh
    LOG_LEVEL=debug
    LOG_FORMAT=json
@@ -319,13 +321,14 @@ docker logs -f immich-stack
    DRY_RUN=true
    ```
 
-2. Test with minimal criteria
+1. Test with minimal criteria
 
    ```sh
    CRITERIA='[{"key":"originalFileName"}]'
    ```
 
-3. Verify API connection
+1. Verify API connection
+
    ```sh
    curl -I $API_URL
    ```
@@ -337,16 +340,16 @@ docker logs -f immich-stack
 **Solutions:**
 
 1. Process fewer assets at once
-2. Use more specific criteria
-3. Enable pagination
+1. Use more specific criteria
+1. Enable pagination
 
 ### Slow Processing
 
 **Solutions:**
 
 1. Optimize criteria
-2. Use appropriate delta values
-3. Consider batch processing
+1. Use appropriate delta values
+1. Consider batch processing
 
 ## Best Practices
 
@@ -356,19 +359,20 @@ docker logs -f immich-stack
    - Test with small asset sets
    - Verify criteria before production
 
-2. **Monitoring**
+1. **Monitoring**
 
    - Enable debug logging
    - Monitor resource usage
    - Check operation results
 
-3. **Maintenance**
+1. **Maintenance**
 
    - Regular stack cleanup
    - API key rotation
    - Configuration review
 
-4. **Security**
+1. **Security**
+
    - Secure API keys
    - Regular updates
    - Access control

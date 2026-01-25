@@ -1,5 +1,9 @@
 pre-commit:
   commands:
+    mdformat:
+      glob: "docs/**/*.md"
+      run: mdformat --no-validate {staged_files}
+      stage_fixed: true
     prettier:
       run: prettier . --write
       stage_fixed: true

@@ -7,11 +7,11 @@ This guide helps you troubleshoot and debug parent selection problems when stack
 Parent selection determines which asset becomes the visible representative of a stack. The selection follows a strict precedence order:
 
 1. **PARENT_FILENAME_PROMOTE list order** (left to right)
-2. **PARENT_EXT_PROMOTE list order** (left to right)
-3. **Built-in extension rank** (`.jpeg` > `.jpg` > `.png` > others)
-4. **Alphabetical order** (case-insensitive)
-5. **Local date/time** (earliest first)
-6. **Asset ID** (lexicographic order)
+1. **PARENT_EXT_PROMOTE list order** (left to right)
+1. **Built-in extension rank** (`.jpeg` > `.jpg` > `.png` > others)
+1. **Alphabetical order** (case-insensitive)
+1. **Local date/time** (earliest first)
+1. **Asset ID** (lexicographic order)
 
 ## Common Parent Selection Problems
 
@@ -28,14 +28,15 @@ Parent selection determines which asset becomes the visible representative of a 
    DRY_RUN=true
    ```
 
-2. Check your promotion rules:
+1. Check your promotion rules:
 
    ```sh
    PARENT_FILENAME_PROMOTE=edit,raw,original
    PARENT_EXT_PROMOTE=.jpg,.dng
    ```
 
-3. Review the logs for parent selection details:
+1. Review the logs for parent selection details:
+
    ```
    level=debug msg="Parent candidate" filename=IMG_1234_edited.jpg rank=1
    level=debug msg="Parent candidate" filename=IMG_1234.jpg rank=2
@@ -66,14 +67,14 @@ Parent selection determines which asset becomes the visible representative of a 
    PARENT_EXT_PROMOTE=.jpg,.dng
    ```
 
-2. Run with same configuration multiple times:
+1. Run with same configuration multiple times:
 
    ```sh
    DRY_RUN=true
    LOG_LEVEL=debug
    ```
 
-3. Compare parent selections across runs
+1. Compare parent selections across runs
 
 **Solutions**:
 
@@ -97,7 +98,8 @@ Parent selection determines which asset becomes the visible representative of a 
    PARENT_FILENAME_PROMOTE=sequence
    ```
 
-2. Verify sequence detection:
+1. Verify sequence detection:
+
    ```sh
    LOG_LEVEL=debug
    DRY_RUN=true
@@ -122,13 +124,14 @@ Parent selection determines which asset becomes the visible representative of a 
    PARENT_EXT_PROMOTE=.jpg,.jpeg
    ```
 
-2. Check filename patterns in logs:
+1. Check filename patterns in logs:
 
    ```sh
    LOG_LEVEL=debug
    ```
 
-3. Verify edited files actually contain the promotion substring:
+1. Verify edited files actually contain the promotion substring:
+
    ```
    IMG_1234.jpg        # Does NOT contain "edit"
    IMG_1234_edit.jpg   # Contains "edit" ✓
@@ -155,7 +158,7 @@ Test parent selection for a specific group of files:
    LOG_LEVEL=debug
    ```
 
-2. Review detailed logs for only this file group
+1. Review detailed logs for only this file group
 
 ### Technique 2: Test Promotion Rules
 
@@ -191,7 +194,7 @@ done
    Actual: IMG_1234.jpg (rank 3: alphabetical)
    ```
 
-2. Trace through precedence rules to identify where expectations diverge
+1. Trace through precedence rules to identify where expectations diverge
 
 ### Technique 4: Use Dry-Run with Verbose Logging
 
@@ -316,19 +319,19 @@ When debugging parent selection:
 ## Best Practices
 
 1. **Start Simple**: Test with basic promotion rules first
-2. **Use Dry-Run**: Always test with `DRY_RUN=true` before production
-3. **Enable Debug Logs**: Use `LOG_LEVEL=debug` for detailed insights
-4. **Document Expected Behavior**: Write down what you expect before running
-5. **Test Incrementally**: Add one promotion rule at a time
-6. **Use Sequence Keyword**: Prefer `sequence` over comma-separated numbers
-7. **Verify Configuration Loading**: Check that env vars or CLI flags are applied
+1. **Use Dry-Run**: Always test with `DRY_RUN=true` before production
+1. **Enable Debug Logs**: Use `LOG_LEVEL=debug` for detailed insights
+1. **Document Expected Behavior**: Write down what you expect before running
+1. **Test Incrementally**: Add one promotion rule at a time
+1. **Use Sequence Keyword**: Prefer `sequence` over comma-separated numbers
+1. **Verify Configuration Loading**: Check that env vars or CLI flags are applied
 
 ## Getting Help
 
 If you're still having parent selection issues:
 
 1. Collect debug logs with `LOG_LEVEL=debug`
-2. Document your configuration (CRITERIA, PARENT_FILENAME_PROMOTE, etc.)
-3. Provide example filenames and expected vs actual parents
-4. Include relevant log excerpts showing parent selection
-5. Open an issue on GitHub with this information
+1. Document your configuration (CRITERIA, PARENT_FILENAME_PROMOTE, etc.)
+1. Provide example filenames and expected vs actual parents
+1. Include relevant log excerpts showing parent selection
+1. Open an issue on GitHub with this information

@@ -114,9 +114,9 @@ immich-stack duplicates --api-key your_key --with-archived --with-deleted
 ## Important Notes
 
 1. **Read-Only Operation**: This command only reports duplicates; it does not delete or modify any assets
-2. **Exact Matching**: Only assets with identical filename AND timestamp are considered duplicates
-3. **Performance**: For large libraries, this command may take several minutes to complete
-4. **Stack-Aware**: The command fetches stack information but duplicates are detected independently of stack membership
+1. **Exact Matching**: Only assets with identical filename AND timestamp are considered duplicates
+1. **Performance**: For large libraries, this command may take several minutes to complete
+1. **Stack-Aware**: The command fetches stack information but duplicates are detected independently of stack membership
 
 ## See Also
 

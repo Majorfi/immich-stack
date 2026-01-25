@@ -19,7 +19,8 @@ Immich Stack supports two run modes:
    - Good for manual runs or scheduled tasks
    - Use: `RUN_MODE=once`
 
-2. **Cron Mode**
+1. **Cron Mode**
+
    - Runs periodically
    - Good for continuous operation
    - Use: `RUN_MODE=cron`
@@ -48,10 +49,12 @@ Control which files become stack parents using:
 
    Files containing these substrings will be promoted
 
-2. **Extension Promotion:**
+1. **Extension Promotion:**
+
    ```sh
    PARENT_EXT_PROMOTE=.jpg,.dng
    ```
+
    Files with these extensions will be promoted
 
 ### Stack Operations
@@ -64,7 +67,7 @@ Control which files become stack parents using:
 
    Simulates actions without making changes
 
-2. **Reset Stacks:**
+1. **Reset Stacks:**
 
 ```sh
 RESET_STACKS=true
@@ -73,7 +76,7 @@ CONFIRM_RESET_STACK="I acknowledge all my current stacks will be deleted and new
 
 Deletes all existing stacks before processing. This requires `RUN_MODE=once`; using it in `cron` mode results in an error. The confirmation text must match exactly as shown above.
 
-3. **Replace Stacks:**
+1. **Replace Stacks:**
    ```sh
    REPLACE_STACKS=true
    ```

@@ -82,9 +82,9 @@ See [CLI Usage](../api-reference/cli-usage.md) for complete flag documentation.
 ## Best Practices
 
 1. **Always use dry-run first** - Preview changes before applying them
-2. **Regular maintenance** - Run commands periodically to keep library organized
-3. **Check duplicates before stacking** - Avoid creating stacks with duplicate assets
-4. **Fix trash after deletions** - Maintain consistency when deleting stacked photos
+1. **Regular maintenance** - Run commands periodically to keep library organized
+1. **Check duplicates before stacking** - Avoid creating stacks with duplicate assets
+1. **Fix trash after deletions** - Maintain consistency when deleting stacked photos
 
 ## See Also
 

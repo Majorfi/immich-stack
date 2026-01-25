@@ -20,9 +20,9 @@ Immich Stack is a stateless CLI application that synchronizes photo stacks betwe
 ### Core Components
 
 1. **Command Layer** (`cmd/`): CLI interface and command orchestration
-2. **Stacker Logic** (`pkg/stacker/`): Grouping algorithm and parent selection
-3. **API Client** (`pkg/immich/`): HTTP client with retry logic and error handling
-4. **Utilities** (`pkg/utils/`): Shared types, logging, and helpers
+1. **Stacker Logic** (`pkg/stacker/`): Grouping algorithm and parent selection
+1. **API Client** (`pkg/immich/`): HTTP client with retry logic and error handling
+1. **Utilities** (`pkg/utils/`): Shared types, logging, and helpers
 
 ## State Management
 
@@ -149,9 +149,9 @@ func (c *Client) ModifyStack(assetIDs []string) error {
 ### Dry-Run Guarantees
 
 1. **No API Writes**: Only GET requests executed, no PUT/POST/DELETE
-2. **Full Simulation**: All grouping and comparison logic runs normally
-3. **Accurate Logging**: Shows exactly what would happen in real run
-4. **Safe Testing**: Can test dangerous operations (RESET_STACKS, REPLACE_STACKS)
+1. **Full Simulation**: All grouping and comparison logic runs normally
+1. **Accurate Logging**: Shows exactly what would happen in real run
+1. **Safe Testing**: Can test dangerous operations (RESET_STACKS, REPLACE_STACKS)
 
 ### Dry-Run Workflow
 
@@ -203,13 +203,14 @@ Errors are classified into three categories:
    - Server errors (5xx responses)
    - Rate limiting (429 responses)
 
-2. **Permanent Errors** (fail immediately):
+1. **Permanent Errors** (fail immediately):
 
    - Authentication failures (401, 403)
    - Invalid request format (400)
    - Resource not found (404)
 
-3. **Application Errors** (log and continue):
+1. **Application Errors** (log and continue):
+
    - Invalid asset data
    - Criteria parsing errors
    - Individual stack operation failures
@@ -240,9 +241,9 @@ Errors are classified into three categories:
 When errors occur during processing:
 
 1. **Individual Asset Failure**: Skip asset, continue with others
-2. **Stack Operation Failure**: Log error, continue with remaining stacks
-3. **API Client Failure**: Retry automatically, then fail entire run
-4. **Criteria Parsing Failure**: Fail fast (cannot proceed without valid criteria)
+1. **Stack Operation Failure**: Log error, continue with remaining stacks
+1. **API Client Failure**: Retry automatically, then fail entire run
+1. **Criteria Parsing Failure**: Fail fast (cannot proceed without valid criteria)
 
 ### Recovery Actions
 
@@ -348,9 +349,9 @@ time.Sleep(delay + jitter)
 When receiving 429 (Too Many Requests):
 
 1. Check `Retry-After` header if present
-2. Use exponential backoff if header absent
-3. Log rate limit event for monitoring
-4. Respect server's requested delay
+1. Use exponential backoff if header absent
+1. Log rate limit event for monitoring
+1. Respect server's requested delay
 
 ## Concurrency Handling
 
@@ -391,9 +392,9 @@ for _, key := range apiKeys {
 **Design Choice**: Sequential processing per user to:
 
 1. **Avoid API Rate Limits**: Concurrent requests could exceed limits
-2. **Maintain Clear Logs**: User-by-user logging is easier to follow
-3. **Prevent Resource Contention**: Single HTTP client per user
-4. **Ensure Isolation**: Errors in one user don't affect others
+1. **Maintain Clear Logs**: User-by-user logging is easier to follow
+1. **Prevent Resource Contention**: Single HTTP client per user
+1. **Ensure Isolation**: Errors in one user don't affect others
 
 ### Within-User Parallelism
 
@@ -526,7 +527,7 @@ Assets (unsorted) → Group By Criteria → Sort Within Groups → Stacks
    groups := make(map[string][]TAsset)
    ```
 
-2. **Iterate All Assets**:
+1. **Iterate All Assets**:
 
    ```go
    for _, asset := range assets {
@@ -535,7 +536,7 @@ Assets (unsorted) → Group By Criteria → Sort Within Groups → Stacks
    }
    ```
 
-3. **Compute Group Key**:
+1. **Compute Group Key**:
 
    ```go
    func computeGroupKey(asset TAsset, criteria []Criterion) string {
@@ -563,7 +564,7 @@ Assets (unsorted) → Group By Criteria → Sort Within Groups → Stacks
    })
    ```
 
-2. **Promotion Rule Precedence**:
+1. **Promotion Rule Precedence**:
 
    ```
    1. PARENT_FILENAME_PROMOTE list order (left to right)
@@ -574,7 +575,8 @@ Assets (unsorted) → Group By Criteria → Sort Within Groups → Stacks
    6. Asset ID (lexicographic)
    ```
 
-3. **First Asset Becomes Parent**:
+1. **First Asset Becomes Parent**:
+
    ```go
    parent := group[0]
    children := group[1:]
@@ -600,9 +602,9 @@ Assets (unsorted) → Group By Criteria → Sort Within Groups → Stacks
 ### Bottlenecks
 
 1. **Network I/O**: Fetching large asset lists from API
-2. **Regex Evaluation**: Complex patterns on every asset
-3. **JSON Marshaling**: Large payloads for stack operations
-4. **Memory**: Large libraries (100k+ assets) can consume 1-2GB
+1. **Regex Evaluation**: Complex patterns on every asset
+1. **JSON Marshaling**: Large payloads for stack operations
+1. **Memory**: Large libraries (100k+ assets) can consume 1-2GB
 
 ### Optimization Strategies
 
@@ -691,8 +693,8 @@ pkg/
 ### Test Categories
 
 1. **Unit Tests**: Test individual functions in isolation
-2. **Integration Tests**: Test component interactions
-3. **Mock Tests**: Test API client with mock HTTP server
+1. **Integration Tests**: Test component interactions
+1. **Mock Tests**: Test API client with mock HTTP server
 
 ### Testing Best Practices
 
@@ -730,10 +732,10 @@ pkg/
 ### Potential Improvements
 
 1. **Incremental Processing**: Track processed assets to skip on subsequent runs
-2. **Parallel API Calls**: Concurrent fetching/updating with proper throttling
-3. **Persistent Cache**: Cache asset metadata to reduce API calls
-4. **Batch Optimization**: Group stack operations into larger batches
-5. **Streaming Processing**: Process assets in streaming fashion for very large libraries
+1. **Parallel API Calls**: Concurrent fetching/updating with proper throttling
+1. **Persistent Cache**: Cache asset metadata to reduce API calls
+1. **Batch Optimization**: Group stack operations into larger batches
+1. **Streaming Processing**: Process assets in streaming fashion for very large libraries
 
 ### Scalability Limits
 

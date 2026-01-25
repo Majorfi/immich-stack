@@ -17,13 +17,14 @@ This guide helps you set up and contribute to Immich Stack development.
    cd immich-stack
    ```
 
-2. Install dependencies
+1. Install dependencies
 
    ```sh
    go mod download
    ```
 
-3. Create development environment
+1. Create development environment
+
    ```sh
    cp .env.example .env
    ```
@@ -94,13 +95,14 @@ docker run -it --rm \
    - Follow Go standard formatting
    - Use `gofmt` for consistency
 
-2. **Documentation**
+1. **Documentation**
 
    - Document all exported functions
    - Include examples where helpful
    - Follow Go doc conventions
 
-3. **Testing**
+1. **Testing**
+
    - Write unit tests
    - Use table-driven tests
    - Test edge cases
@@ -117,13 +119,14 @@ docker run -it --rm \
    }
    ```
 
-2. **Error Wrapping**
+1. **Error Wrapping**
 
    ```go
    return nil, fmt.Errorf("failed to create stack: %w", err)
    ```
 
-3. **Error Checking**
+1. **Error Checking**
+
    ```go
    if err != nil {
        return nil, err
@@ -138,19 +141,20 @@ docker run -it --rm \
    - Clone your fork
    - Create a feature branch
 
-2. **Development**
+1. **Development**
 
    - Write code
    - Add tests
    - Update documentation
 
-3. **Testing**
+1. **Testing**
 
    - Run all tests
    - Check formatting
    - Verify documentation
 
-4. **Pull Request**
+1. **Pull Request**
+
    - Push changes
    - Create pull request
    - Wait for review
@@ -163,19 +167,20 @@ docker run -it --rm \
    - Follow Go best practices
    - Use meaningful names
 
-2. **Testing**
+1. **Testing**
 
    - Write comprehensive tests
    - Test edge cases
    - Maintain test coverage
 
-3. **Documentation**
+1. **Documentation**
 
    - Keep docs up to date
    - Add examples
    - Document changes
 
-4. **Performance**
+1. **Performance**
+
    - Profile code
    - Optimize bottlenecks
    - Consider memory usage
@@ -188,13 +193,14 @@ docker run -it --rm \
    - Update version in code
    - Tag releases
 
-2. **Building**
+1. **Building**
 
    - Build for all platforms
    - Create Docker images
    - Sign releases
 
-3. **Deployment**
+1. **Deployment**
+
    - Push to registries
    - Update documentation
    - Announce release

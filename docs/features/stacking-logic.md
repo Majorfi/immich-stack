@@ -116,14 +116,14 @@ The system can detect various sequence patterns when using comma-separated numbe
 ## Stacking Process
 
 1. **Fetch all stacks and assets** from Immich
-2. **Determine grouping mode** based on `CRITERIA` configuration:
+1. **Determine grouping mode** based on `CRITERIA` configuration:
    - **Legacy Mode:** Apply simple AND logic to array of criteria
    - **Groups Mode:** Process each criteria group with configured AND/OR logic
    - **Expression Mode:** Recursively evaluate nested logical expressions
-3. **Group assets** into stacks using the selected mode and criteria
-4. **Sort each stack** to determine the parent and children using promotion rules
-5. **Apply changes** via the Immich API (create, update, or delete stacks as needed)
-6. **Log all actions** and optionally run in dry-run mode for safety
+1. **Group assets** into stacks using the selected mode and criteria
+1. **Sort each stack** to determine the parent and children using promotion rules
+1. **Apply changes** via the Immich API (create, update, or delete stacks as needed)
+1. **Log all actions** and optionally run in dry-run mode for safety
 
 ## Safe Operations
 
@@ -141,9 +141,9 @@ The stacker includes several safety features:
 When multiple promotion rules apply to different files in a group, the selection follows this strict precedence order:
 
 1. **PARENT_FILENAME_PROMOTE list order** (left to right)
-2. **PARENT_EXT_PROMOTE list order** (left to right)
-3. **Built-in extension rank** (`.jpeg` > `.jpg` > `.png` > others)
-4. **Alphabetical order** (case-insensitive)
+1. **PARENT_EXT_PROMOTE list order** (left to right)
+1. **Built-in extension rank** (`.jpeg` > `.jpg` > `.png` > others)
+1. **Alphabetical order** (case-insensitive)
 
 **Example with multiple matches**:
 
@@ -207,8 +207,8 @@ This will match files containing these exact Unicode strings.
 When two files have equal rank after all promotion rules, the final tie-breaker is:
 
 1. **Original filename** (alphabetically, case-insensitive)
-2. If filenames are identical: **Local date/time** (earliest first)
-3. If both are identical: **Asset ID** (lexicographic order)
+1. If filenames are identical: **Local date/time** (earliest first)
+1. If both are identical: **Asset ID** (lexicographic order)
 
 This ensures deterministic, reproducible parent selection across multiple runs.
 
@@ -282,8 +282,8 @@ This has 3 levels of nesting. Each additional level multiplies the evaluation co
 Memory usage scales with:
 
 1. **Asset count**: ~1KB per asset in memory
-2. **Criteria complexity**: Expression trees consume additional memory per evaluation
-3. **Stack size**: Larger stacks (more assets per group) increase memory overhead
+1. **Criteria complexity**: Expression trees consume additional memory per evaluation
+1. **Stack size**: Larger stacks (more assets per group) increase memory overhead
 
 **Guidelines**:
 

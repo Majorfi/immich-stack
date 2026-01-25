@@ -7,10 +7,10 @@ This guide helps you optimize stacking criteria for better performance, especial
 ### Key Performance Factors
 
 1. **Criteria Complexity**: More complex criteria = longer processing time
-2. **Library Size**: Linear scaling with asset count
-3. **Regex Patterns**: Complex regex can slow processing significantly
-4. **Time Deltas**: Smaller deltas = more groups = more processing
-5. **Expression Nesting**: Deep nesting multiplies evaluation cost
+1. **Library Size**: Linear scaling with asset count
+1. **Regex Patterns**: Complex regex can slow processing significantly
+1. **Time Deltas**: Smaller deltas = more groups = more processing
+1. **Expression Nesting**: Deep nesting multiplies evaluation cost
 
 ### Performance Targets
 
@@ -136,10 +136,10 @@ Complex regex patterns are evaluated for every asset in your library.
 ### Regex Optimization Techniques
 
 1. **Use Anchors**: `^IMG_` is faster than `IMG_`
-2. **Avoid Wildcards**: `IMG_\d{4}` is faster than `IMG_.*`
-3. **Use Character Classes**: `[A-Z]` instead of `(A|B|C|...)`
-4. **Limit Repetition**: `\d{4}` instead of `\d+`
-5. **Avoid Backtracking**: Don't use nested `.*` or `(.+)+`
+1. **Avoid Wildcards**: `IMG_\d{4}` is faster than `IMG_.*`
+1. **Use Character Classes**: `[A-Z]` instead of `(A|B|C|...)`
+1. **Limit Repetition**: `\d{4}` instead of `\d+`
+1. **Avoid Backtracking**: Don't use nested `.*` or `(.+)+`
 
 ### Testing Regex Performance
 
@@ -237,9 +237,9 @@ time CRITERIA='[{"key":"originalFileName","regex":{"key":".*PXL.*","index":0}}]'
 ### Simplification Strategies
 
 1. **Flatten Nested ANDs**: `AND(AND(A, B), C)` → `AND(A, B, C)`
-2. **Flatten Nested ORs**: `OR(OR(A, B), C)` → `OR(A, B, C)`
-3. **Remove Redundant Operators**: Single-child operators can be eliminated
-4. **Use Groups Mode**: If nesting > 3 levels, consider Groups mode instead
+1. **Flatten Nested ORs**: `OR(OR(A, B), C)` → `OR(A, B, C)`
+1. **Remove Redundant Operators**: Single-child operators can be eliminated
+1. **Use Groups Mode**: If nesting > 3 levels, consider Groups mode instead
 
 ## Memory Optimization
 
@@ -248,8 +248,8 @@ time CRITERIA='[{"key":"originalFileName","regex":{"key":".*PXL.*","index":0}}]'
 Memory usage depends on:
 
 1. **Asset count**: ~1KB per asset in memory
-2. **Criteria complexity**: Expression trees consume additional memory
-3. **Stack size**: Larger stacks increase memory overhead
+1. **Criteria complexity**: Expression trees consume additional memory
+1. **Stack size**: Larger stacks increase memory overhead
 
 ### Expected Memory Usage
 
@@ -269,16 +269,16 @@ Memory usage depends on:
    WITH_DELETED=false   # Exclude deleted assets
    ```
 
-2. **Process in Batches**: For very large libraries, process subsets:
+1. **Process in Batches**: For very large libraries, process subsets:
 
    ```sh
    # Process only recent photos
    CRITERIA='[{"key":"localDateTime","delta":{"milliseconds":1000}},{"key":"originalFileName","regex":{"key":"^2025","index":0}}]'
    ```
 
-3. **Use Simpler Criteria**: Legacy mode uses less memory than Expression mode
+1. **Use Simpler Criteria**: Legacy mode uses less memory than Expression mode
 
-4. **Increase Swap**: For systems with limited RAM
+1. **Increase Swap**: For systems with limited RAM
 
 ## Benchmarking Your Configuration
 
@@ -505,9 +505,9 @@ services:
 ### Key Metrics to Track
 
 1. **Processing Time**: Total time for stack operations
-2. **Assets per Second**: `total_assets / processing_time`
-3. **Memory Usage**: Peak memory during processing
-4. **Stack Count**: Number of stacks created/modified
+1. **Assets per Second**: `total_assets / processing_time`
+1. **Memory Usage**: Peak memory during processing
+1. **Stack Count**: Number of stacks created/modified
 
 ### Logging Performance Data
 
@@ -541,33 +541,33 @@ LOG_FORMAT=json
    time ./immich-stack
    ```
 
-2. **Check memory usage**:
+1. **Check memory usage**:
 
    ```sh
    docker stats immich-stack
    ```
 
-3. **Profile regex patterns**: Test individual regex patterns with small datasets
+1. **Profile regex patterns**: Test individual regex patterns with small datasets
 
-4. **Simplify criteria**: Try Legacy mode with basic criteria as baseline
+1. **Simplify criteria**: Try Legacy mode with basic criteria as baseline
 
 ### Common Bottlenecks
 
 1. **Complex Regex**: Switch to split-based grouping
-2. **Small Time Deltas**: Increase delta to reduce groups
-3. **Deep Expression Nesting**: Flatten or switch to Groups/Legacy mode
-4. **Large Library**: Use filters to process subsets
-5. **Low Memory**: Increase swap or process in batches
+1. **Small Time Deltas**: Increase delta to reduce groups
+1. **Deep Expression Nesting**: Flatten or switch to Groups/Legacy mode
+1. **Large Library**: Use filters to process subsets
+1. **Low Memory**: Increase swap or process in batches
 
 ## Best Practices Summary
 
 1. **Start Simple**: Use Legacy mode for initial setup
-2. **Benchmark**: Test different configurations and measure
-3. **Use Appropriate Delta**: 1000-2000ms works for most use cases
-4. **Optimize Regex**: Use anchors and avoid wildcards
-5. **Limit Nesting**: Keep expression nesting < 3 levels
-6. **Filter Assets**: Exclude archived/deleted when possible
-7. **Size Intervals**: Set CRON_INTERVAL > 2× processing time
-8. **Monitor Resources**: Track memory and CPU usage
-9. **Test Incrementally**: Add complexity only when needed
-10. **Document Performance**: Track metrics over time
+1. **Benchmark**: Test different configurations and measure
+1. **Use Appropriate Delta**: 1000-2000ms works for most use cases
+1. **Optimize Regex**: Use anchors and avoid wildcards
+1. **Limit Nesting**: Keep expression nesting < 3 levels
+1. **Filter Assets**: Exclude archived/deleted when possible
+1. **Size Intervals**: Set CRON_INTERVAL > 2× processing time
+1. **Monitor Resources**: Track memory and CPU usage
+1. **Test Incrementally**: Add complexity only when needed
+1. **Document Performance**: Track metrics over time

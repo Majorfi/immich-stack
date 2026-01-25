@@ -24,9 +24,9 @@ Or using CLI flags:
 When cron mode is enabled:
 
 1. Application starts and immediately runs the first stacking operation
-2. After completion, waits for `CRON_INTERVAL` seconds
-3. Runs the next stacking operation
-4. Repeats indefinitely until stopped
+1. After completion, waits for `CRON_INTERVAL` seconds
+1. Runs the next stacking operation
+1. Repeats indefinitely until stopped
 
 ```
 [Start] → [Run Stacker] → [Wait CRON_INTERVAL] → [Run Stacker] → [Wait] → ...
@@ -148,9 +148,9 @@ Cron mode supports graceful shutdown via signals:
 The application:
 
 1. Receives the signal
-2. Completes the current stacking operation
-3. Does not start the next sleep cycle
-4. Exits cleanly
+1. Completes the current stacking operation
+1. Does not start the next sleep cycle
+1. Exits cleanly
 
 **Note**: If you need immediate shutdown, use `SIGKILL` (not recommended):
 
@@ -187,9 +187,9 @@ The `--init` flag ensures that the container properly forwards signals to the ap
 Monitor cron mode health by:
 
 1. **Log watching**: Track completion messages and error rates
-2. **Process health**: Ensure container stays running
-3. **API availability**: Verify Immich API is reachable
-4. **Run duration**: Alert if processing time increases significantly
+1. **Process health**: Ensure container stays running
+1. **API availability**: Verify Immich API is reachable
+1. **Run duration**: Alert if processing time increases significantly
 
 **Example monitoring script**:
 
@@ -376,8 +376,8 @@ CRON_INTERVAL=7200  # Double the interval
 **Possible causes**:
 
 1. Container crashed (check `docker ps`)
-2. Fatal error occurred (check logs: `docker logs immich-stack`)
-3. API key became invalid (verify key in Immich settings)
+1. Fatal error occurred (check logs: `docker logs immich-stack`)
+1. API key became invalid (verify key in Immich settings)
 
 **Solution**: Check logs and restart with `docker restart immich-stack`
 
@@ -390,9 +390,9 @@ CRON_INTERVAL=7200  # Double the interval
 **Solutions**:
 
 1. Increase Docker memory limit
-2. Use simpler criteria (Legacy mode instead of Expression mode)
-3. Filter assets with `WITH_ARCHIVED=false` and `WITH_DELETED=false`
-4. Increase interval to reduce memory pressure
+1. Use simpler criteria (Legacy mode instead of Expression mode)
+1. Filter assets with `WITH_ARCHIVED=false` and `WITH_DELETED=false`
+1. Increase interval to reduce memory pressure
 
 ### Issue: Inconsistent stacking results
 

@@ -42,7 +42,7 @@ To integrate with an existing Immich installation:
 
 1. Copy the `immich-stack` service from our `docker-compose.yml` into your Immich's `docker-compose.yml`
 
-2. Add these environment variables to your Immich's `.env` file (you can also add the optional ones):
+1. Add these environment variables to your Immich's `.env` file (you can also add the optional ones):
 
    ```sh
    # Immich Stack settings
@@ -52,7 +52,7 @@ To integrate with an existing Immich installation:
    CRON_INTERVAL=86400  # in seconds, only used if RUN_MODE=cron
    ```
 
-3. Add the service dependency in Immich's `docker-compose.yml`:
+1. Add the service dependency in Immich's `docker-compose.yml`:
 
    ```yaml
    immich-stack:
@@ -85,7 +85,8 @@ To integrate with an existing Immich installation:
          condition: service_healthy
    ```
 
-4. Restart your Immich stack:
+1. Restart your Immich stack:
+
    ```sh
    docker compose down
    docker compose up -d
@@ -115,14 +116,15 @@ By default, logs only appear in `docker logs`. To enable persistent file logging
    LOG_FILE=/app/logs/immich-stack.log
    ```
 
-2. Ensure the volume mount exists in docker-compose.yml:
+1. Ensure the volume mount exists in docker-compose.yml:
 
    ```yaml
    volumes:
      - ./logs:/app/logs
    ```
 
-3. Logs will now be written to both:
+1. Logs will now be written to both:
+
    - Container stdout (viewable with `docker logs`)
    - The file `./logs/immich-stack.log` on your host
 

@@ -115,7 +115,7 @@ The `split` configuration allows you to extract parts of string values using del
 For example, with a file named `IMG_1234~edit.jpg`:
 
 1. Split on `~` and `.` gives `["IMG_1234", "edit", "jpg"]`
-2. Using `index: 0` selects `"IMG_1234"`
+1. Using `index: 0` selects `"IMG_1234"`
 
 For paths, you can split by directory separators:
 
@@ -132,7 +132,7 @@ For paths, you can split by directory separators:
 For a path like `photos/2023/vacation/IMG_001.jpg`:
 
 1. Split on `/` gives `["photos", "2023", "vacation", "IMG_001.jpg"]`
-2. Using `index: 2` selects `"vacation"`
+1. Using `index: 2` selects `"vacation"`
 
 Note: The `originalPath` splitter automatically normalizes Windows-style backslashes (`\`) to forward slashes (`/`).
 
@@ -179,7 +179,7 @@ For example, with a file named `PXL_20230503_152823814.jpg`:
    - Index 0 (full match): `"PXL_20230503_152823814"`
    - Index 1 (first group): `"20230503"` (date)
    - Index 2 (second group): `"152823814"` (time)
-2. Using `index: 1` selects the date `"20230503"`
+1. Using `index: 1` selects the date `"20230503"`
 
 ### Regex Examples
 
@@ -375,9 +375,9 @@ Each expression node has one of two forms:
 
 This complex example groups assets that:
 
-1. Have filenames starting with "PXL*" OR "IMG*"
-2. AND are NOT archived
-3. AND were taken within 2 seconds of each other
+1. Have filenames starting with "PXL\*" OR "IMG\*"
+1. AND are NOT archived
+1. AND were taken within 2 seconds of each other
 
 ## Delta Configuration
 
@@ -616,8 +616,8 @@ This groups photos from Pixel or iPhone cameras that were taken on the same date
 This complex professional workflow:
 
 1. Groups either (RAW files in /RAW/ folder) OR (JPEG files in /JPEG/ folder)
-2. AND taken within 5 seconds
-3. AND NOT in trash
+1. AND taken within 5 seconds
+1. AND NOT in trash
 
 ## Advanced Grouping Behavior
 
@@ -626,8 +626,8 @@ This complex professional workflow:
 Advanced mode with expressions performs both **filtering** and **grouping** based on the leaf criteria values that actually match for each asset:
 
 1. **Filter phase**: Only assets that match the expression are considered for stacking
-2. **Grouping phase**: Matching assets are grouped by the specific criteria values that contributed to their match
-3. **Sorting phase**: Each group is sorted using the same promotion/delimiter rules as legacy mode
+1. **Grouping phase**: Matching assets are grouped by the specific criteria values that contributed to their match
+1. **Sorting phase**: Each group is sorted using the same promotion/delimiter rules as legacy mode
 
 **Key differences from legacy mode:**
 
@@ -806,26 +806,27 @@ Without delimiters specified, `biggestNumber` sorting falls back to alphabetical
    - Add time-based criteria if needed
    - Test with small sets first
 
-2. **Delta Values:**
+1. **Delta Values:**
 
    - Use smaller deltas for burst photos (1000ms)
    - Use larger deltas for time zone differences (3600000ms = 1 hour)
    - Consider your camera's burst mode settings
 
-3. **Regex Considerations:**
+1. **Regex Considerations:**
 
    - Escape special characters properly (`\\d` for digits, `\\.` for literal dots)
    - Test your regex patterns with sample filenames first
    - Use online regex testers to validate patterns
    - Remember that index 0 is the full match, capture groups start at index 1
 
-4. **Boolean Criteria (Advanced Mode):**
+1. **Boolean Criteria (Advanced Mode):**
 
    - Boolean criteria (`isArchived`, `isFavorite`, `isTrashed`, etc.) are filter-only
    - They don't contribute values to grouping keys—used purely for inclusion/exclusion
    - Use them to filter assets before applying other grouping criteria
 
-5. **Testing:**
+1. **Testing:**
+
    - Use `DRY_RUN=true` to test configurations
    - Check logs for grouping results
    - Adjust criteria based on results
@@ -897,8 +898,8 @@ photos/
 You want to:
 
 1. Group photos by date and time
-2. Prioritize Motion Photos (\_MP) as primary assets
-3. Then edited versions, then cropped, then originals
+1. Prioritize Motion Photos (\_MP) as primary assets
+1. Then edited versions, then cropped, then originals
 
 **Configuration:**
 
@@ -941,8 +942,8 @@ photos/
 You want to:
 
 1. Group Pixel photos (JPG + DNG) by date
-2. Group iPhone photos (JPG + HEIC) by date
-3. Group photos within the same date folder
+1. Group iPhone photos (JPG + HEIC) by date
+1. Group photos within the same date folder
 
 **Configuration:**
 
@@ -1047,8 +1048,8 @@ This example shows a 4-level nested expression combining AND, OR, and NOT operat
 **This expression groups photos that**:
 
 1. (Match smartphone camera patterns within 1 second) OR (are in burst folder within 500ms)
-2. AND do NOT have "draft" or "test" in the filename
-3. AND are NOT trashed
+1. AND do NOT have "draft" or "test" in the filename
+1. AND are NOT trashed
 
 ### Sequence Detection with Non-Numeric Files
 
@@ -1529,9 +1530,9 @@ DRY_RUN=true
 **Solution**:
 
 1. Simplify criteria (Legacy mode instead of Expression)
-2. Optimize regex patterns (use anchors)
-3. Increase time deltas to reduce group count
-4. Process in chunks with filters
+1. Optimize regex patterns (use anchors)
+1. Increase time deltas to reduce group count
+1. Process in chunks with filters
 
 **Issue**: NOT operator not working as expected
 

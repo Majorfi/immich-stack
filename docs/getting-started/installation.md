@@ -14,13 +14,14 @@
    cd immich-stack
    ```
 
-2. Build the binary:
+1. Build the binary:
 
    ```sh
    go build -o immich-stack ./cmd/...
    ```
 
-3. Move the binary to your PATH (optional):
+1. Move the binary to your PATH (optional):
+
    ```sh
    sudo mv immich-stack /usr/local/bin/
    ```
@@ -28,8 +29,8 @@
 ## Using Pre-built Binaries
 
 1. Download the latest release from the [Releases page](https://github.com/majorfi/immich-stack/releases)
-2. Extract the archive
-3. Move the binary to your PATH (optional)
+1. Extract the archive
+1. Move the binary to your PATH (optional)
 
 ## Docker Installation
 
@@ -40,13 +41,13 @@
    cd immich-stack
    ```
 
-2. Create a `.env` file from the example:
+1. Create a `.env` file from the example:
 
    ```sh
    cp .env.example .env
    ```
 
-3. Edit the `.env` file with your Immich credentials and preferences:
+1. Edit the `.env` file with your Immich credentials and preferences:
 
    ```sh
    # Required
@@ -67,26 +68,26 @@
    CRON_INTERVAL=86400  # in seconds, only used if RUN_MODE=cron
    ```
 
-4. Start the service:
+1. Start the service:
 
    ```sh
    docker compose up -d
    ```
 
-5. To run in cron mode, set `RUN_MODE=cron` in your `.env` file and restart:
+1. To run in cron mode, set `RUN_MODE=cron` in your `.env` file and restart:
 
    ```sh
    docker compose down
    docker compose up -d
    ```
 
-6. To view logs:
+1. To view logs:
 
    ```sh
    docker compose logs -f
    ```
 
-7. To stop the service:
+1. To stop the service:
 
    ```sh
    docker compose down

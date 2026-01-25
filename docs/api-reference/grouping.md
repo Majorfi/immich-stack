@@ -129,19 +129,20 @@ All operations handle the following error cases:
    - Use appropriate error handling strategies
    - Log errors for debugging
 
-2. **Context Usage**
+1. **Context Usage**
 
    - Pass context through all operations
    - Use context for cancellation
    - Set appropriate timeouts
 
-3. **Group Management**
+1. **Group Management**
 
    - Validate groups before operations
    - Handle missing groups gracefully
    - Maintain group consistency
 
-4. **Criteria Usage**
+1. **Criteria Usage**
+
    - Use appropriate criteria
    - Handle edge cases
    - Consider performance implications

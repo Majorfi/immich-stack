@@ -24,9 +24,9 @@ environment:
 ## Processing Flow
 
 1. The stacker will process each user sequentially
-2. Each user's name and email are logged before processing
-3. Stacks are created and managed separately for each user
-4. Logs clearly indicate which user is being processed
+1. Each user's name and email are logged before processing
+1. Stacks are created and managed separately for each user
+1. Logs clearly indicate which user is being processed
 
 ## Example
 
@@ -63,13 +63,14 @@ Created 60 stacks
    - Rotate keys periodically
    - Use different keys for different users
 
-2. **Resource Usage:**
+1. **Resource Usage:**
 
    - Consider running during off-peak hours
    - Monitor system resources
    - Adjust cron interval based on library size
 
-3. **Error Handling:**
+1. **Error Handling:**
+
    - If one user fails, others will still be processed
    - Check logs for any user-specific issues
    - Retry failed users if needed
