@@ -1,0 +1,3282 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Automatically groups similar photos into stacks within the Immich photo management system">
+      
+      
+        <meta name="author" content="MajorFi">
+      
+      
+      
+        <link rel="prev" href="../debug-parent-selection/">
+      
+      
+        <link rel="next" href="../optimize-performance/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Migrate Criteria - Immich Stack</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#how-to-migrate-between-criteria-configurations" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Immich Stack" class="md-header__button md-logo" aria-label="Immich Stack" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Immich Stack
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Migrate Criteria
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/majorfi/immich-stack" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    majorfi/immich-stack
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../commands/" class="md-tabs__link">
+          
+  
+  
+  Commands
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/stacking-logic/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  How-To
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integration/docker/" class="md-tabs__link">
+          
+  
+  
+  Integration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api-reference/environment-variables/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/development/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Immich Stack" class="md-nav__button md-logo" aria-label="Immich Stack" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Immich Stack
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/majorfi/immich-stack" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    majorfi/immich-stack
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Commands
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/duplicates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Duplicates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/fix-trash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fix Trash
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/stacking-logic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacking Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/multi-user/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi-User Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-criteria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Criteria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-To
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-To
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real-world-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-World Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../debug-parent-selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug Parent Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrate Criteria
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrate Criteria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-migrate-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Migrate Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-safety-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Safety Principles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Safety Principles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-safety-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Safety Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#migration-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-migration-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Migration Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy-1-clean-slate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy 1: Clean Slate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Strategy 1: Clean Slate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-migrating-from-legacy-to-expression-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Migrating from Legacy to Expression Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy-2-incremental-replace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy 2: Incremental Replace
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Strategy 2: Incremental Replace">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-adjusting-time-delta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Adjusting Time Delta
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy-3-additive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy 3: Additive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Strategy 3: Additive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-adding-filename-grouping-to-time-based-stacks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Adding Filename Grouping to Time-Based Stacks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-migration-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced Migration Scenarios
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Advanced Migration Scenarios">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-1-migrating-parent-selection-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario 1: Migrating Parent Selection Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-2-splitting-one-large-criteria-into-multiple" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario 2: Splitting One Large Criteria into Multiple
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-3-merging-multiple-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario 3: Merging Multiple Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Migrations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing Migrations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#test-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Framework
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation Checklist
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rollback-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollback Procedures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rollback Procedures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#immediate-rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immediate Rollback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#partial-rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partial Rollback
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-migration-mistakes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Migration Mistakes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Migration Mistakes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mistake-1-not-testing-with-dry-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 1: Not Testing with Dry-Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mistake-2-forgetting-replace_stacks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 2: Forgetting REPLACE_STACKS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mistake-3-wrong-migration-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 3: Wrong Migration Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mistake-4-no-rollback-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 4: No Rollback Plan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mistake-5-incomplete-criteria-conversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 5: Incomplete Criteria Conversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting-failed-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting Failed Migrations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting Failed Migrations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-stacks-not-created-as-expected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Stacks Not Created as Expected
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-too-many-stacks-replaced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Too Many Stacks Replaced
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-performance-degraded-after-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Performance Degraded After Migration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Templates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-1-simple-time-delta-adjustment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template 1: Simple Time Delta Adjustment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-2-adding-new-grouping-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template 2: Adding New Grouping Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-3-parent-promotion-rule-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template 3: Parent Promotion Rule Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-help-with-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Help with Migrations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../optimize-performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimize Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integration/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/environment-variables/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment Variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/cli-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/asset-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/stack-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/grouping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grouping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-migrate-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Migrate Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-safety-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Safety Principles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Safety Principles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-safety-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Safety Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#migration-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-migration-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Migration Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy-1-clean-slate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy 1: Clean Slate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Strategy 1: Clean Slate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-migrating-from-legacy-to-expression-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Migrating from Legacy to Expression Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy-2-incremental-replace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy 2: Incremental Replace
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Strategy 2: Incremental Replace">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-adjusting-time-delta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Adjusting Time Delta
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy-3-additive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy 3: Additive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Strategy 3: Additive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-adding-filename-grouping-to-time-based-stacks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Adding Filename Grouping to Time-Based Stacks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-migration-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced Migration Scenarios
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Advanced Migration Scenarios">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-1-migrating-parent-selection-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario 1: Migrating Parent Selection Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-2-splitting-one-large-criteria-into-multiple" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario 2: Splitting One Large Criteria into Multiple
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-3-merging-multiple-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario 3: Merging Multiple Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Migrations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing Migrations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#test-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Framework
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation Checklist
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rollback-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollback Procedures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rollback Procedures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#immediate-rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immediate Rollback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#partial-rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partial Rollback
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-migration-mistakes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Migration Mistakes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Migration Mistakes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mistake-1-not-testing-with-dry-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 1: Not Testing with Dry-Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mistake-2-forgetting-replace_stacks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 2: Forgetting REPLACE_STACKS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mistake-3-wrong-migration-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 3: Wrong Migration Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mistake-4-no-rollback-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 4: No Rollback Plan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mistake-5-incomplete-criteria-conversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mistake 5: Incomplete Criteria Conversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting-failed-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting Failed Migrations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting Failed Migrations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-stacks-not-created-as-expected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Stacks Not Created as Expected
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-too-many-stacks-replaced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Too Many Stacks Replaced
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-performance-degraded-after-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Performance Degraded After Migration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Templates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-1-simple-time-delta-adjustment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template 1: Simple Time Delta Adjustment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-2-adding-new-grouping-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template 2: Adding New Grouping Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-3-parent-promotion-rule-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template 3: Parent Promotion Rule Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-help-with-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Help with Migrations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="how-to-migrate-between-criteria-configurations">How to Migrate Between Criteria Configurations<a class="headerlink" href="#how-to-migrate-between-criteria-configurations" title="Permanent link">&para;</a></h1>
+<p>This guide helps you safely migrate from one stacking criteria configuration to another without losing data or creating inconsistent stacks.</p>
+<h2 id="why-migrate-criteria">Why Migrate Criteria<a class="headerlink" href="#why-migrate-criteria" title="Permanent link">&para;</a></h2>
+<p>You might need to migrate criteria when:</p>
+<ul>
+<li>Changing from simple to advanced grouping</li>
+<li>Adjusting time delta values</li>
+<li>Switching from Legacy to Groups or Expression mode</li>
+<li>Refining parent selection rules</li>
+<li>Consolidating multiple criteria into one</li>
+<li>Fixing incorrect stacking logic</li>
+</ul>
+<h2 id="migration-safety-principles">Migration Safety Principles<a class="headerlink" href="#migration-safety-principles" title="Permanent link">&para;</a></h2>
+<h3 id="core-safety-rules">Core Safety Rules<a class="headerlink" href="#core-safety-rules" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Always use dry-run first</strong>: Preview changes before applying</li>
+<li><strong>Backup your database</strong>: Immich database before major migrations</li>
+<li><strong>Test with small subset</strong>: Verify logic on small sample first</li>
+<li><strong>Document old configuration</strong>: Save current criteria before changing</li>
+<li><strong>Monitor first run</strong>: Watch logs closely for unexpected behavior</li>
+</ol>
+<h3 id="migration-strategies">Migration Strategies<a class="headerlink" href="#migration-strategies" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Strategy 1: Clean Slate (safest, most disruptive)
+└─ Delete all stacks → Apply new criteria
+
+Strategy 2: Incremental Replace (safer, less disruptive)
+└─ Keep existing stacks → Replace only conflicting ones
+
+Strategy 3: Additive (safest, least disruptive)
+└─ Keep existing stacks → Add only new stacks
+</code></pre></div>
+<h2 id="pre-migration-checklist">Pre-Migration Checklist<a class="headerlink" href="#pre-migration-checklist" title="Permanent link">&para;</a></h2>
+<p>Before starting any migration:</p>
+<ul>
+<li>[ ] Document current criteria configuration</li>
+<li>[ ] Backup Immich database</li>
+<li>[ ] Test new criteria with <code>DRY_RUN=true</code></li>
+<li>[ ] Review dry-run logs for expected behavior</li>
+<li>[ ] Identify which stacks will be affected</li>
+<li>[ ] Choose migration strategy</li>
+<li>[ ] Plan rollback procedure</li>
+<li>[ ] Schedule migration during low-usage period</li>
+</ul>
+<h2 id="migration-strategy-1-clean-slate">Migration Strategy 1: Clean Slate<a class="headerlink" href="#migration-strategy-1-clean-slate" title="Permanent link">&para;</a></h2>
+<h3 id="when-to-use">When to Use<a class="headerlink" href="#when-to-use" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Major criteria changes</li>
+<li>Current stacks are mostly incorrect</li>
+<li>Starting fresh is simpler than incremental updates</li>
+<li>Small library where recreating stacks is fast</li>
+</ul>
+<h3 id="process">Process<a class="headerlink" href="#process" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Save current configuration</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1"># Save to file</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;CRITERIA=&#39;</span><span class="nv">$CRITERIA</span><span class="s2">&#39;&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>old-criteria.env
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;PARENT_FILENAME_PROMOTE=</span><span class="nv">$PARENT_FILENAME_PROMOTE</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>old-criteria.env
+</code></pre></div>
+<ol>
+<li><strong>Test new configuration with dry-run</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:2000}}]&#39;</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">LOG_LEVEL</span><span class="o">=</span>debug
+./immich-stack
+</code></pre></div>
+<ol>
+<li>
+<p><strong>Review dry-run output</strong>:</p>
+</li>
+<li>
+<p>Check number of stacks that would be created</p>
+</li>
+<li>Verify parent selection looks correct</li>
+<li>
+<p>Ensure grouping logic is as expected</p>
+</li>
+<li>
+<p><strong>Execute clean slate migration</strong>:</p>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">RUN_MODE</span><span class="o">=</span>once
+<span class="nv">RESET_STACKS</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">CONFIRM_RESET_STACK</span><span class="o">=</span><span class="s2">&quot;I acknowledge all my current stacks will be deleted and new one will be created&quot;</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[new criteria here]&#39;</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>new,promotion,rules
+./immich-stack
+</code></pre></div>
+<ol>
+<li><strong>Verify results</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">LOG_LEVEL</span><span class="o">=</span>info
+./immich-stack
+</code></pre></div>
+<h3 id="example-migrating-from-legacy-to-expression-mode">Example: Migrating from Legacy to Expression Mode<a class="headerlink" href="#example-migrating-from-legacy-to-expression-mode" title="Permanent link">&para;</a></h3>
+<p><strong>Old Configuration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}}]&#39;</span>
+</code></pre></div>
+<p><strong>New Configuration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;{&quot;mode&quot;:&quot;advanced&quot;,&quot;expression&quot;:{&quot;operator&quot;:&quot;AND&quot;,&quot;children&quot;:[{&quot;criteria&quot;:{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}}},{&quot;criteria&quot;:{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}}]}}&#39;</span>
+</code></pre></div>
+<p><strong>Migration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Step 1: Dry-run with new criteria</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;{&quot;mode&quot;:&quot;advanced&quot;,&quot;expression&quot;:{&quot;operator&quot;:&quot;AND&quot;,&quot;children&quot;:[{&quot;criteria&quot;:{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}}},{&quot;criteria&quot;:{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}}]}}&#39;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+
+<span class="c1"># Step 2: Review output, then execute</span>
+<span class="nv">RUN_MODE</span><span class="o">=</span>once<span class="w"> </span><span class="se">\</span>
+<span class="nv">RESET_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CONFIRM_RESET_STACK</span><span class="o">=</span><span class="s2">&quot;I acknowledge all my current stacks will be deleted and new one will be created&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;{&quot;mode&quot;:&quot;advanced&quot;,&quot;expression&quot;:{&quot;operator&quot;:&quot;AND&quot;,&quot;children&quot;:[{&quot;criteria&quot;:{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}}},{&quot;criteria&quot;:{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}}]}}&#39;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+</code></pre></div>
+<h2 id="migration-strategy-2-incremental-replace">Migration Strategy 2: Incremental Replace<a class="headerlink" href="#migration-strategy-2-incremental-replace" title="Permanent link">&para;</a></h2>
+<h3 id="when-to-use_1">When to Use<a class="headerlink" href="#when-to-use_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Minor criteria adjustments</li>
+<li>Most existing stacks are correct</li>
+<li>Only specific stacks need updating</li>
+<li>Large library where full reset is time-consuming</li>
+</ul>
+<h3 id="process_1">Process<a class="headerlink" href="#process_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Save current configuration</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;CRITERIA=&#39;</span><span class="nv">$CRITERIA</span><span class="s2">&#39;&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>old-criteria.env
+</code></pre></div>
+<ol>
+<li><strong>Update criteria and enable replace mode</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[updated criteria]&#39;</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span>
+./immich-stack
+</code></pre></div>
+<ol>
+<li>
+<p><strong>Review which stacks will be replaced</strong>:</p>
+</li>
+<li>
+<p>Logs will show "Deleted Stack ... - replacing child stack with new one"</p>
+</li>
+<li>
+<p>Count how many stacks will be affected</p>
+</li>
+<li>
+<p><strong>Execute replacement</strong>:</p>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[updated criteria]&#39;</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">false</span>
+./immich-stack
+</code></pre></div>
+<ol>
+<li><strong>Monitor logs for unexpected replacements</strong></li>
+</ol>
+<h3 id="example-adjusting-time-delta">Example: Adjusting Time Delta<a class="headerlink" href="#example-adjusting-time-delta" title="Permanent link">&para;</a></h3>
+<p><strong>Old Configuration</strong> (too tight):</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:500}}]&#39;</span>
+</code></pre></div>
+<p><strong>New Configuration</strong> (more reasonable):</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:2000}}]&#39;</span>
+</code></pre></div>
+<p><strong>Migration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Dry-run first</span>
+<span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:2000}}]&#39;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+
+<span class="c1"># Execute after verifying</span>
+<span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:2000}}]&#39;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+</code></pre></div>
+<h2 id="migration-strategy-3-additive">Migration Strategy 3: Additive<a class="headerlink" href="#migration-strategy-3-additive" title="Permanent link">&para;</a></h2>
+<h3 id="when-to-use_2">When to Use<a class="headerlink" href="#when-to-use_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Adding new grouping rules</li>
+<li>Existing stacks should remain untouched</li>
+<li>Only creating new stacks for previously ungrouped assets</li>
+<li>Safest option when existing stacks are correct</li>
+</ul>
+<h3 id="process_2">Process<a class="headerlink" href="#process_2" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Disable stack replacement</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">false</span>
+</code></pre></div>
+<ol>
+<li><strong>Add new criteria</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[new criteria including previous logic]&#39;</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span>
+./immich-stack
+</code></pre></div>
+<ol>
+<li>
+<p><strong>Verify only new stacks are created</strong>:</p>
+</li>
+<li>
+<p>Check logs for "Stack created" (not "replacing")</p>
+</li>
+<li>
+<p>Verify existing stacks are skipped</p>
+</li>
+<li>
+<p><strong>Execute addition</strong>:</p>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">false</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[new criteria]&#39;</span>
+./immich-stack
+</code></pre></div>
+<h3 id="example-adding-filename-grouping-to-time-based-stacks">Example: Adding Filename Grouping to Time-Based Stacks<a class="headerlink" href="#example-adding-filename-grouping-to-time-based-stacks" title="Permanent link">&para;</a></h3>
+<p><strong>Old Configuration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span>
+</code></pre></div>
+<p><strong>New Configuration</strong> (adds filename grouping):</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span>
+</code></pre></div>
+<p><strong>Migration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Additive migration - keep existing stacks</span>
+<span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+</code></pre></div>
+<h2 id="advanced-migration-scenarios">Advanced Migration Scenarios<a class="headerlink" href="#advanced-migration-scenarios" title="Permanent link">&para;</a></h2>
+<h3 id="scenario-1-migrating-parent-selection-rules">Scenario 1: Migrating Parent Selection Rules<a class="headerlink" href="#scenario-1-migrating-parent-selection-rules" title="Permanent link">&para;</a></h3>
+<p>When changing parent selection rules without changing grouping:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Old promotion rules</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>raw,original
+
+<span class="c1"># New promotion rules (prefer edited files)</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>edited,final,raw,original
+
+<span class="c1"># Migration</span>
+<span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w">  </span><span class="c1"># Must replace to change parents</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>edited,final,raw,original
+./immich-stack
+</code></pre></div>
+<p><strong>Note</strong>: Changing promotion rules requires <code>REPLACE_STACKS=true</code> because parent relationships must be updated.</p>
+<h3 id="scenario-2-splitting-one-large-criteria-into-multiple">Scenario 2: Splitting One Large Criteria into Multiple<a class="headerlink" href="#scenario-2-splitting-one-large-criteria-into-multiple" title="Permanent link">&para;</a></h3>
+<p><strong>Old</strong> (single criteria):</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;regex&quot;:{&quot;key&quot;:&quot;.*&quot;,&quot;index&quot;:0}}]&#39;</span>
+</code></pre></div>
+<p><strong>New</strong> (multiple specific criteria):</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;{&quot;mode&quot;:&quot;advanced&quot;,&quot;groups&quot;:[{&quot;operator&quot;:&quot;AND&quot;,&quot;criteria&quot;:[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;regex&quot;:{&quot;key&quot;:&quot;^PXL_&quot;,&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]},{&quot;operator&quot;:&quot;AND&quot;,&quot;criteria&quot;:[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;regex&quot;:{&quot;key&quot;:&quot;^IMG_&quot;,&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]}]}&#39;</span>
+</code></pre></div>
+<p><strong>Migration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clean slate recommended for major restructuring</span>
+<span class="nv">RUN_MODE</span><span class="o">=</span>once
+<span class="nv">RESET_STACKS</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">CONFIRM_RESET_STACK</span><span class="o">=</span><span class="s2">&quot;I acknowledge all my current stacks will be deleted and new one will be created&quot;</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[new groups configuration]&#39;</span>
+./immich-stack
+</code></pre></div>
+<h3 id="scenario-3-merging-multiple-criteria">Scenario 3: Merging Multiple Criteria<a class="headerlink" href="#scenario-3-merging-multiple-criteria" title="Permanent link">&para;</a></h3>
+<p><strong>Old</strong> (multiple runs with different criteria):</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run 1: Group by filename</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}}]&#39;</span>
+
+<span class="c1"># Run 2: Group by time</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span>
+</code></pre></div>
+<p><strong>New</strong> (unified criteria):</p>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span>
+</code></pre></div>
+<p><strong>Migration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clean slate to unify into single logic</span>
+<span class="nv">RUN_MODE</span><span class="o">=</span>once
+<span class="nv">RESET_STACKS</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">CONFIRM_RESET_STACK</span><span class="o">=</span><span class="s2">&quot;I acknowledge all my current stacks will be deleted and new one will be created&quot;</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span>
+./immich-stack
+</code></pre></div>
+<h2 id="testing-migrations">Testing Migrations<a class="headerlink" href="#testing-migrations" title="Permanent link">&para;</a></h2>
+<h3 id="test-framework">Test Framework<a class="headerlink" href="#test-framework" title="Permanent link">&para;</a></h3>
+<p>Create a test script to validate migration:</p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Migration Test Script&quot;</span>
+
+<span class="c1"># Step 1: Save current state</span>
+<span class="nv">STACK_COUNT_BEFORE</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$API_URL</span>/stacks<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;x-api-key: </span><span class="nv">$API_KEY</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;length&#39;</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Current stack count: </span><span class="nv">$STACK_COUNT_BEFORE</span><span class="s2">&quot;</span>
+
+<span class="c1"># Step 2: Dry-run with new criteria</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Running dry-run...&quot;</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[new criteria]&#39;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack<span class="w"> </span>&gt;<span class="w"> </span>migration-test.log
+
+<span class="c1"># Step 3: Analyze dry-run results</span>
+<span class="nv">EXPECTED_STACKS</span><span class="o">=</span><span class="k">$(</span>grep<span class="w"> </span><span class="s2">&quot;formed&quot;</span><span class="w"> </span>migration-test.log<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $6}&#39;</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Expected new stacks: </span><span class="nv">$EXPECTED_STACKS</span><span class="s2">&quot;</span>
+
+<span class="c1"># Step 4: Confirm before executing</span>
+<span class="nb">read</span><span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;Proceed with migration? (yes/no) &quot;</span><span class="w"> </span>-n<span class="w"> </span><span class="m">3</span><span class="w"> </span>-r
+<span class="nb">echo</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span><span class="nv">$REPLY</span><span class="w"> </span><span class="o">=</span>~<span class="w"> </span>^yes$<span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Executing migration...&quot;</span>
+<span class="w">  </span><span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[new criteria]&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>./immich-stack
+
+<span class="w">  </span><span class="c1"># Verify</span>
+<span class="w">  </span><span class="nv">STACK_COUNT_AFTER</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span><span class="nv">$API_URL</span>/stacks<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;x-api-key: </span><span class="nv">$API_KEY</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;length&#39;</span><span class="k">)</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Stack count after: </span><span class="nv">$STACK_COUNT_AFTER</span><span class="s2">&quot;</span>
+<span class="k">else</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Migration cancelled&quot;</span>
+<span class="k">fi</span>
+</code></pre></div>
+<h3 id="validation-checklist">Validation Checklist<a class="headerlink" href="#validation-checklist" title="Permanent link">&para;</a></h3>
+<p>After migration, verify:</p>
+<ul>
+<li>[ ] Stack count matches expectations</li>
+<li>[ ] Parent assets are correct for sample stacks</li>
+<li>[ ] No unexpected stack deletions</li>
+<li>[ ] Logs show expected behavior</li>
+<li>[ ] UI shows stacks correctly grouped</li>
+<li>[ ] No assets lost or duplicated</li>
+</ul>
+<h2 id="rollback-procedures">Rollback Procedures<a class="headerlink" href="#rollback-procedures" title="Permanent link">&para;</a></h2>
+<h3 id="immediate-rollback">Immediate Rollback<a class="headerlink" href="#immediate-rollback" title="Permanent link">&para;</a></h3>
+<p>If migration fails or produces unexpected results:</p>
+<ol>
+<li><strong>Stop current process</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>stop<span class="w"> </span>immich-stack
+</code></pre></div>
+<ol>
+<li><strong>Restore database backup</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1"># Restore Immich database from backup</span>
+<span class="c1"># (Process varies by setup - consult Immich docs)</span>
+</code></pre></div>
+<ol>
+<li><strong>Revert to old configuration</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nb">source</span><span class="w"> </span>old-criteria.env
+./immich-stack
+</code></pre></div>
+<h3 id="partial-rollback">Partial Rollback<a class="headerlink" href="#partial-rollback" title="Permanent link">&para;</a></h3>
+<p>If only some stacks are problematic:</p>
+<ol>
+<li>
+<p><strong>Identify affected assets</strong>:</p>
+</li>
+<li>
+<p>Use Immich UI to find incorrectly stacked photos</p>
+</li>
+<li>
+<p><strong>Manually unstack in Immich UI</strong></p>
+</li>
+<li>
+<p><strong>Re-run with corrected criteria</strong>:</p>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[corrected criteria]&#39;</span>
+./immich-stack
+</code></pre></div>
+<h2 id="migration-best-practices">Migration Best Practices<a class="headerlink" href="#migration-best-practices" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Always Test First</strong>: Use <code>DRY_RUN=true</code> before any migration</li>
+<li><strong>Backup Before Changing</strong>: Database backups are essential</li>
+<li><strong>Start Small</strong>: Test criteria on small subset first</li>
+<li><strong>Monitor Closely</strong>: Watch logs during first real run</li>
+<li><strong>Validate Results</strong>: Check sample stacks in UI after migration</li>
+<li><strong>Document Changes</strong>: Keep log of what changed and why</li>
+<li><strong>Schedule Wisely</strong>: Migrate during low-usage periods</li>
+<li><strong>Have Rollback Plan</strong>: Know how to revert if needed</li>
+</ol>
+<h2 id="common-migration-mistakes">Common Migration Mistakes<a class="headerlink" href="#common-migration-mistakes" title="Permanent link">&para;</a></h2>
+<h3 id="mistake-1-not-testing-with-dry-run">Mistake 1: Not Testing with Dry-Run<a class="headerlink" href="#mistake-1-not-testing-with-dry-run" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Executing migration without preview</p>
+<p><strong>Solution</strong>: Always run with <code>DRY_RUN=true</code> first</p>
+<h3 id="mistake-2-forgetting-replace_stacks">Mistake 2: Forgetting REPLACE_STACKS<a class="headerlink" href="#mistake-2-forgetting-replace_stacks" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: New criteria doesn't affect existing stacks</p>
+<p><strong>Solution</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w">  </span><span class="c1"># Required to update existing stacks</span>
+</code></pre></div>
+<h3 id="mistake-3-wrong-migration-strategy">Mistake 3: Wrong Migration Strategy<a class="headerlink" href="#mistake-3-wrong-migration-strategy" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Using additive when clean slate is needed</p>
+<p><strong>Solution</strong>: Choose strategy based on extent of changes (minor = incremental, major = clean slate)</p>
+<h3 id="mistake-4-no-rollback-plan">Mistake 4: No Rollback Plan<a class="headerlink" href="#mistake-4-no-rollback-plan" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Can't undo migration if it fails</p>
+<p><strong>Solution</strong>: Backup database and save old configuration before migrating</p>
+<h3 id="mistake-5-incomplete-criteria-conversion">Mistake 5: Incomplete Criteria Conversion<a class="headerlink" href="#mistake-5-incomplete-criteria-conversion" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Missing part of old logic in new criteria</p>
+<p><strong>Solution</strong>: Document old criteria completely, verify new criteria includes all required logic</p>
+<h2 id="troubleshooting-failed-migrations">Troubleshooting Failed Migrations<a class="headerlink" href="#troubleshooting-failed-migrations" title="Permanent link">&para;</a></h2>
+<h3 id="issue-stacks-not-created-as-expected">Issue: Stacks Not Created as Expected<a class="headerlink" href="#issue-stacks-not-created-as-expected" title="Permanent link">&para;</a></h3>
+<p><strong>Debug</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">LOG_LEVEL</span><span class="o">=</span>debug
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span>
+./immich-stack<span class="w"> </span>&gt;<span class="w"> </span>debug-migration.log
+</code></pre></div>
+<p><strong>Check</strong>:</p>
+<ul>
+<li>Criteria syntax is valid JSON</li>
+<li>All required fields present</li>
+<li>Regex patterns are correct</li>
+<li>Time deltas are reasonable</li>
+</ul>
+<h3 id="issue-too-many-stacks-replaced">Issue: Too Many Stacks Replaced<a class="headerlink" href="#issue-too-many-stacks-replaced" title="Permanent link">&para;</a></h3>
+<p><strong>Debug</strong>:</p>
+<ul>
+<li>Review REPLACE_STACKS setting</li>
+<li>Check if criteria changed more than expected</li>
+<li>Verify parent promotion rules</li>
+</ul>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Use more conservative criteria</li>
+<li>Start with REPLACE_STACKS=false</li>
+<li>Incrementally add replacing logic</li>
+</ul>
+<h3 id="issue-performance-degraded-after-migration">Issue: Performance Degraded After Migration<a class="headerlink" href="#issue-performance-degraded-after-migration" title="Permanent link">&para;</a></h3>
+<p><strong>Debug</strong>:</p>
+<ul>
+<li>New criteria may be more complex</li>
+<li>Expression nesting may be too deep</li>
+<li>Regex patterns may be inefficient</li>
+</ul>
+<p><strong>Solution</strong>: See <a href="../optimize-performance/">How to Optimize Criteria for Performance</a></p>
+<h2 id="migration-templates">Migration Templates<a class="headerlink" href="#migration-templates" title="Permanent link">&para;</a></h2>
+<h3 id="template-1-simple-time-delta-adjustment">Template 1: Simple Time Delta Adjustment<a class="headerlink" href="#template-1-simple-time-delta-adjustment" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Save old config</span>
+<span class="nv">OLD_DELTA</span><span class="o">=</span><span class="m">1000</span>
+<span class="nv">NEW_DELTA</span><span class="o">=</span><span class="m">2000</span>
+
+<span class="c1"># Test</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s2">&quot;[{\&quot;key\&quot;:\&quot;localDateTime\&quot;,\&quot;delta\&quot;:{\&quot;milliseconds\&quot;:</span><span class="nv">$NEW_DELTA</span><span class="s2">}}]&quot;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+
+<span class="c1"># Execute</span>
+<span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s2">&quot;[{\&quot;key\&quot;:\&quot;localDateTime\&quot;,\&quot;delta\&quot;:{\&quot;milliseconds\&quot;:</span><span class="nv">$NEW_DELTA</span><span class="s2">}}]&quot;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+</code></pre></div>
+<h3 id="template-2-adding-new-grouping-criteria">Template 2: Adding New Grouping Criteria<a class="headerlink" href="#template-2-adding-new-grouping-criteria" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Old: filename only</span>
+<span class="c1"># New: filename + time</span>
+
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+
+<span class="c1"># Execute as clean slate</span>
+<span class="nv">RUN_MODE</span><span class="o">=</span>once<span class="w"> </span><span class="se">\</span>
+<span class="nv">RESET_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CONFIRM_RESET_STACK</span><span class="o">=</span><span class="s2">&quot;I acknowledge all my current stacks will be deleted and new one will be created&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;.&quot;],&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span><span class="w"> </span><span class="se">\</span>
+./immich-stack
+</code></pre></div>
+<h3 id="template-3-parent-promotion-rule-changes">Template 3: Parent Promotion Rule Changes<a class="headerlink" href="#template-3-parent-promotion-rule-changes" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Test new promotion rules</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>new,rules,here<span class="w"> </span><span class="se">\</span>
+./immich-stack
+
+<span class="c1"># Execute</span>
+<span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>new,rules,here<span class="w"> </span><span class="se">\</span>
+./immich-stack
+</code></pre></div>
+<h2 id="getting-help-with-migrations">Getting Help with Migrations<a class="headerlink" href="#getting-help-with-migrations" title="Permanent link">&para;</a></h2>
+<p>If you encounter issues during migration:</p>
+<ol>
+<li>Collect full logs with <code>LOG_LEVEL=debug</code></li>
+<li>Document old and new configurations</li>
+<li>Describe expected vs actual behavior</li>
+<li>Check if dry-run showed different results</li>
+<li>Verify database state via Immich API or UI</li>
+<li>Open issue on GitHub with details</li>
+</ol>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="January 25, 2026 11:12:47 UTC">January 25, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "search.highlight", "search.share", "search.suggest"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

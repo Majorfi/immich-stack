@@ -1,0 +1,3056 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Automatically groups similar photos into stacks within the Immich photo management system">
+      
+      
+        <meta name="author" content="MajorFi">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Architecture Documentation - Immich Stack</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture-documentation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Immich Stack" class="md-header__button md-logo" aria-label="Immich Stack" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Immich Stack
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture Documentation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/majorfi/immich-stack" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    majorfi/immich-stack
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../commands/" class="md-tabs__link">
+          
+  
+  
+  Commands
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../features/stacking-logic/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../how-to/" class="md-tabs__link">
+          
+  
+  
+  How-To
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../integration/docker/" class="md-tabs__link">
+          
+  
+  
+  Integration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api-reference/environment-variables/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../contributing/development/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Immich Stack" class="md-nav__button md-logo" aria-label="Immich Stack" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Immich Stack
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/majorfi/immich-stack" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    majorfi/immich-stack
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Commands
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/duplicates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Duplicates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/fix-trash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fix Trash
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/stacking-logic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacking Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/multi-user/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi-User Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/custom-criteria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Criteria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-To
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-To
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/real-world-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-World Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/debug-parent-selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug Parent Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/migrate-criteria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrate Criteria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/optimize-performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimize Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/environment-variables/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment Variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/cli-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/asset-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/stack-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/grouping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grouping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#system-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="State Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stateless-design-philosophy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stateless Design Philosophy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-stateless" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Stateless?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state-lifecycle-per-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Lifecycle Per Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-state-representation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack State Representation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-comparison-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Comparison Logic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dry-run-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry-Run Verification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dry-Run Verification">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-dry-run-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How Dry-Run Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-guarantees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry-Run Guarantees
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry-Run Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verifying-dry-run-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verifying Dry-Run Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-recovery-mechanisms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Recovery Mechanisms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Error Recovery Mechanisms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-handling-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#graceful-degradation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graceful Degradation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery Actions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-retry-logic-and-backoff-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Retry Logic and Backoff Strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Retry Logic and Backoff Strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#retry-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retry Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exponential-backoff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exponential Backoff
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retry-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retry Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retriable-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retriable Conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backoff-jitter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backoff Jitter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rate-limiting-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rate Limiting Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concurrency-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concurrency Handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Concurrency Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#multi-user-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-User Operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-sequential-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Sequential Processing?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#within-user-parallelism" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Within-User Parallelism
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thread-safety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread Safety
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signal Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-client-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Client Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Client Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#http-client-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP Client Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#requestresponse-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request/Response Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connection-pooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection Pooling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grouping-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouping Algorithm
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Grouping Algorithm">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#high-level-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Level Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grouping-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouping Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parent-selection-within-group" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Selection Within Group
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-characteristics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Characteristics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance Characteristics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#time-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time Complexity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#space-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Space Complexity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bottlenecks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bottlenecks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optimization-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optimization Strategies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Logging Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#log-levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log Levels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#structured-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structured Logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#log-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log Formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dual-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dual Logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#test-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-categories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Categories
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testing-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security Considerations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-key-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Key Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input Validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Network Security
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#future-architecture-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Future Architecture Considerations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Future Architecture Considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#potential-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Potential Improvements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scalability-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scalability Limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extension-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extension Points
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="architecture-documentation">Architecture Documentation<a class="headerlink" href="#architecture-documentation" title="Permanent link">&para;</a></h1>
+<p>This document describes the internal architecture, state management, error handling, and technical design decisions of Immich Stack.</p>
+<h2 id="system-overview">System Overview<a class="headerlink" href="#system-overview" title="Permanent link">&para;</a></h2>
+<p>Immich Stack is a stateless CLI application that synchronizes photo stacks between computed groupings and the Immich photo management system via its REST API.</p>
+<div class="highlight"><pre><span></span><code>┌──────────────┐      ┌───────────────┐      ┌──────────────┐
+│   CLI Tool   │ ───&gt; │ Stacker Logic │ ───&gt; │  Immich API  │
+│  (Commands)  │      │  (Grouping)   │      │   (Stacks)   │
+└──────────────┘      └───────────────┘      └──────────────┘
+       │                      │                      │
+       └──────────────────────┴──────────────────────┘
+                        Configuration
+                    (Criteria, Flags, Env)
+</code></pre></div>
+<h3 id="core-components">Core Components<a class="headerlink" href="#core-components" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Command Layer</strong> (<code>cmd/</code>): CLI interface and command orchestration</li>
+<li><strong>Stacker Logic</strong> (<code>pkg/stacker/</code>): Grouping algorithm and parent selection</li>
+<li><strong>API Client</strong> (<code>pkg/immich/</code>): HTTP client with retry logic and error handling</li>
+<li><strong>Utilities</strong> (<code>pkg/utils/</code>): Shared types, logging, and helpers</li>
+</ol>
+<h2 id="state-management">State Management<a class="headerlink" href="#state-management" title="Permanent link">&para;</a></h2>
+<h3 id="stateless-design-philosophy">Stateless Design Philosophy<a class="headerlink" href="#stateless-design-philosophy" title="Permanent link">&para;</a></h3>
+<p>Immich Stack is <strong>intentionally stateless</strong> between runs:</p>
+<ul>
+<li>No persistent database or state files</li>
+<li>Each run fetches fresh data from Immich API</li>
+<li>Computed groupings are derived from criteria on each execution</li>
+<li>No memory of previous runs or decisions</li>
+</ul>
+<h3 id="why-stateless">Why Stateless?<a class="headerlink" href="#why-stateless" title="Permanent link">&para;</a></h3>
+<p><strong>Advantages</strong>:</p>
+<ul>
+<li>Resilient to Immich API changes (always uses current state)</li>
+<li>Self-healing from transient errors (retry on next run)</li>
+<li>Consistent with manually created stacks (no drift from external state)</li>
+<li>No risk of state corruption or inconsistency</li>
+<li>Simpler to reason about and debug</li>
+</ul>
+<p><strong>Trade-offs</strong>:</p>
+<ul>
+<li>Must re-fetch all data on each run</li>
+<li>Cannot track incremental progress within a run</li>
+<li>No built-in idempotency tracking (relies on API state comparison)</li>
+</ul>
+<h3 id="state-lifecycle-per-run">State Lifecycle Per Run<a class="headerlink" href="#state-lifecycle-per-run" title="Permanent link">&para;</a></h3>
+<p>Each execution follows this lifecycle:</p>
+<div class="highlight"><pre><span></span><code>1. Initialize
+   ├─ Load configuration (env vars, CLI flags)
+   ├─ Create logger
+   └─ Create API client
+
+2. Fetch Current State
+   ├─ GET /stacks (all existing stacks)
+   │  └─ Build stacksMap (asset ID → stack)
+   ├─ GET /assets (all assets to process)
+   │  └─ Enrich with stack information
+   └─ GET /me (current user information)
+
+3. Compute Desired State
+   ├─ Apply grouping criteria to assets
+   ├─ Form groups (potential stacks)
+   └─ Determine parent for each group
+
+4. Compare States
+   ├─ Identify new stacks to create
+   ├─ Identify stacks to delete
+   └─ Identify stacks to update/replace
+
+5. Apply Changes
+   ├─ DELETE /stacks/{id} (remove old stacks)
+   ├─ PUT /stacks (create/update stacks)
+   └─ Log all actions
+
+6. Cleanup
+   └─ Exit (no state persisted)
+</code></pre></div>
+<h3 id="stack-state-representation">Stack State Representation<a class="headerlink" href="#stack-state-representation" title="Permanent link">&para;</a></h3>
+<p><strong>Current State</strong> (from Immich):</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">TStack</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">ID</span><span class="w">             </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">PrimaryAssetID</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">Assets</span><span class="w">         </span><span class="p">[]</span><span class="nx">TAsset</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Desired State</strong> (computed):</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">Group</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Key</span><span class="w">    </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">Assets</span><span class="w"> </span><span class="p">[]</span><span class="nx">TAsset</span><span class="w">  </span><span class="c1">// First asset is desired parent</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="stack-comparison-logic">Stack Comparison Logic<a class="headerlink" href="#stack-comparison-logic" title="Permanent link">&para;</a></h3>
+<p>Determines if existing stack matches desired stack:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">needsUpdate</span><span class="p">(</span><span class="nx">existing</span><span class="w"> </span><span class="nx">TStack</span><span class="p">,</span><span class="w"> </span><span class="nx">desired</span><span class="w"> </span><span class="nx">Group</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Different parent?</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">existing</span><span class="p">.</span><span class="nx">PrimaryAssetID</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">desired</span><span class="p">.</span><span class="nx">Assets</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nx">ID</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Different asset membership?</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">sameAssets</span><span class="p">(</span><span class="nx">existing</span><span class="p">.</span><span class="nx">Assets</span><span class="p">,</span><span class="w"> </span><span class="nx">desired</span><span class="p">.</span><span class="nx">Assets</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="w">  </span><span class="c1">// Stack is already correct</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="dry-run-verification">Dry-Run Verification<a class="headerlink" href="#dry-run-verification" title="Permanent link">&para;</a></h2>
+<h3 id="how-dry-run-works">How Dry-Run Works<a class="headerlink" href="#how-dry-run-works" title="Permanent link">&para;</a></h3>
+<p>Dry-run mode (<code>DRY_RUN=true</code>) simulates all operations without making API changes:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Client</span><span class="p">)</span><span class="w"> </span><span class="nx">ModifyStack</span><span class="p">(</span><span class="nx">assetIDs</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">dryRun</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nx">logger</span><span class="p">.</span><span class="nx">Info</span><span class="p">(</span><span class="s">&quot;[DRY RUN] Would create stack&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="w">  </span><span class="c1">// No-op, just log</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Real API call</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">doRequest</span><span class="p">(</span><span class="nx">http</span><span class="p">.</span><span class="nx">MethodPut</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/stacks&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">payload</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="dry-run-guarantees">Dry-Run Guarantees<a class="headerlink" href="#dry-run-guarantees" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>No API Writes</strong>: Only GET requests executed, no PUT/POST/DELETE</li>
+<li><strong>Full Simulation</strong>: All grouping and comparison logic runs normally</li>
+<li><strong>Accurate Logging</strong>: Shows exactly what would happen in real run</li>
+<li><strong>Safe Testing</strong>: Can test dangerous operations (RESET_STACKS, REPLACE_STACKS)</li>
+</ol>
+<h3 id="dry-run-workflow">Dry-Run Workflow<a class="headerlink" href="#dry-run-workflow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>User Request
+    │
+    ├─ DRY_RUN=true
+    │   ├─ Fetch current state (READ)
+    │   ├─ Compute desired state
+    │   ├─ Compare states
+    │   ├─ Log all planned actions
+    │   └─ Exit (no writes)
+    │
+    └─ DRY_RUN=false
+        ├─ Fetch current state (READ)
+        ├─ Compute desired state
+        ├─ Compare states
+        ├─ Execute actions (WRITE)
+        └─ Exit
+</code></pre></div>
+<h3 id="verifying-dry-run-output">Verifying Dry-Run Output<a class="headerlink" href="#verifying-dry-run-output" title="Permanent link">&para;</a></h3>
+<p>Look for these log patterns:</p>
+<div class="highlight"><pre><span></span><code>[DRY RUN] Would create stack with 3 assets
+[DRY RUN] Would delete stack abc-123-def
+[DRY RUN] Would replace stack xyz-456-uvw
+</code></pre></div>
+<p>Real runs show:</p>
+<div class="highlight"><pre><span></span><code>✅ Success! Stack created
+🗑️  Deleted stack abc-123-def - replacing child stack with new one
+🔄 Updated stack xyz-456-uvw
+</code></pre></div>
+<h2 id="error-recovery-mechanisms">Error Recovery Mechanisms<a class="headerlink" href="#error-recovery-mechanisms" title="Permanent link">&para;</a></h2>
+<h3 id="error-classification">Error Classification<a class="headerlink" href="#error-classification" title="Permanent link">&para;</a></h3>
+<p>Errors are classified into three categories:</p>
+<ol>
+<li>
+<p><strong>Transient Errors</strong> (retry automatically):</p>
+</li>
+<li>
+<p>Network failures (connection timeout, DNS resolution)</p>
+</li>
+<li>Server errors (5xx responses)</li>
+<li>
+<p>Rate limiting (429 responses)</p>
+</li>
+<li>
+<p><strong>Permanent Errors</strong> (fail immediately):</p>
+</li>
+<li>
+<p>Authentication failures (401, 403)</p>
+</li>
+<li>Invalid request format (400)</li>
+<li>
+<p>Resource not found (404)</p>
+</li>
+<li>
+<p><strong>Application Errors</strong> (log and continue):</p>
+</li>
+<li>
+<p>Invalid asset data</p>
+</li>
+<li>Criteria parsing errors</li>
+<li>Individual stack operation failures</li>
+</ol>
+<h3 id="error-handling-strategy">Error Handling Strategy<a class="headerlink" href="#error-handling-strategy" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>┌────────────────┐
+│  API Request   │
+└───────┬────────┘
+        │
+        ├─ Success (2xx)
+        │  └─&gt; Return data
+        │
+        ├─ Transient Error (5xx, timeout, 429)
+        │  ├─&gt; Retry with exponential backoff
+        │  └─&gt; Max 3 retries, then fail
+        │
+        ├─ Permanent Error (4xx except 429)
+        │  └─&gt; Fail immediately, log error
+        │
+        └─ Application Error
+           └─&gt; Log error, continue processing
+</code></pre></div>
+<h3 id="graceful-degradation">Graceful Degradation<a class="headerlink" href="#graceful-degradation" title="Permanent link">&para;</a></h3>
+<p>When errors occur during processing:</p>
+<ol>
+<li><strong>Individual Asset Failure</strong>: Skip asset, continue with others</li>
+<li><strong>Stack Operation Failure</strong>: Log error, continue with remaining stacks</li>
+<li><strong>API Client Failure</strong>: Retry automatically, then fail entire run</li>
+<li><strong>Criteria Parsing Failure</strong>: Fail fast (cannot proceed without valid criteria)</li>
+</ol>
+<h3 id="recovery-actions">Recovery Actions<a class="headerlink" href="#recovery-actions" title="Permanent link">&para;</a></h3>
+<p><strong>For Transient Errors</strong>:</p>
+<ul>
+<li>Automatic retry with exponential backoff (500ms, 1s, 2s)</li>
+<li>Log retry attempts for debugging</li>
+<li>Fail entire operation after max retries</li>
+</ul>
+<p><strong>For Permanent Errors</strong>:</p>
+<ul>
+<li>Log detailed error message with context</li>
+<li>Provide actionable remediation steps</li>
+<li>Exit with non-zero status code</li>
+</ul>
+<p><strong>For Application Errors</strong>:</p>
+<ul>
+<li>Log error with asset/stack context</li>
+<li>Continue processing remaining items</li>
+<li>Report summary at end of run</li>
+</ul>
+<h2 id="api-retry-logic-and-backoff-strategy">API Retry Logic and Backoff Strategy<a class="headerlink" href="#api-retry-logic-and-backoff-strategy" title="Permanent link">&para;</a></h2>
+<h3 id="retry-configuration">Retry Configuration<a class="headerlink" href="#retry-configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">maxRetries</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="mi">3</span>
+<span class="w">    </span><span class="nx">baseDelay</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="mi">500</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="exponential-backoff">Exponential Backoff<a class="headerlink" href="#exponential-backoff" title="Permanent link">&para;</a></h3>
+<p>Retry delays follow exponential pattern:</p>
+<div class="highlight"><pre><span></span><code>Attempt 1: Wait 500ms  (baseDelay × 2^0)
+Attempt 2: Wait 1s     (baseDelay × 2^1)
+Attempt 3: Wait 2s     (baseDelay × 2^2)
+Fail: No more retries
+</code></pre></div>
+<h3 id="retry-implementation">Retry Implementation<a class="headerlink" href="#retry-implementation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Client</span><span class="p">)</span><span class="w"> </span><span class="nx">doRequest</span><span class="p">(</span><span class="nx">method</span><span class="p">,</span><span class="w"> </span><span class="nx">path</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="p">,</span><span class="w"> </span><span class="nx">response</span><span class="w"> </span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">attempt</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">attempt</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">maxRetries</span><span class="p">;</span><span class="w"> </span><span class="nx">attempt</span><span class="o">++</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">makeRequest</span><span class="p">(</span><span class="nx">method</span><span class="p">,</span><span class="w"> </span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="p">,</span><span class="w"> </span><span class="nx">response</span><span class="p">)</span>
+
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="w">  </span><span class="c1">// Success</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">isRetriable</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span><span class="w">  </span><span class="c1">// Permanent error, don&#39;t retry</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">attempt</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">maxRetries</span><span class="o">-</span><span class="mi">1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nx">delay</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">baseDelay</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">(</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="nx">attempt</span><span class="p">)</span>
+<span class="w">            </span><span class="nx">c</span><span class="p">.</span><span class="nx">logger</span><span class="p">.</span><span class="nx">Warnf</span><span class="p">(</span><span class="s">&quot;Retry %d/%d after %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">attempt</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nx">maxRetries</span><span class="p">,</span><span class="w"> </span><span class="nx">delay</span><span class="p">)</span>
+<span class="w">            </span><span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="nx">delay</span><span class="p">)</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;max retries exceeded&quot;</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="retriable-conditions">Retriable Conditions<a class="headerlink" href="#retriable-conditions" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">isRetriable</span><span class="p">(</span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Network errors</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">isNetworkError</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// HTTP status codes</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">statusCode</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">429</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// Rate limited</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">statusCode</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">500</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">statusCode</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">600</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// Server errors</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="w">  </span><span class="c1">// Client errors (4xx) are not retriable</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="backoff-jitter">Backoff Jitter<a class="headerlink" href="#backoff-jitter" title="Permanent link">&para;</a></h3>
+<p>To prevent thundering herd, random jitter can be added:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">delay</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">baseDelay</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">(</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="nx">attempt</span><span class="p">)</span>
+<span class="nx">jitter</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">(</span><span class="nx">rand</span><span class="p">.</span><span class="nx">Int63n</span><span class="p">(</span><span class="nb">int64</span><span class="p">(</span><span class="nx">delay</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">)))</span>
+<span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="nx">delay</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">jitter</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="rate-limiting-handling">Rate Limiting Handling<a class="headerlink" href="#rate-limiting-handling" title="Permanent link">&para;</a></h3>
+<p>When receiving 429 (Too Many Requests):</p>
+<ol>
+<li>Check <code>Retry-After</code> header if present</li>
+<li>Use exponential backoff if header absent</li>
+<li>Log rate limit event for monitoring</li>
+<li>Respect server's requested delay</li>
+</ol>
+<h2 id="concurrency-handling">Concurrency Handling<a class="headerlink" href="#concurrency-handling" title="Permanent link">&para;</a></h2>
+<h3 id="multi-user-operations">Multi-User Operations<a class="headerlink" href="#multi-user-operations" title="Permanent link">&para;</a></h3>
+<p>When processing multiple API keys:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">API_KEY</span><span class="o">=</span>user1_key,user2_key,user3_key
+</code></pre></div>
+<p>Processing is <strong>sequential</strong>, not concurrent:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">apiKeys</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Split</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Getenv</span><span class="p">(</span><span class="s">&quot;API_KEY&quot;</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;,&quot;</span><span class="p">)</span>
+
+<span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">apiKeys</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">client</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">immich</span><span class="p">.</span><span class="nx">NewClient</span><span class="p">(</span><span class="nx">apiURL</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="p">,</span><span class="w"> </span><span class="o">...</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">user</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">GetCurrentUser</span><span class="p">()</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logger</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;Failed for key: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">        </span><span class="k">continue</span><span class="w">  </span><span class="c1">// Skip this user, continue with others</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="nx">logger</span><span class="p">.</span><span class="nx">Infof</span><span class="p">(</span><span class="s">&quot;Processing user: %s&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c1">// Process stacks for this user</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">processStacks</span><span class="p">(</span><span class="nx">client</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logger</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;Error for user %s: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">        </span><span class="k">continue</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="why-sequential-processing">Why Sequential Processing?<a class="headerlink" href="#why-sequential-processing" title="Permanent link">&para;</a></h3>
+<p><strong>Design Choice</strong>: Sequential processing per user to:</p>
+<ol>
+<li><strong>Avoid API Rate Limits</strong>: Concurrent requests could exceed limits</li>
+<li><strong>Maintain Clear Logs</strong>: User-by-user logging is easier to follow</li>
+<li><strong>Prevent Resource Contention</strong>: Single HTTP client per user</li>
+<li><strong>Ensure Isolation</strong>: Errors in one user don't affect others</li>
+</ol>
+<h3 id="within-user-parallelism">Within-User Parallelism<a class="headerlink" href="#within-user-parallelism" title="Permanent link">&para;</a></h3>
+<p>Within a single user's processing, operations are sequential:</p>
+<div class="highlight"><pre><span></span><code>Fetch Stacks → Fetch Assets → Group Assets → Apply Changes
+    ↓             ↓               ↓              ↓
+  Serial        Serial          Serial         Serial
+</code></pre></div>
+<p><strong>Rationale</strong>:</p>
+<ul>
+<li>Stacks depend on assets (must fetch stacks first)</li>
+<li>Grouping requires all assets (can't parallelize)</li>
+<li>Stack operations have dependencies (delete before create)</li>
+</ul>
+<h3 id="thread-safety">Thread Safety<a class="headerlink" href="#thread-safety" title="Permanent link">&para;</a></h3>
+<p>HTTP client is <strong>not</strong> shared across goroutines:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Safe: New client per user</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">apiKeys</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">client</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">immich</span><span class="p">.</span><span class="nx">NewClient</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="w">  </span><span class="c1">// Fresh instance</span>
+<span class="w">    </span><span class="c1">// Use client for this user only</span>
+<span class="p">}</span>
+
+<span class="c1">// Unsafe: Sharing client across goroutines</span>
+<span class="nx">client</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">immich</span><span class="p">.</span><span class="nx">NewClient</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">apiKeys</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// DON&#39;T DO THIS - not thread-safe</span>
+<span class="w">        </span><span class="nx">client</span><span class="p">.</span><span class="nx">SetAPIKey</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}()</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="signal-handling">Signal Handling<a class="headerlink" href="#signal-handling" title="Permanent link">&para;</a></h3>
+<p>Graceful shutdown for cron mode:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">sigChan</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Signal</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="nx">signal</span><span class="p">.</span><span class="nx">Notify</span><span class="p">(</span><span class="nx">sigChan</span><span class="p">,</span><span class="w"> </span><span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGINT</span><span class="p">,</span><span class="w"> </span><span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGTERM</span><span class="p">)</span>
+
+<span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">&lt;-</span><span class="nx">sigChan</span>
+<span class="w">    </span><span class="nx">logger</span><span class="p">.</span><span class="nx">Info</span><span class="p">(</span><span class="s">&quot;Received shutdown signal&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">shutdownFlag</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w">  </span><span class="c1">// Set atomic flag</span>
+<span class="p">}()</span>
+
+<span class="k">for</span><span class="w"> </span><span class="p">!</span><span class="nx">shutdownFlag</span><span class="p">.</span><span class="nx">Get</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">runStacker</span><span class="p">()</span>
+<span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="nx">cronInterval</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="api-client-architecture">API Client Architecture<a class="headerlink" href="#api-client-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="http-client-configuration">HTTP Client Configuration<a class="headerlink" href="#http-client-configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nx">client</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Client</span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Timeout</span><span class="p">:</span><span class="w"> </span><span class="mi">600</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">,</span><span class="w">  </span><span class="c1">// 10 minutes</span>
+<span class="w">    </span><span class="nx">Transport</span><span class="p">:</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Transport</span><span class="p">{</span>
+<span class="w">        </span><span class="nx">MaxIdleConns</span><span class="p">:</span><span class="w">        </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">MaxIdleConnsPerHost</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">IdleConnTimeout</span><span class="p">:</span><span class="w">     </span><span class="mi">90</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">,</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="requestresponse-flow">Request/Response Flow<a class="headerlink" href="#requestresponse-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>1. Build Request
+   ├─ Set method (GET, POST, PUT, DELETE)
+   ├─ Build URL (baseURL + path)
+   ├─ Marshal JSON body (if present)
+   ├─ Set headers (Content-Type, x-api-key)
+   └─ Create http.Request
+
+2. Execute Request (with retries)
+   ├─ Attempt 1: Send request
+   │  ├─ Success? Return response
+   │  └─ Retriable error? Continue
+   ├─ Wait with exponential backoff
+   ├─ Attempt 2: Send request
+   │  └─ ...
+   └─ Attempt 3: Send request
+      └─ Fail if still erroring
+
+3. Handle Response
+   ├─ Check status code
+   ├─ Read response body
+   ├─ Unmarshal JSON (if expected)
+   └─ Return data or error
+</code></pre></div>
+<h3 id="connection-pooling">Connection Pooling<a class="headerlink" href="#connection-pooling" title="Permanent link">&para;</a></h3>
+<p>Benefits of connection pooling:</p>
+<ul>
+<li><strong>Reduced Latency</strong>: Reuse existing TCP connections</li>
+<li><strong>Lower Overhead</strong>: Avoid handshake for each request</li>
+<li><strong>Better Performance</strong>: Especially for many small requests</li>
+</ul>
+<p>Configuration:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">MaxIdleConns</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="w">          </span><span class="c1">// Total idle connections across all hosts</span>
+<span class="nx">MaxIdleConnsPerHost</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="w">   </span><span class="c1">// Idle connections per host</span>
+<span class="nx">IdleConnTimeout</span><span class="p">:</span><span class="w"> </span><span class="mi">90</span><span class="nx">s</span><span class="w">       </span><span class="c1">// Close idle connections after 90s</span>
+</code></pre></div>
+<h2 id="grouping-algorithm">Grouping Algorithm<a class="headerlink" href="#grouping-algorithm" title="Permanent link">&para;</a></h2>
+<h3 id="high-level-flow">High-Level Flow<a class="headerlink" href="#high-level-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Assets (unsorted) → Group By Criteria → Sort Within Groups → Stacks
+</code></pre></div>
+<h3 id="grouping-process">Grouping Process<a class="headerlink" href="#grouping-process" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Initialize Empty Groups</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nx">groups</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">][]</span><span class="nx">TAsset</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li><strong>Iterate All Assets</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">asset</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">assets</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">key</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">computeGroupKey</span><span class="p">(</span><span class="nx">asset</span><span class="p">,</span><span class="w"> </span><span class="nx">criteria</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">groups</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">groups</span><span class="p">[</span><span class="nx">key</span><span class="p">],</span><span class="w"> </span><span class="nx">asset</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<ol>
+<li><strong>Compute Group Key</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">computeGroupKey</span><span class="p">(</span><span class="nx">asset</span><span class="w"> </span><span class="nx">TAsset</span><span class="p">,</span><span class="w"> </span><span class="nx">criteria</span><span class="w"> </span><span class="p">[]</span><span class="nx">Criterion</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">keys</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{}</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">crit</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">criteria</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">switch</span><span class="w"> </span><span class="nx">crit</span><span class="p">.</span><span class="nx">Key</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s">&quot;originalFileName&quot;</span><span class="p">:</span>
+<span class="w">            </span><span class="nx">keys</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">keys</span><span class="p">,</span><span class="w"> </span><span class="nx">extractFilename</span><span class="p">(</span><span class="nx">asset</span><span class="p">,</span><span class="w"> </span><span class="nx">crit</span><span class="p">))</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s">&quot;localDateTime&quot;</span><span class="p">:</span>
+<span class="w">            </span><span class="nx">keys</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">keys</span><span class="p">,</span><span class="w"> </span><span class="nx">formatTime</span><span class="p">(</span><span class="nx">asset</span><span class="p">,</span><span class="w"> </span><span class="nx">crit</span><span class="p">))</span>
+<span class="w">        </span><span class="c1">// ... other criteria</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Join</span><span class="p">(</span><span class="nx">keys</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;|&quot;</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="parent-selection-within-group">Parent Selection Within Group<a class="headerlink" href="#parent-selection-within-group" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Sort Group by Promotion Rules</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nx">sort</span><span class="p">.</span><span class="nx">Slice</span><span class="p">(</span><span class="nx">group</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">i</span><span class="p">,</span><span class="w"> </span><span class="nx">j</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">compareByPromotionRules</span><span class="p">(</span><span class="nx">group</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span><span class="w"> </span><span class="nx">group</span><span class="p">[</span><span class="nx">j</span><span class="p">])</span>
+<span class="p">})</span>
+</code></pre></div>
+<ol>
+<li><strong>Promotion Rule Precedence</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code>1. PARENT_FILENAME_PROMOTE list order (left to right)
+2. PARENT_EXT_PROMOTE list order (left to right)
+3. Built-in extension rank (.jpeg &gt; .jpg &gt; .png &gt; others)
+4. Alphabetical order (case-insensitive)
+5. Local date/time (earliest first)
+6. Asset ID (lexicographic)
+</code></pre></div>
+<ol>
+<li><strong>First Asset Becomes Parent</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nx">parent</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">group</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nx">children</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">group</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</code></pre></div>
+<h2 id="performance-characteristics">Performance Characteristics<a class="headerlink" href="#performance-characteristics" title="Permanent link">&para;</a></h2>
+<h3 id="time-complexity">Time Complexity<a class="headerlink" href="#time-complexity" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Fetching Assets</strong>: O(n) where n = total assets</li>
+<li><strong>Grouping</strong>: O(n × m) where m = number of criteria</li>
+<li><strong>Sorting Groups</strong>: O(k × g log g) where k = number of groups, g = avg group size</li>
+<li><strong>Creating Stacks</strong>: O(k) API calls</li>
+<li><strong>Overall</strong>: O(n × m + k × g log g)</li>
+</ul>
+<h3 id="space-complexity">Space Complexity<a class="headerlink" href="#space-complexity" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Assets</strong>: O(n) - all assets stored in memory</li>
+<li><strong>Groups</strong>: O(n) - assets distributed across groups</li>
+<li><strong>Stacks Map</strong>: O(s) where s = number of existing stacks</li>
+<li><strong>Overall</strong>: O(n)</li>
+</ul>
+<h3 id="bottlenecks">Bottlenecks<a class="headerlink" href="#bottlenecks" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Network I/O</strong>: Fetching large asset lists from API</li>
+<li><strong>Regex Evaluation</strong>: Complex patterns on every asset</li>
+<li><strong>JSON Marshaling</strong>: Large payloads for stack operations</li>
+<li><strong>Memory</strong>: Large libraries (100k+ assets) can consume 1-2GB</li>
+</ol>
+<h3 id="optimization-strategies">Optimization Strategies<a class="headerlink" href="#optimization-strategies" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Use simple criteria (Legacy mode) for large libraries</li>
+<li>Increase time deltas to reduce group count</li>
+<li>Optimize regex patterns (anchors, no wildcards)</li>
+<li>Filter assets with WITH_ARCHIVED/WITH_DELETED</li>
+<li>Process in batches for very large libraries</li>
+</ul>
+<h2 id="logging-architecture">Logging Architecture<a class="headerlink" href="#logging-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="log-levels">Log Levels<a class="headerlink" href="#log-levels" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nx">trace</span><span class="w">   </span><span class="c1">// Very detailed (e.g., HTTP request/response bodies)</span>
+<span class="nx">debug</span><span class="w">   </span><span class="c1">// Detailed (e.g., parent selection decisions)</span>
+<span class="nx">info</span><span class="w">    </span><span class="c1">// Standard (e.g., stack created, assets processed)</span>
+<span class="nx">warn</span><span class="w">    </span><span class="c1">// Warnings (e.g., retries, unexpected conditions)</span>
+<span class="kt">error</span><span class="w">   </span><span class="c1">// Errors (e.g., API failures, invalid config)</span>
+</code></pre></div>
+<h3 id="structured-logging">Structured Logging<a class="headerlink" href="#structured-logging" title="Permanent link">&para;</a></h3>
+<p>Using logrus for structured logs:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">logger</span><span class="p">.</span><span class="nx">WithFields</span><span class="p">(</span><span class="nx">logrus</span><span class="p">.</span><span class="nx">Fields</span><span class="p">{</span>
+<span class="w">    </span><span class="s">&quot;assetID&quot;</span><span class="p">:</span><span class="w"> </span><span class="nx">asset</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span>
+<span class="w">    </span><span class="s">&quot;filename&quot;</span><span class="p">:</span><span class="w"> </span><span class="nx">asset</span><span class="p">.</span><span class="nx">OriginalFileName</span><span class="p">,</span>
+<span class="w">    </span><span class="s">&quot;stackID&quot;</span><span class="p">:</span><span class="w"> </span><span class="nx">stack</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span>
+<span class="p">}).</span><span class="nx">Info</span><span class="p">(</span><span class="s">&quot;Stack created&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="log-formats">Log Formats<a class="headerlink" href="#log-formats" title="Permanent link">&para;</a></h3>
+<p><strong>Text Format</strong> (human-readable):</p>
+<div class="highlight"><pre><span></span><code>level=info msg=&quot;Stack created&quot; assetID=abc-123 filename=IMG_1234.jpg
+</code></pre></div>
+<p><strong>JSON Format</strong> (machine-parseable):</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;info&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;msg&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Stack created&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;assetID&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc-123&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;filename&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;IMG_1234.jpg&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;time&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-12T10:30:00Z&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="dual-logging">Dual Logging<a class="headerlink" href="#dual-logging" title="Permanent link">&para;</a></h3>
+<p>When LOG_FILE is set:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="nx">logFile</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">file</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">OpenFile</span><span class="p">(</span><span class="nx">logFile</span><span class="p">,</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">O_CREATE</span><span class="o">|</span><span class="nx">os</span><span class="p">.</span><span class="nx">O_WRONLY</span><span class="o">|</span><span class="nx">os</span><span class="p">.</span><span class="nx">O_APPEND</span><span class="p">,</span><span class="w"> </span><span class="mo">0666</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logger</span><span class="p">.</span><span class="nx">SetOutput</span><span class="p">(</span><span class="nx">io</span><span class="p">.</span><span class="nx">MultiWriter</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stdout</span><span class="p">,</span><span class="w"> </span><span class="nx">file</span><span class="p">))</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Fallback to stdout only</span>
+<span class="w">        </span><span class="nx">logger</span><span class="p">.</span><span class="nx">Warn</span><span class="p">(</span><span class="s">&quot;Could not open log file, using stdout only&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="testing-architecture">Testing Architecture<a class="headerlink" href="#testing-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="test-structure">Test Structure<a class="headerlink" href="#test-structure" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>pkg/
+├─ stacker/
+│  ├─ stacker.go          # Implementation
+│  ├─ stacker_test.go     # Unit tests
+│  └─ stacker_integration_test.go  # Integration tests
+│
+└─ immich/
+   ├─ client.go           # API client
+   └─ client_test.go      # Mock API tests
+</code></pre></div>
+<h3 id="test-categories">Test Categories<a class="headerlink" href="#test-categories" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Unit Tests</strong>: Test individual functions in isolation</li>
+<li><strong>Integration Tests</strong>: Test component interactions</li>
+<li><strong>Mock Tests</strong>: Test API client with mock HTTP server</li>
+</ol>
+<h3 id="testing-best-practices">Testing Best Practices<a class="headerlink" href="#testing-best-practices" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Use table-driven tests for multiple scenarios</li>
+<li>Mock external dependencies (API, filesystem)</li>
+<li>Test edge cases (empty groups, single-asset stacks)</li>
+<li>Verify error handling paths</li>
+<li>Check log output for correct messages</li>
+</ul>
+<h2 id="security-considerations">Security Considerations<a class="headerlink" href="#security-considerations" title="Permanent link">&para;</a></h2>
+<h3 id="api-key-handling">API Key Handling<a class="headerlink" href="#api-key-handling" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Never log API keys (sanitize in logs)</li>
+<li>Store keys in environment variables, not files</li>
+<li>Support multiple keys for multi-user scenarios</li>
+<li>Validate key format before use</li>
+</ul>
+<h3 id="input-validation">Input Validation<a class="headerlink" href="#input-validation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Validate all user inputs (criteria, env vars)</li>
+<li>Sanitize regex patterns to prevent ReDoS</li>
+<li>Check for SQL injection in any database queries</li>
+<li>Validate file paths for log files</li>
+</ul>
+<h3 id="network-security">Network Security<a class="headerlink" href="#network-security" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Use HTTPS for API calls (validate TLS)</li>
+<li>Set reasonable timeouts to prevent DoS</li>
+<li>Implement rate limiting respect</li>
+<li>Handle redirects securely</li>
+</ul>
+<h2 id="future-architecture-considerations">Future Architecture Considerations<a class="headerlink" href="#future-architecture-considerations" title="Permanent link">&para;</a></h2>
+<h3 id="potential-improvements">Potential Improvements<a class="headerlink" href="#potential-improvements" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Incremental Processing</strong>: Track processed assets to skip on subsequent runs</li>
+<li><strong>Parallel API Calls</strong>: Concurrent fetching/updating with proper throttling</li>
+<li><strong>Persistent Cache</strong>: Cache asset metadata to reduce API calls</li>
+<li><strong>Batch Optimization</strong>: Group stack operations into larger batches</li>
+<li><strong>Streaming Processing</strong>: Process assets in streaming fashion for very large libraries</li>
+</ol>
+<h3 id="scalability-limits">Scalability Limits<a class="headerlink" href="#scalability-limits" title="Permanent link">&para;</a></h3>
+<p>Current architecture scales to:</p>
+<ul>
+<li><strong>Assets</strong>: ~200k (limited by memory)</li>
+<li><strong>Stacks</strong>: ~50k (limited by API response size)</li>
+<li><strong>Users</strong>: Unlimited (sequential processing)</li>
+<li><strong>API Calls</strong>: Respects rate limits with exponential backoff</li>
+</ul>
+<h3 id="extension-points">Extension Points<a class="headerlink" href="#extension-points" title="Permanent link">&para;</a></h3>
+<p>Areas designed for extension:</p>
+<ul>
+<li><strong>New Criteria Types</strong>: Add to criteria.go</li>
+<li><strong>Custom Comparison Logic</strong>: Extend grouping algorithm</li>
+<li><strong>Additional Commands</strong>: Add to cmd/ directory</li>
+<li><strong>Alternative APIs</strong>: Implement new client interface</li>
+</ul>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="January 25, 2026 11:12:47 UTC">January 25, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "search.highlight", "search.share", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
