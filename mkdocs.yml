@@ -56,6 +56,12 @@ nav:
       - Stacking Logic: features/stacking-logic.md
       - Multi-User Support: features/multi-user.md
       - Custom Criteria: features/custom-criteria.md
+  - How-To:
+      - Overview: how-to/index.md
+      - Real-World Examples: how-to/real-world-examples.md
+      - Debug Parent Selection: how-to/debug-parent-selection.md
+      - Migrate Criteria: how-to/migrate-criteria.md
+      - Optimize Performance: how-to/optimize-performance.md
   - Integration:
       - Docker: integration/docker.md
       - Docker Compose: integration/docker-compose.md

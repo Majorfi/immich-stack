@@ -4,6 +4,19 @@ Practical guides for common tasks and workflows with Immich Stack.
 
 ## Available Guides
 
+### [Real-World Examples](real-world-examples.md)
+
+Copy-paste configurations for common photo workflows. Covers:
+
+- RAW + JPEG pairing (Canon, Nikon, Sony, Fujifilm, Samsung, iPhone)
+- Google Pixel photos (RAW, Motion Photos, Night mode)
+- Google Photos edited versions
+- Lightroom numeric edits
+- Photoshop workflows (PSD + exports)
+- Burst photos and sequences
+- Mixed camera setups
+- Parent selection control
+
 ### [Debug Parent Selection](debug-parent-selection.md)
 
 Learn how to troubleshoot and debug parent selection issues when stacking photos. Covers:
@@ -36,7 +49,8 @@ Safely migrate from one stacking criteria configuration to another. Covers:
 
 ## Quick Links
 
-- **Having issues?** Start with [Troubleshooting Guide](../troubleshooting.md)
+- **Looking for examples?** Start with [Real-World Examples](real-world-examples.md)
+- **Having issues?** See [Troubleshooting Guide](../troubleshooting.md)
 - **Need performance?** See [Optimize Performance](optimize-performance.md)
 - **Changing criteria?** Read [Migrate Criteria](migrate-criteria.md)
 - **Wrong parents selected?** Check [Debug Parent Selection](debug-parent-selection.md)
