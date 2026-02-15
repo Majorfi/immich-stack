@@ -1,0 +1,3089 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Automatically groups similar photos into stacks within the Immich photo management system">
+      
+      
+        <meta name="author" content="MajorFi">
+      
+      
+      
+        <link rel="prev" href="../../integration/docker-compose/">
+      
+      
+        <link rel="next" href="../cli-usage/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Environment Variables - Immich Stack</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#environment-variables" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Immich Stack" class="md-header__button md-logo" aria-label="Immich Stack" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Immich Stack
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Environment Variables
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/majorfi/immich-stack" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    majorfi/immich-stack
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../commands/" class="md-tabs__link">
+          
+  
+  
+  Commands
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/stacking-logic/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/" class="md-tabs__link">
+          
+  
+  
+  How-To
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integration/docker/" class="md-tabs__link">
+          
+  
+  
+  Integration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/development/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Immich Stack" class="md-nav__button md-logo" aria-label="Immich Stack" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Immich Stack
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/majorfi/immich-stack" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    majorfi/immich-stack
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Commands
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/duplicates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Duplicates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/fix-trash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fix Trash
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/stacking-logic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacking Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/multi-user/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi-User Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-criteria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Criteria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-To
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-To
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/real-world-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-World Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/debug-parent-selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug Parent Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/migrate-criteria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrate Criteria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/optimize-performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimize Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integration/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment Variables
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment Variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#required-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-mode-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run Mode Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stack-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parent-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Selection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parent Selection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#empty-string-for-negative-matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty String for Negative Matching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequence-keyword" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sequence Keyword
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#automatic-sequence-detection-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic Sequence Detection (Legacy)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asset-inclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset Inclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asset-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset Filtering
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asset Filtering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#album-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Album Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#date-range-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Date Range Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Custom Criteria">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-criteria-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria Formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#legacy-array-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy Array Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-groups-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced Groups Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-expression-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced Expression Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Logging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cron-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cron Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-management_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parent-selection_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-criteria-legacy-array-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria - Legacy Array Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-criteria-advanced-groups-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria - Advanced Groups Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-criteria-advanced-expression-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria - Advanced Expression Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asset-filtering_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asset-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stack-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grouping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grouping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#required-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-mode-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run Mode Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stack-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parent-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Selection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parent Selection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#empty-string-for-negative-matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty String for Negative Matching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequence-keyword" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sequence Keyword
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#automatic-sequence-detection-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic Sequence Detection (Legacy)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asset-inclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset Inclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asset-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset Filtering
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asset Filtering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#album-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Album Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#date-range-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Date Range Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Custom Criteria">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-criteria-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria Formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#legacy-array-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy Array Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-groups-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced Groups Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-expression-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced Expression Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Logging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cron-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cron Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-management_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parent-selection_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-criteria-legacy-array-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria - Legacy Array Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-criteria-advanced-groups-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria - Advanced Groups Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-criteria-advanced-expression-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria - Advanced Expression Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asset-filtering_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h1>
+<p>This document provides a complete reference of all environment variables supported by Immich Stack.</p>
+<h2 id="required-variables">Required Variables<a class="headerlink" href="#required-variables" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>API_KEY</code></td>
+<td>Immich API key(s)</td>
+<td><code>API_KEY=key1,key2</code></td>
+</tr>
+<tr>
+<td><code>API_URL</code></td>
+<td>Immich API base URL</td>
+<td><code>API_URL=http://immich:2283/api</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="run-mode-configuration">Run Mode Configuration<a class="headerlink" href="#run-mode-configuration" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RUN_MODE</code></td>
+<td>Run mode: "once" or "cron"</td>
+<td>"once"</td>
+<td><code>cron</code></td>
+</tr>
+<tr>
+<td><code>CRON_INTERVAL</code></td>
+<td>Interval in seconds for cron</td>
+<td>86400 (when RUN_MODE is cron)</td>
+<td><code>3600</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="stack-management">Stack Management<a class="headerlink" href="#stack-management" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RESET_STACKS</code></td>
+<td>Delete all existing stacks before processing (only in <code>RUN_MODE=once</code>)</td>
+<td>false</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>CONFIRM_RESET_STACK</code></td>
+<td>Confirmation message for reset</td>
+<td>-</td>
+<td><code>"I acknowledge..."</code></td>
+</tr>
+<tr>
+<td><code>REPLACE_STACKS</code></td>
+<td>Replace stacks for new groups</td>
+<td>true</td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>DRY_RUN</code></td>
+<td>Simulate actions without making changes</td>
+<td>false</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>REMOVE_SINGLE_ASSET_STACKS</code></td>
+<td>Remove stacks containing only one asset</td>
+<td>false</td>
+<td><code>true</code></td>
+</tr>
+</tbody>
+</table>
+<p>Note:</p>
+<ul>
+<li><code>RESET_STACKS</code> can only be used when <code>RUN_MODE=once</code>. Using it in <code>cron</code> mode results in an error.</li>
+<li><code>CONFIRM_RESET_STACK</code> must match the exact confirmation phrase shown in the examples.</li>
+</ul>
+<h2 id="parent-selection">Parent Selection<a class="headerlink" href="#parent-selection" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PARENT_FILENAME_PROMOTE</code></td>
+<td>Substrings to promote as parent filenames. Supports empty string for negative matching, the <code>sequence</code> keyword and automatic sequence detection for burst photos.</td>
+<td><code>cover,edit,crop,hdr,biggestNumber</code></td>
+<td><code>,_edited</code> or <code>edit,raw</code> or <code>COVER,sequence</code> or <code>0000,0001,0002,0003</code></td>
+</tr>
+<tr>
+<td><code>PARENT_EXT_PROMOTE</code></td>
+<td>Extensions to promote as parent files</td>
+<td><code>.jpg,.png,.jpeg,.heic,.dng</code></td>
+<td><code>.jpg,.dng</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="empty-string-for-negative-matching">Empty String for Negative Matching<a class="headerlink" href="#empty-string-for-negative-matching" title="Permanent link">&para;</a></h3>
+<p>An empty string (<code>""</code>) in the promote list acts as a negative match - it matches files that <strong>don't</strong> contain any of the other non-empty substrings in the list:</p>
+<table>
+<thead>
+<tr>
+<th>Example</th>
+<th>Description</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>,_edited</code></td>
+<td>Prioritize unedited files</td>
+<td>Files without "_edited" are promoted first</td>
+</tr>
+<tr>
+<td><code>,_edited,_crop</code></td>
+<td>Prioritize clean filenames</td>
+<td>Files without "_edited" or "_crop" come first</td>
+</tr>
+<tr>
+<td><code>COVER,,_edited</code></td>
+<td>Complex priority</td>
+<td>COVER files first, then files without "_edited", then "_edited" files</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Promote unedited JPGs over edited ones</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>,_edited
+<span class="c1"># Result: IMG_1234.jpg &gt; IMG_1234_edited.jpg</span>
+
+<span class="c1"># Multiple exclusions</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>,_edited,_crop,_cropped
+<span class="c1"># Result: IMG_1234.jpg &gt; IMG_1234_edited.jpg &gt; IMG_1234_crop.jpg &gt; IMG_1234_cropped.jpg</span>
+</code></pre></div>
+<h3 id="sequence-keyword">Sequence Keyword<a class="headerlink" href="#sequence-keyword" title="Permanent link">&para;</a></h3>
+<p>The <code>sequence</code> keyword provides flexible handling of sequential files (like burst photos):</p>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Description</th>
+<th>Example Files</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sequence</code></td>
+<td>Matches any numeric sequence</td>
+<td><code>IMG_0001.jpg</code>, <code>IMG_0010.jpg</code>, <code>IMG_0100.jpg</code></td>
+<td>Orders by numeric value: 1, 10, 100</td>
+</tr>
+<tr>
+<td><code>sequence:4</code></td>
+<td>Matches exactly 4-digit sequences</td>
+<td><code>IMG_0001.jpg</code>, <code>IMG_0010.jpg</code></td>
+<td>Only matches 4-digit numbers</td>
+</tr>
+<tr>
+<td><code>sequence:IMG_</code></td>
+<td>Matches sequences with specific prefix</td>
+<td><code>IMG_001.jpg</code>, <code>PHOTO_001.jpg</code></td>
+<td>Only orders files starting with <code>IMG_</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mixed Promote Lists:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Prioritize COVER files, then order remaining by sequence</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>COVER,sequence
+
+<span class="c1"># Prioritize edited files, then 4-digit sequences</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>edit,sequence:4
+</code></pre></div>
+<h3 id="automatic-sequence-detection-legacy">Automatic Sequence Detection (Legacy)<a class="headerlink" href="#automatic-sequence-detection-legacy" title="Permanent link">&para;</a></h3>
+<p>When <code>PARENT_FILENAME_PROMOTE</code> contains a numeric sequence pattern (e.g., <code>0000,0001,0002,0003</code>), the system automatically:</p>
+<ul>
+<li>Detects the sequence pattern (prefix, number, suffix)</li>
+<li>Matches files that follow the same pattern</li>
+<li>Orders files by their numeric value, even beyond the listed values</li>
+<li>Works with various formats: <code>IMG_0001</code>, <code>photo001</code>, <code>1a</code>, etc.</li>
+</ul>
+<p><strong>Note:</strong> The <code>sequence</code> keyword is recommended over listing individual numbers for better flexibility.</p>
+<h2 id="asset-inclusion">Asset Inclusion<a class="headerlink" href="#asset-inclusion" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WITH_ARCHIVED</code></td>
+<td>Include archived assets in processing</td>
+<td>false</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>WITH_DELETED</code></td>
+<td>Include deleted assets in processing</td>
+<td>false</td>
+<td><code>true</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="asset-filtering">Asset Filtering<a class="headerlink" href="#asset-filtering" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FILTER_ALBUM_IDS</code></td>
+<td>Filter by album IDs or names (comma-separated)</td>
+<td>-</td>
+<td><code>album-uuid-1,My Photos</code></td>
+</tr>
+<tr>
+<td><code>FILTER_TAKEN_AFTER</code></td>
+<td>Only process assets taken after this date (ISO 8601)</td>
+<td>-</td>
+<td><code>2024-01-01T00:00:00Z</code></td>
+</tr>
+<tr>
+<td><code>FILTER_TAKEN_BEFORE</code></td>
+<td>Only process assets taken before this date (ISO 8601)</td>
+<td>-</td>
+<td><code>2024-12-31T23:59:59Z</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="album-filtering">Album Filtering<a class="headerlink" href="#album-filtering" title="Permanent link">&para;</a></h3>
+<p>Album filters accept both UUIDs and album names:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># By UUID</span>
+<span class="nv">FILTER_ALBUM_IDS</span><span class="o">=</span>550e8400-e29b-41d4-a716-446655440000
+
+<span class="c1"># By name</span>
+<span class="nv">FILTER_ALBUM_IDS</span><span class="o">=</span>Vacation<span class="w"> </span>Photos
+
+<span class="c1"># Multiple albums (OR logic - assets from ANY album)</span>
+<span class="nv">FILTER_ALBUM_IDS</span><span class="o">=</span>album-uuid-1,Vacation<span class="w"> </span>Photos,Family
+</code></pre></div>
+<p>When multiple albums are specified, assets from <strong>any</strong> of the albums are processed (OR logic).</p>
+<h3 id="date-range-filtering">Date Range Filtering<a class="headerlink" href="#date-range-filtering" title="Permanent link">&para;</a></h3>
+<p>Date filters use ISO 8601 (RFC3339) format:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Assets from 2024 only</span>
+<span class="nv">FILTER_TAKEN_AFTER</span><span class="o">=</span><span class="m">2024</span>-01-01T00:00:00Z
+<span class="nv">FILTER_TAKEN_BEFORE</span><span class="o">=</span><span class="m">2024</span>-12-31T23:59:59Z
+
+<span class="c1"># Assets from last month</span>
+<span class="nv">FILTER_TAKEN_AFTER</span><span class="o">=</span><span class="m">2024</span>-11-01T00:00:00Z
+</code></pre></div>
+<p>Valid date formats:</p>
+<ul>
+<li><code>2024-01-15T10:30:00Z</code> (UTC)</li>
+<li><code>2024-01-15T10:30:00+00:00</code> (with timezone offset)</li>
+<li><code>2024-01-15T10:30:00-05:00</code> (EST timezone)</li>
+</ul>
+<h2 id="custom-criteria">Custom Criteria<a class="headerlink" href="#custom-criteria" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CRITERIA</code></td>
+<td>Custom grouping criteria JSON</td>
+<td>See below</td>
+<td>See <a href="../../features/custom-criteria/">Custom Criteria</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="default-criteria">Default Criteria<a class="headerlink" href="#default-criteria" title="Permanent link">&para;</a></h3>
+<p>When <code>CRITERIA</code> is not set, the following default is used:</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;originalFileName&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;split&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;delimiters&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;~&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;.&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localDateTime&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;delta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;milliseconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">]</span>
+</code></pre></div>
+<p>This groups photos by:</p>
+<ul>
+<li>Base filename (before <code>~</code> or <code>.</code>)</li>
+<li>Time captured (within 1 second tolerance)</li>
+</ul>
+<h3 id="custom-criteria-formats">Custom Criteria Formats<a class="headerlink" href="#custom-criteria-formats" title="Permanent link">&para;</a></h3>
+<p>The <code>CRITERIA</code> environment variable supports three formats for flexible asset stacking:</p>
+<h3 id="legacy-array-format">Legacy Array Format<a class="headerlink" href="#legacy-array-format" title="Permanent link">&para;</a></h3>
+<p>Simple array of criteria where ALL conditions must match (AND logic):</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;originalFileName&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;split&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;delimiters&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;~&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;.&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localDateTime&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;delta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;milliseconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="p">]</span>
+</code></pre></div>
+<h3 id="advanced-groups-format">Advanced Groups Format<a class="headerlink" href="#advanced-groups-format" title="Permanent link">&para;</a></h3>
+<p>Flexible format supporting multiple grouping strategies with OR/AND logic:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;advanced&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;groups&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AND&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;originalFileName&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;regex&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PXL_\\d{8}_\\d+&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localDateTime&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;delta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;milliseconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="advanced-expression-format">Advanced Expression Format<a class="headerlink" href="#advanced-expression-format" title="Permanent link">&para;</a></h3>
+<p>Most powerful format supporting unlimited nested logical expressions with AND, OR, and NOT operations:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;advanced&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;expression&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AND&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;children&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;OR&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;children&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;originalFileName&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;regex&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PXL_\\d{8}_\\d+&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;originalPath&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;split&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;delimiters&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;/&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localDateTime&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;delta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;milliseconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Format Features:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Complexity</th>
+<th>Use Case</th>
+<th>Logic Support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Legacy</strong></td>
+<td>Simple</td>
+<td>Basic grouping</td>
+<td>AND only</td>
+</tr>
+<tr>
+<td><strong>Groups</strong></td>
+<td>Medium</td>
+<td>Multiple grouping strategies</td>
+<td>AND/OR per group</td>
+</tr>
+<tr>
+<td><strong>Expression</strong></td>
+<td>Advanced</td>
+<td>Complex logical conditions</td>
+<td>Unlimited nesting with AND/OR/NOT</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Expression Format Benefits:</strong></p>
+<ul>
+<li><strong>Unlimited Nesting</strong>: Create complex logical trees with multiple levels</li>
+<li><strong>Full Logic Support</strong>: AND, OR, and NOT operators at any level</li>
+<li><strong>Precise Control</strong>: Express any logical combination of criteria</li>
+<li><strong>Backward Compatible</strong>: All legacy formats continue to work unchanged</li>
+</ul>
+<p><strong>Complex Expression Example:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;advanced&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;expression&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AND&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;children&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;OR&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;children&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;originalFileName&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;regex&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PXL_&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;originalFileName&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="nt">&quot;regex&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;IMG_&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;NOT&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;children&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;isArchived&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}]</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localDateTime&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;delta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;milliseconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2000</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This example groups assets that:</p>
+<ul>
+<li>Have filenames starting with "PXL*" OR "IMG*"</li>
+<li>AND are NOT archived</li>
+<li>AND were taken within 2 seconds of each other</li>
+</ul>
+<h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LOG_LEVEL</code></td>
+<td>Log level (trace,debug,info,warn,error)</td>
+<td>info</td>
+<td><code>debug</code></td>
+</tr>
+<tr>
+<td><code>LOG_FORMAT</code></td>
+<td>Log format (json,text)</td>
+<td>text</td>
+<td><code>json</code></td>
+</tr>
+<tr>
+<td><code>LOG_FILE</code></td>
+<td>Optional file path for dual logging output</td>
+<td>-</td>
+<td><code>/app/logs/immich-stack.log</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="file-logging">File Logging<a class="headerlink" href="#file-logging" title="Permanent link">&para;</a></h3>
+<p>When <code>LOG_FILE</code> is set, logs are written to both stdout (visible in <code>docker logs</code>) and the specified file. This is useful for:</p>
+<ul>
+<li>Persistent log storage across container restarts</li>
+<li>Log aggregation and analysis</li>
+<li>Debugging issues after they occur</li>
+</ul>
+<p>To enable file logging with Docker:</p>
+<ol>
+<li>Set the <code>LOG_FILE</code> environment variable to a path inside the container</li>
+<li>Mount a host directory to persist logs</li>
+</ol>
+<p>Example Docker Compose configuration:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">environment</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LOG_FILE=/app/logs/immich-stack.log</span>
+<span class="nt">volumes</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./logs:/app/logs</span>
+</code></pre></div>
+<p>If the log file cannot be created (e.g., permission issues), the application gracefully falls back to stdout-only logging.</p>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="basic-configuration">Basic Configuration<a class="headerlink" href="#basic-configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nv">API_KEY</span><span class="o">=</span>your_key
+<span class="nv">API_URL</span><span class="o">=</span>http://immich:2283/api
+</code></pre></div>
+<h3 id="cron-mode">Cron Mode<a class="headerlink" href="#cron-mode" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nv">RUN_MODE</span><span class="o">=</span>cron
+<span class="nv">CRON_INTERVAL</span><span class="o">=</span><span class="m">3600</span>
+</code></pre></div>
+<h3 id="stack-management_1">Stack Management<a class="headerlink" href="#stack-management_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nv">RESET_STACKS</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">CONFIRM_RESET_STACK</span><span class="o">=</span><span class="s2">&quot;I acknowledge all my current stacks will be deleted and new one will be created&quot;</span>
+<span class="nv">REPLACE_STACKS</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">DRY_RUN</span><span class="o">=</span><span class="nb">false</span>
+<span class="nv">REMOVE_SINGLE_ASSET_STACKS</span><span class="o">=</span><span class="nb">true</span>
+</code></pre></div>
+<p>This operation requires <code>RUN_MODE=once</code>.</p>
+<h3 id="parent-selection_1">Parent Selection<a class="headerlink" href="#parent-selection_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>edit,raw
+<span class="nv">PARENT_EXT_PROMOTE</span><span class="o">=</span>.jpg,.dng
+</code></pre></div>
+<h3 id="custom-criteria-legacy-array-format">Custom Criteria - Legacy Array Format<a class="headerlink" href="#custom-criteria-legacy-array-format" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;[{&quot;key&quot;:&quot;originalFileName&quot;,&quot;split&quot;:{&quot;delimiters&quot;:[&quot;~&quot;,&quot;.&quot;],&quot;index&quot;:0}},{&quot;key&quot;:&quot;localDateTime&quot;,&quot;delta&quot;:{&quot;milliseconds&quot;:1000}}]&#39;</span>
+</code></pre></div>
+<h3 id="custom-criteria-advanced-groups-format">Custom Criteria - Advanced Groups Format<a class="headerlink" href="#custom-criteria-advanced-groups-format" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Filter PXL files AND group by timestamp</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;{</span>
+<span class="s1">  &quot;mode&quot;: &quot;advanced&quot;,</span>
+<span class="s1">  &quot;groups&quot;: [</span>
+<span class="s1">    {</span>
+<span class="s1">      &quot;operator&quot;: &quot;AND&quot;,</span>
+<span class="s1">      &quot;criteria&quot;: [</span>
+<span class="s1">        {&quot;key&quot;: &quot;originalFileName&quot;, &quot;regex&quot;: {&quot;key&quot;: &quot;PXL_\\d{8}_\\d+&quot;, &quot;index&quot;: 0}},</span>
+<span class="s1">        {&quot;key&quot;: &quot;localDateTime&quot;, &quot;delta&quot;: {&quot;milliseconds&quot;: 1000}}</span>
+<span class="s1">      ]</span>
+<span class="s1">    }</span>
+<span class="s1">  ]</span>
+<span class="s1">}&#39;</span>
+
+<span class="c1"># Group by same directory OR same timestamp</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;{</span>
+<span class="s1">  &quot;mode&quot;: &quot;advanced&quot;,</span>
+<span class="s1">  &quot;groups&quot;: [</span>
+<span class="s1">    {</span>
+<span class="s1">      &quot;operator&quot;: &quot;OR&quot;,</span>
+<span class="s1">      &quot;criteria&quot;: [</span>
+<span class="s1">        {&quot;key&quot;: &quot;originalPath&quot;, &quot;split&quot;: {&quot;delimiters&quot;: [&quot;/&quot;], &quot;index&quot;: 2}},</span>
+<span class="s1">        {&quot;key&quot;: &quot;localDateTime&quot;, &quot;delta&quot;: {&quot;milliseconds&quot;: 1000}}</span>
+<span class="s1">      ]</span>
+<span class="s1">    }</span>
+<span class="s1">  ]</span>
+<span class="s1">}&#39;</span>
+</code></pre></div>
+<h3 id="custom-criteria-advanced-expression-format">Custom Criteria - Advanced Expression Format<a class="headerlink" href="#custom-criteria-advanced-expression-format" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Complex multi-camera setup with exclusions</span>
+<span class="nv">CRITERIA</span><span class="o">=</span><span class="s1">&#39;{</span>
+<span class="s1">  &quot;mode&quot;: &quot;advanced&quot;,</span>
+<span class="s1">  &quot;expression&quot;: {</span>
+<span class="s1">    &quot;operator&quot;: &quot;AND&quot;,</span>
+<span class="s1">    &quot;children&quot;: [</span>
+<span class="s1">      {</span>
+<span class="s1">        &quot;operator&quot;: &quot;OR&quot;,</span>
+<span class="s1">        &quot;children&quot;: [</span>
+<span class="s1">          {&quot;criteria&quot;: {&quot;key&quot;: &quot;originalFileName&quot;, &quot;regex&quot;: {&quot;key&quot;: &quot;PXL_&quot;, &quot;index&quot;: 0}}},</span>
+<span class="s1">          {&quot;criteria&quot;: {&quot;key&quot;: &quot;originalFileName&quot;, &quot;regex&quot;: {&quot;key&quot;: &quot;IMG_&quot;, &quot;index&quot;: 0}}}</span>
+<span class="s1">        ]</span>
+<span class="s1">      },</span>
+<span class="s1">      {</span>
+<span class="s1">        &quot;operator&quot;: &quot;NOT&quot;,</span>
+<span class="s1">        &quot;children&quot;: [</span>
+<span class="s1">          {&quot;criteria&quot;: {&quot;key&quot;: &quot;isArchived&quot;}}</span>
+<span class="s1">        ]</span>
+<span class="s1">      },</span>
+<span class="s1">      {&quot;criteria&quot;: {&quot;key&quot;: &quot;localDateTime&quot;, &quot;delta&quot;: {&quot;milliseconds&quot;: 2000}}}</span>
+<span class="s1">    ]</span>
+<span class="s1">  }</span>
+<span class="s1">}&#39;</span>
+</code></pre></div>
+<h3 id="asset-filtering_1">Asset Filtering<a class="headerlink" href="#asset-filtering_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Filter by specific album</span>
+<span class="nv">FILTER_ALBUM_IDS</span><span class="o">=</span>550e8400-e29b-41d4-a716-446655440000
+
+<span class="c1"># Filter by multiple albums (OR logic)</span>
+<span class="nv">FILTER_ALBUM_IDS</span><span class="o">=</span>album-1,Vacation<span class="w"> </span>Photos,Family<span class="w"> </span>Events
+
+<span class="c1"># Filter by date range</span>
+<span class="nv">FILTER_TAKEN_AFTER</span><span class="o">=</span><span class="m">2024</span>-01-01T00:00:00Z
+<span class="nv">FILTER_TAKEN_BEFORE</span><span class="o">=</span><span class="m">2024</span>-12-31T23:59:59Z
+
+<span class="c1"># Combined: specific album and date range</span>
+<span class="nv">FILTER_ALBUM_IDS</span><span class="o">=</span>My<span class="w"> </span>Photos
+<span class="nv">FILTER_TAKEN_AFTER</span><span class="o">=</span><span class="m">2024</span>-06-01T00:00:00Z
+</code></pre></div>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Security</strong></p>
+</li>
+<li>
+<p>Never commit API keys to version control</p>
+</li>
+<li>Use environment-specific .env files</li>
+<li>
+<p>Rotate API keys regularly</p>
+</li>
+<li>
+<p><strong>Configuration</strong></p>
+</li>
+<li>
+<p>Use specific versions in production</p>
+</li>
+<li>Document all custom configurations</li>
+<li>
+<p>Test changes in development first</p>
+</li>
+<li>
+<p><strong>Monitoring</strong></p>
+</li>
+<li>
+<p>Enable debug logging when needed</p>
+</li>
+<li>Monitor cron job execution</li>
+<li>
+<p>Check stack operation results</p>
+</li>
+<li>
+<p><strong>Maintenance</strong></p>
+</li>
+<li>
+<p>Review and update configurations regularly</p>
+</li>
+<li>Clean up old stacks periodically</li>
+<li>Monitor API usage and limits</li>
+</ol>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 15, 2026 15:39:03 UTC">February 15, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "search.highlight", "search.share", "search.suggest"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

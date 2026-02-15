@@ -1,0 +1,2680 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Automatically groups similar photos into stacks within the Immich photo management system">
+      
+      
+        <meta name="author" content="MajorFi">
+      
+      
+      
+        <link rel="prev" href="../../commands/fix-trash/">
+      
+      
+        <link rel="next" href="../multi-user/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Stacking Logic - Immich Stack</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#stacking-logic" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Immich Stack" class="md-header__button md-logo" aria-label="Immich Stack" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Immich Stack
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Stacking Logic
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/majorfi/immich-stack" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    majorfi/immich-stack
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../commands/" class="md-tabs__link">
+          
+  
+  
+  Commands
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/" class="md-tabs__link">
+          
+  
+  
+  How-To
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integration/docker/" class="md-tabs__link">
+          
+  
+  
+  Integration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api-reference/environment-variables/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/development/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Immich Stack" class="md-nav__button md-logo" aria-label="Immich Stack" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Immich Stack
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/majorfi/immich-stack" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    majorfi/immich-stack
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Commands
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/duplicates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Duplicates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../commands/fix-trash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fix Trash
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacking Logic
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacking Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#grouping-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouping Modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Grouping Modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-legacy-mode-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Legacy Mode (Default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-advanced-groups-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Advanced Groups Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-advanced-expression-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Advanced Expression Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sorting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sorting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#standard-promotion-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Standard Promotion Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empty-string-negative-matching-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty String (Negative Matching) Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#burst-photo-sequence-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burst Photo Sequence Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequence-keyword-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sequence Keyword Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supported-sequence-patterns-legacy-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Sequence Patterns (Legacy Method)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stacking-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stacking Process
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#safe-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Safe Operations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parent-selection-edge-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Selection Edge Cases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parent Selection Edge Cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#multiple-promotion-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Promotion Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequence-keyword-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sequence Keyword Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mixed-case-filenames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mixed Case Filenames
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unicode-and-special-characters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unicode and Special Characters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tie-breaking-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tie-Breaking Logic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empty-string-edge-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty String Edge Cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-implications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Implications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance Implications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#expression-mode-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Expression Mode Complexity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memory-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regex-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regex Performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-delta-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time Delta Performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../multi-user/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi-User Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom-criteria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Criteria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-To
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-To
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/real-world-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-World Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/debug-parent-selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug Parent Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/migrate-criteria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrate Criteria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/optimize-performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimize Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integration/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/environment-variables/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment Variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/cli-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/asset-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/stack-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/grouping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grouping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#grouping-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouping Modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Grouping Modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-legacy-mode-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Legacy Mode (Default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-advanced-groups-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Advanced Groups Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-advanced-expression-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Advanced Expression Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sorting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sorting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#standard-promotion-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Standard Promotion Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empty-string-negative-matching-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty String (Negative Matching) Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#burst-photo-sequence-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burst Photo Sequence Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequence-keyword-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sequence Keyword Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supported-sequence-patterns-legacy-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Sequence Patterns (Legacy Method)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stacking-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stacking Process
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#safe-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Safe Operations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parent-selection-edge-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Selection Edge Cases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parent Selection Edge Cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#multiple-promotion-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Promotion Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequence-keyword-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sequence Keyword Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mixed-case-filenames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mixed Case Filenames
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unicode-and-special-characters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unicode and Special Characters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tie-breaking-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tie-Breaking Logic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empty-string-edge-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty String Edge Cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-implications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Implications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance Implications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#expression-mode-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Expression Mode Complexity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memory-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regex-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regex Performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-delta-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time Delta Performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="stacking-logic">Stacking Logic<a class="headerlink" href="#stacking-logic" title="Permanent link">&para;</a></h1>
+<h2 id="grouping-modes">Grouping Modes<a class="headerlink" href="#grouping-modes" title="Permanent link">&para;</a></h2>
+<p>Immich Stack supports three grouping modes with increasing complexity and power:</p>
+<h3 id="1-legacy-mode-default">1. Legacy Mode (Default)<a class="headerlink" href="#1-legacy-mode-default" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Default Criteria:</strong> Groups by base filename (before extension) and local capture time</li>
+<li><strong>Logic:</strong> Simple AND operation - all criteria must match</li>
+<li><strong>Configuration:</strong> Array format in <code>CRITERIA</code> environment variable</li>
+</ul>
+<h3 id="2-advanced-groups-mode">2. Advanced Groups Mode<a class="headerlink" href="#2-advanced-groups-mode" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Multiple Strategies:</strong> Support for multiple grouping approaches</li>
+<li><strong>Logic:</strong> Configurable AND/OR operations per group</li>
+<li><strong>Configuration:</strong> Object format with <code>"mode": "advanced"</code> and <code>groups</code> array</li>
+</ul>
+<h3 id="3-advanced-expression-mode">3. Advanced Expression Mode<a class="headerlink" href="#3-advanced-expression-mode" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Maximum Flexibility:</strong> Unlimited nested logical expressions</li>
+<li><strong>Logic:</strong> Full support for AND, OR, and NOT operations with unlimited nesting</li>
+<li><strong>Configuration:</strong> Object format with <code>"mode": "advanced"</code> and <code>expression</code> tree</li>
+</ul>
+<h2 id="custom-criteria">Custom Criteria<a class="headerlink" href="#custom-criteria" title="Permanent link">&para;</a></h2>
+<p>Override default grouping behavior with the <code>--criteria</code> flag or <code>CRITERIA</code> environment variable using any of the three supported formats. See <a href="../custom-criteria/">Custom Criteria</a> for complete documentation.</p>
+<h2 id="sorting">Sorting<a class="headerlink" href="#sorting" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Parent Promotion:</strong> Use <code>--parent-filename-promote</code> or <code>PARENT_FILENAME_PROMOTE</code> (comma-separated substrings) to promote files as stack parents</li>
+<li><strong>Empty String for Negative Matching:</strong> Use an empty string in the promote list to prioritize files that DON'T contain any of the other substrings (e.g., <code>,edit</code> promotes unedited files first)</li>
+<li><strong>Sequence Keyword:</strong> Use the <code>sequence</code> keyword for flexible sequential file handling (e.g., <code>sequence</code>, <code>sequence:4</code>, <code>sequence:IMG_</code>)</li>
+<li><strong>Sequence Detection:</strong> Automatically detects numeric sequences in promote lists (e.g., <code>0000,0001,0002</code>) and uses intelligent matching for burst photos</li>
+<li><strong>Extension Promotion:</strong> Use <code>--parent-ext-promote</code> or <code>PARENT_EXT_PROMOTE</code> (comma-separated extensions) to further prioritize</li>
+<li><strong>Extension Rank:</strong> Built-in priority: <code>.jpeg</code> &gt; <code>.jpg</code> &gt; <code>.png</code> &gt; others</li>
+<li><strong>Alphabetical:</strong> Final tiebreaker</li>
+</ul>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="standard-promotion-example">Standard Promotion Example<a class="headerlink" href="#standard-promotion-example" title="Permanent link">&para;</a></h3>
+<p>For files: <code>L1010229.JPG</code>, <code>L1010229.edit.jpg</code>, <code>L1010229.DNG</code></p>
+<p>With <code>PARENT_FILENAME_PROMOTE=edit</code> and <code>PARENT_EXT_PROMOTE=.jpg,.dng</code> in your .env file, or with <code>--parent-filename-promote=edit</code> and <code>--parent-ext-promote=.jpg,.dng</code>, the order will be:</p>
+<div class="highlight"><pre><span></span><code>L1010229.edit.jpg
+L1010229.JPG
+L1010229.DNG
+</code></pre></div>
+<h3 id="empty-string-negative-matching-example">Empty String (Negative Matching) Example<a class="headerlink" href="#empty-string-negative-matching-example" title="Permanent link">&para;</a></h3>
+<p>For files that lack EXIF data after editing, you can prioritize unedited files using empty string matching:</p>
+<p>For files: <code>IMG_1234.jpg</code>, <code>IMG_1234_edited.jpg</code>, <code>IMG_1234_crop.jpg</code></p>
+<p>With <code>PARENT_FILENAME_PROMOTE=,_edited,_crop</code>, the empty string matches files WITHOUT "_edited" or "_crop":</p>
+<div class="highlight"><pre><span></span><code>IMG_1234.jpg          # Promoted first (doesn&#39;t contain _edited or _crop)
+IMG_1234_edited.jpg   # Second priority
+IMG_1234_crop.jpg     # Third priority
+</code></pre></div>
+<p>This is particularly useful when edited JPGs lose their EXIF data and would otherwise appear in the wrong timeline position.</p>
+<h3 id="burst-photo-sequence-example">Burst Photo Sequence Example<a class="headerlink" href="#burst-photo-sequence-example" title="Permanent link">&para;</a></h3>
+<p>For burst photo files: <code>DSCPDC_0000_BURST20180828114700954.JPG</code>, <code>DSCPDC_0001_BURST20180828114700954.JPG</code>, <code>DSCPDC_0002_BURST20180828114700954.JPG</code>, <code>DSCPDC_0003_BURST20180828114700954_COVER.JPG</code></p>
+<p>With <code>PARENT_FILENAME_PROMOTE=0000,0001,0002,0003</code>, the system automatically detects this as a numeric sequence and orders them correctly:</p>
+<div class="highlight"><pre><span></span><code>DSCPDC_0000_BURST20180828114700954.JPG
+DSCPDC_0001_BURST20180828114700954.JPG
+DSCPDC_0002_BURST20180828114700954.JPG
+DSCPDC_0003_BURST20180828114700954_COVER.JPG
+</code></pre></div>
+<p>The sequence detection works even with numbers beyond your promote list. For example, if you have <code>PARENT_FILENAME_PROMOTE=0000,0001,0002,0003</code> but your files include <code>DSCPDC_0999_BURST...</code>, it will be sorted at position 999 automatically.</p>
+<h3 id="sequence-keyword-examples">Sequence Keyword Examples<a class="headerlink" href="#sequence-keyword-examples" title="Permanent link">&para;</a></h3>
+<p>The <code>sequence</code> keyword provides powerful and flexible sequence handling:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Order any numeric sequence (1, 2, 10, 100, etc.)</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>sequence
+
+<span class="c1"># Order only 4-digit sequences (0001, 0002, 0010, 0100, etc.)</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>sequence:4
+
+<span class="c1"># Order sequences with specific prefix</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>sequence:IMG_
+
+<span class="c1"># Mix with other promote values - COVER files first, then sequence</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>COVER,sequence
+
+<span class="c1"># Multiple criteria - edited files first, then sequences</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>edit,hdr,sequence
+</code></pre></div>
+<h3 id="supported-sequence-patterns-legacy-method">Supported Sequence Patterns (Legacy Method)<a class="headerlink" href="#supported-sequence-patterns-legacy-method" title="Permanent link">&para;</a></h3>
+<p>The system can detect various sequence patterns when using comma-separated numbers:</p>
+<ul>
+<li>Pure numbers: <code>0000,0001,0002,0003</code></li>
+<li>Prefixed numbers: <code>img1,img2,img3</code> or <code>IMG_0001,IMG_0002,IMG_0003</code></li>
+<li>Suffixed numbers: <code>1a,2a,3a</code> or <code>001_final,002_final,003_final</code></li>
+<li>Complex patterns: <code>photo_001_v2,photo_002_v2,photo_003_v2</code></li>
+</ul>
+<p><strong>Note:</strong> The <code>sequence</code> keyword is more flexible and recommended over listing individual sequence numbers.</p>
+<h2 id="stacking-process">Stacking Process<a class="headerlink" href="#stacking-process" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Fetch all stacks and assets</strong> from Immich</li>
+<li><strong>Determine grouping mode</strong> based on <code>CRITERIA</code> configuration:</li>
+<li><strong>Legacy Mode:</strong> Apply simple AND logic to array of criteria</li>
+<li><strong>Groups Mode:</strong> Process each criteria group with configured AND/OR logic</li>
+<li><strong>Expression Mode:</strong> Recursively evaluate nested logical expressions</li>
+<li><strong>Group assets</strong> into stacks using the selected mode and criteria</li>
+<li><strong>Sort each stack</strong> to determine the parent and children using promotion rules</li>
+<li><strong>Apply changes</strong> via the Immich API (create, update, or delete stacks as needed)</li>
+<li><strong>Log all actions</strong> and optionally run in dry-run mode for safety</li>
+</ol>
+<h2 id="safe-operations">Safe Operations<a class="headerlink" href="#safe-operations" title="Permanent link">&para;</a></h2>
+<p>The stacker includes several safety features:</p>
+<ul>
+<li><strong>Dry Run Mode:</strong> Use <code>--dry-run</code> or <code>DRY_RUN=true</code> to simulate actions without making changes</li>
+<li><strong>Stack Replacement:</strong> Use <code>--replace-stacks</code> or <code>REPLACE_STACKS=true</code> to replace existing stacks</li>
+<li><strong>Stack Reset:</strong> Use <code>--reset-stacks</code> or <code>RESET_STACKS=true</code> with confirmation to delete all stacks (requires <code>RUN_MODE=once</code>)</li>
+<li><strong>Confirmation Required:</strong> Stack reset requires explicit confirmation via <code>CONFIRM_RESET_STACK</code></li>
+</ul>
+<h2 id="parent-selection-edge-cases">Parent Selection Edge Cases<a class="headerlink" href="#parent-selection-edge-cases" title="Permanent link">&para;</a></h2>
+<h3 id="multiple-promotion-rules">Multiple Promotion Rules<a class="headerlink" href="#multiple-promotion-rules" title="Permanent link">&para;</a></h3>
+<p>When multiple promotion rules apply to different files in a group, the selection follows this strict precedence order:</p>
+<ol>
+<li><strong>PARENT_FILENAME_PROMOTE list order</strong> (left to right)</li>
+<li><strong>PARENT_EXT_PROMOTE list order</strong> (left to right)</li>
+<li><strong>Built-in extension rank</strong> (<code>.jpeg</code> &gt; <code>.jpg</code> &gt; <code>.png</code> &gt; others)</li>
+<li><strong>Alphabetical order</strong> (case-insensitive)</li>
+</ol>
+<p><strong>Example with multiple matches</strong>:</p>
+<p>Files: <code>IMG_1234_edited.jpg</code>, <code>IMG_1234_raw.dng</code>, <code>IMG_1234_edited.dng</code></p>
+<p>With <code>PARENT_FILENAME_PROMOTE=edited,raw</code> and <code>PARENT_EXT_PROMOTE=.jpg,.dng</code>:</p>
+<div class="highlight"><pre><span></span><code>IMG_1234_edited.jpg  # Wins: &quot;edited&quot; matches first in filename list, .jpg matches first in ext list
+IMG_1234_edited.dng  # Second: &quot;edited&quot; matches first in filename list, .dng second in ext list
+IMG_1234_raw.dng     # Third: &quot;raw&quot; is second in filename list
+</code></pre></div>
+<h3 id="sequence-keyword-behavior">Sequence Keyword Behavior<a class="headerlink" href="#sequence-keyword-behavior" title="Permanent link">&para;</a></h3>
+<p>When multiple <code>sequence</code> keywords appear in the promote list, only the <strong>first occurrence</strong> is used. Additional sequence keywords are ignored.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Only the first &quot;sequence&quot; is processed</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>COVER,sequence,edited,sequence:4
+<span class="c1"># Result: COVER files first, then all sequences, then &quot;edited&quot;, then everything else</span>
+</code></pre></div>
+<p>To use specific sequence patterns, place them strategically:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Correct: specific pattern first, general sequence later</span>
+<span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>sequence:IMG_,COVER,sequence
+
+<span class="c1"># This orders IMG_ sequences first, then COVER files, then other sequences</span>
+</code></pre></div>
+<h3 id="mixed-case-filenames">Mixed Case Filenames<a class="headerlink" href="#mixed-case-filenames" title="Permanent link">&para;</a></h3>
+<p>Filename matching is <strong>case-insensitive</strong> for promotion rules:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>EDIT,HDR
+</code></pre></div>
+<p>This will match: <code>edit</code>, <code>Edit</code>, <code>EDIT</code>, <code>eDiT</code>, <code>hdr</code>, <code>HDR</code>, etc.</p>
+<p>However, alphabetical tie-breaking is also case-insensitive, so <code>IMG_123.jpg</code> and <code>img_123.jpg</code> sort together regardless of case.</p>
+<h3 id="unicode-and-special-characters">Unicode and Special Characters<a class="headerlink" href="#unicode-and-special-characters" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Unicode characters</strong> are supported in filename matching</li>
+<li><strong>Special regex characters</strong> in promote strings are treated as literals (no regex escaping needed)</li>
+<li><strong>Whitespace</strong> in filenames is preserved and matched exactly</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>編集,★favorites,café
+</code></pre></div>
+<p>This will match files containing these exact Unicode strings.</p>
+<h3 id="tie-breaking-logic">Tie-Breaking Logic<a class="headerlink" href="#tie-breaking-logic" title="Permanent link">&para;</a></h3>
+<p>When two files have equal rank after all promotion rules, the final tie-breaker is:</p>
+<ol>
+<li><strong>Original filename</strong> (alphabetically, case-insensitive)</li>
+<li>If filenames are identical: <strong>Local date/time</strong> (earliest first)</li>
+<li>If both are identical: <strong>Asset ID</strong> (lexicographic order)</li>
+</ol>
+<p>This ensures deterministic, reproducible parent selection across multiple runs.</p>
+<h3 id="empty-string-edge-cases">Empty String Edge Cases<a class="headerlink" href="#empty-string-edge-cases" title="Permanent link">&para;</a></h3>
+<p>When using empty string (<code>,</code>) for negative matching:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">PARENT_FILENAME_PROMOTE</span><span class="o">=</span>,_edited,_crop
+</code></pre></div>
+<p>A file matches the empty string rule if it contains <strong>none</strong> of the other non-empty substrings in the list:</p>
+<ul>
+<li><code>IMG_1234.jpg</code> → Matches empty string (no <code>_edited</code>, no <code>_crop</code>)</li>
+<li><code>IMG_1234_final.jpg</code> → Matches empty string (no <code>_edited</code>, no <code>_crop</code>)</li>
+<li><code>IMG_1234_edited.jpg</code> → Does NOT match empty string (contains <code>_edited</code>)</li>
+<li><code>IMG_1234_crop.jpg</code> → Does NOT match empty string (contains <code>_crop</code>)</li>
+<li><code>IMG_1234_edited_crop.jpg</code> → Does NOT match empty string (contains both)</li>
+</ul>
+<h2 id="performance-implications">Performance Implications<a class="headerlink" href="#performance-implications" title="Permanent link">&para;</a></h2>
+<h3 id="expression-mode-complexity">Expression Mode Complexity<a class="headerlink" href="#expression-mode-complexity" title="Permanent link">&para;</a></h3>
+<p>Expression mode with deep nesting can impact performance:</p>
+<table>
+<thead>
+<tr>
+<th>Nesting Level</th>
+<th>Performance Impact</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1-2 levels</td>
+<td>Negligible</td>
+<td>Safe for all use cases</td>
+</tr>
+<tr>
+<td>3-4 levels</td>
+<td>Slight increase</td>
+<td>Acceptable for most libraries</td>
+</tr>
+<tr>
+<td>5+ levels</td>
+<td>Noticeable impact</td>
+<td>Consider simplifying criteria</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example of deep nesting</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;advanced&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;expression&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AND&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;children&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;OR&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;children&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AND&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;children&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">              </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                  </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;originalFileName&quot;</span><span class="p">,</span>
+<span class="w">                  </span><span class="nt">&quot;regex&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PXL_&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">              </span><span class="p">},</span>
+<span class="w">              </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;criteria&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                  </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localDateTime&quot;</span><span class="p">,</span>
+<span class="w">                  </span><span class="nt">&quot;delta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;milliseconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">              </span><span class="p">}</span>
+<span class="w">            </span><span class="p">]</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This has 3 levels of nesting. Each additional level multiplies the evaluation cost.</p>
+<h3 id="memory-usage">Memory Usage<a class="headerlink" href="#memory-usage" title="Permanent link">&para;</a></h3>
+<p>Memory usage scales with:</p>
+<ol>
+<li><strong>Asset count</strong>: ~1KB per asset in memory</li>
+<li><strong>Criteria complexity</strong>: Expression trees consume additional memory per evaluation</li>
+<li><strong>Stack size</strong>: Larger stacks (more assets per group) increase memory overhead</li>
+</ol>
+<p><strong>Guidelines</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Library Size</th>
+<th>Recommended Mode</th>
+<th>Expected Memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 10,000 assets</td>
+<td>Any mode</td>
+<td>&lt; 100MB</td>
+</tr>
+<tr>
+<td>10,000-50,000 assets</td>
+<td>Legacy or Groups</td>
+<td>100-500MB</td>
+</tr>
+<tr>
+<td>50,000-100,000 assets</td>
+<td>Legacy preferred</td>
+<td>500MB-1GB</td>
+</tr>
+<tr>
+<td>&gt; 100,000 assets</td>
+<td>Legacy only</td>
+<td>&gt; 1GB</td>
+</tr>
+</tbody>
+</table>
+<p>For very large libraries (100k+ assets), consider:</p>
+<ul>
+<li>Using simpler criteria (Legacy mode)</li>
+<li>Processing in batches using <code>WITH_ARCHIVED</code> and <code>WITH_DELETED</code> filters</li>
+<li>Running during off-peak hours</li>
+</ul>
+<h3 id="regex-performance">Regex Performance<a class="headerlink" href="#regex-performance" title="Permanent link">&para;</a></h3>
+<p>Regex-based criteria (<code>"regex": {"key": "..."}</code>) are evaluated for each asset. Complex regex patterns can slow processing:</p>
+<p><strong>Fast regex patterns</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PXL_&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span><span class="w">          </span><span class="c1">// Simple prefix match</span>
+<span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;IMG_\\d{4}&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span><span class="w">     </span><span class="c1">// Simple digit pattern</span>
+</code></pre></div>
+<p><strong>Slow regex patterns</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;.*photo.*\\d+.*edited.*&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// Multiple wildcards and backtracking</span>
+<span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;(IMG|DSC|PXL)_\\d{4,6}_.*&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c1">// Complex alternation</span>
+</code></pre></div>
+<p>Optimize regex by:</p>
+<ul>
+<li>Using anchors (<code>^</code>, <code>$</code>) when possible</li>
+<li>Avoiding unnecessary wildcards (<code>.*</code>)</li>
+<li>Using character classes instead of alternation when possible</li>
+</ul>
+<h3 id="time-delta-performance">Time Delta Performance<a class="headerlink" href="#time-delta-performance" title="Permanent link">&para;</a></h3>
+<p>Time-based criteria with small deltas create smaller, more numerous groups:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localDateTime&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;delta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;milliseconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// Very tight grouping, more groups</span>
+<span class="p">{</span><span class="w"> </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localDateTime&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;delta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;milliseconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5000</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// Looser grouping, fewer groups</span>
+</code></pre></div>
+<p><strong>Recommendation</strong>: Use the largest delta that still achieves your grouping goals. 1000ms (1 second) is a good starting point for most burst photos.</p>
+<h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
+<p>The stacker provides comprehensive logging:</p>
+<ul>
+<li>Colorful, structured logs for all operations</li>
+<li>Clear indication of actions taken</li>
+<li>Error reporting with context</li>
+<li>Progress updates for long-running operations</li>
+</ul>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="January 25, 2026 11:12:47 UTC">January 25, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "search.highlight", "search.share", "search.suggest"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
