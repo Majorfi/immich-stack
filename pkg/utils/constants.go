@@ -40,7 +40,7 @@ var DefaultParentFilenamePromoteString = strings.Join(DefaultParentFilenamePromo
 ** DefaultParentExtPromote is the default parent extension promote for grouping photos.
 ** It promotes the extension of the filename.
 **************************************************************************************************/
-var DefaultParentExtPromote = []string{".jpg", ".png", ".jpeg", ".dng"}
+var DefaultParentExtPromote = []string{".jpg", ".png", ".jpeg", ".heic", ".dng"}
 var DefaultParentExtPromoteString = strings.Join(DefaultParentExtPromote, ",")
 
 /**************************************************************************************************
