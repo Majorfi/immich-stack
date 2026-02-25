@@ -20,6 +20,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o immich-stack ./cmd/...
 # Use a smaller image for the final container
 FROM alpine:latest
 
+# Apply image labels
+LABEL org.opencontainers.image.source="https://github.com/Majorfi/immich-stack"
+
 WORKDIR /app
 
 # Install bash for the shell script
