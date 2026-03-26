@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   immich-stack:
     container_name: immich_stack
@@ -22,7 +20,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info} # Options: trace, debug, info, warn, error
       - LOG_FORMAT=${LOG_FORMAT:-text} # Options: text, json
       - LOG_FILE=${LOG_FILE} # Optional: Set to /app/logs/immich-stack.log to enable file logging
-      - CRITERIA=${CRITERIA}
+      - CRITERIA=${CRITERIA:-[{"key":"originalFileName","regex":{"key":"^(.+?)_\\d+\\.","index":1}},{"key":"localDateTime","delta":{"milliseconds":7000}}]}
     volumes:
       - ./logs:/app/logs # Mount for log files when LOG_FILE is set
     restart: on-failure
