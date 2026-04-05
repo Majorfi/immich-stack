@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/majorfi/immich-stack/pkg/utils"
+	"github.com/sd-leighericksen/immich-front-back/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

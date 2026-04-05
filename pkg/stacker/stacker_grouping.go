@@ -3,7 +3,7 @@ package stacker
 import (
 	"strings"
 
-	"github.com/majorfi/immich-stack/pkg/utils"
+	"github.com/sd-leighericksen/immich-front-back/pkg/utils"
 )
 
 /**************************************************************************************************

@@ -8,7 +8,7 @@ package main
 import (
 	"os"
 
-	"github.com/majorfi/immich-stack/pkg/utils"
+	"github.com/sd-leighericksen/immich-front-back/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -74,9 +74,9 @@ func addSubcommands(rootCmd *cobra.Command) {
 **************************************************************************************************/
 func CreateRootCommand() *cobra.Command {
 	var rootCmd = &cobra.Command{
-		Use:   "immich-stack",
-		Short: "Immich Stack CLI",
-		Long:  "A tool to automatically stack Immich assets.",
+		Use:   "immich-front-back",
+		Short: "Stack front/back photos in Immich",
+		Long:  "Automatically groups original, enhanced, and back photos into stacks based on _a and _b suffixes.",
 		Run:   runStacker,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if cmd.Flags().Lookup("replace-stacks") != nil && cmd.Flags().Lookup("replace-stacks").Changed {

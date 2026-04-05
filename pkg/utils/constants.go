@@ -16,9 +16,9 @@ const TimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 var DefaultCriteria = []TCriteria{
 	{
 		Key: "originalFileName",
-		Split: &TSplit{ // We want to split sequentially on "~" and then "."
-			Delimiters: []string{"~", "."},
-			Index:      0,
+		Regex: &TRegex{
+			Key:   `^(.+?)(?:_[ab])?\\.`,
+			Index: 1,
 		},
 	},
 	{
@@ -33,7 +33,7 @@ var DefaultCriteria = []TCriteria{
 ** DefaultParentFilenamePromote is the default parent filename promote for grouping photos.
 ** It promotes the filename of the original filename.
 **************************************************************************************************/
-var DefaultParentFilenamePromote = []string{"cover", "edit", "crop", "hdr", "biggestNumber"}
+var DefaultParentFilenamePromote = []string{"", "a", "b"}
 var DefaultParentFilenamePromoteString = strings.Join(DefaultParentFilenamePromote, ",")
 
 /**************************************************************************************************

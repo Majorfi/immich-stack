@@ -1,4 +1,4 @@
-module github.com/majorfi/immich-stack
+module github.com/sd-leighericksen/immich-front-back
 
 go 1.21
 

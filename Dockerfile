@@ -15,13 +15,14 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o immich-stack ./cmd/...
+RUN CGO_ENABLED=0 GOOS=linux go build -o immich-front-back ./cmd/...
 
 # Use a smaller image for the final container
 FROM alpine:latest
 
 # Apply image labels
-LABEL org.opencontainers.image.source="https://github.com/Majorfi/immich-stack"
+LABEL org.opencontainers.image.source="https://github.com/sd-leighericksen/immich-front-back"
+LABEL org.opencontainers.image.description="Immich Front Back - Stack photos with _a and _b suffixes"
 
 WORKDIR /app
 
@@ -29,7 +30,7 @@ WORKDIR /app
 RUN apk add --no-cache bash
 
 # Copy the binary from builder
-COPY --from=builder /app/immich-stack .
+COPY --from=builder /app/immich-front-back .
 
 
 # Create a non-root user
@@ -37,4 +38,4 @@ RUN adduser -D -g '' appuser
 USER appuser
 
 # Set the entrypoint
-ENTRYPOINT ["./immich-stack"]
+ENTRYPOINT ["./immich-front-back"]

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/majorfi/immich-stack/pkg/stacker"
-	"github.com/majorfi/immich-stack/pkg/utils"
+	"github.com/sd-leighericksen/immich-front-back/pkg/stacker"
+	"github.com/sd-leighericksen/immich-front-back/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -1,77 +1,67 @@
-# Immich Stack
+# Immich Front Back
 
-Automatically groups similar photos into stacks within the Immich photo management system.
+Automatically stacks front/back photos (or original + enhanced versions) in Immich.
+
+## Overview
+
+Groups three versions of photos based on filename suffixes:
+- `FILENAME.jpg` - Original (becomes stack parent/thumbnail)
+- `FILENAME_a.jpg` - Enhanced version (hidden)
+- `FILENAME_b.jpg` - Back of photo/document (hidden)
 
 ## Quick Start
 
 ```bash
-# Create a .env file
-cat > .env << EOL
-API_KEY=your_immich_api_key
-API_URL=http://immich-server:2283/api
-RUN_MODE=cron
-CRON_INTERVAL=60
-# Optional: Enable file logging for persistent logs
-# LOG_FILE=/app/logs/immich-stack.log
-EOL
-
-# Run with Docker (using Docker Hub)
-docker run -d --name immich-stack --env-file .env -v ./logs:/app/logs majorfi/immich-stack:latest
-
-# Or using GitHub Container Registry
-docker run -d --name immich-stack --env-file .env -v ./logs:/app/logs ghcr.io/majorfi/immich-stack:latest
-
-# View logs
-docker logs -f immich-stack
-
-# If LOG_FILE is set, logs are also saved to ./logs/immich-stack.log
+docker run -d \
+  --name immich-front-back \
+  -e API_KEY=your_immich_api_key \
+  -e API_URL=http://immich:2283/api \
+  ghcr.io/sd-leighericksen/immich-front-back:latest
 ```
 
-## Documentation
+## Configuration
 
-For detailed documentation, please visit our [documentation](https://github.com/Majorfi/immich-stack/wiki).
-
-## Commands
-
-Immich Stack provides multiple commands for different operations:
-
-### Main Stacking Command
+Environment variables:
 
 ```bash
-immich-stack
+API_KEY=your_immich_api_key       # Required
+API_URL=http://immich:2283/api    # Required
+RUN_MODE=cron                      # 'once' or 'cron' (default: cron)
+CRON_INTERVAL=3600                 # Seconds between runs
+DRY_RUN=false                      # Set to 'true' to preview only
+LOG_LEVEL=info                     # debug, info, warn, error
 ```
 
-The default command that processes and creates stacks based on your criteria.
+## Examples
 
-### Find Duplicates
-
-```bash
-immich-stack duplicates
+### Document Scanning
+```
+document_001.jpg     → Stack parent (visible)
+document_001_a.jpg   → Enhanced scan (stacked)
+document_001_b.jpg   → Back of document (stacked)
 ```
 
-Scans your library and reports duplicate assets based on filename and timestamp.
-
-### Fix Trash Issues
-
-```bash
-immich-stack fix-trash
+### Photo Enhancement Workflow
+```
+IMG_1234.jpg    → Original (stack parent)
+IMG_1234_a.jpg  → Topaz AI enhanced (stacked)
+IMG_1234_b.jpg  → Alternate edit (stacked)
 ```
 
-Identifies trashed assets and moves their related stack members to trash for consistency.
+## Docker Compose
 
-## Features
-
-- **Automatic Stacking:** Groups similar photos into stacks based on filename, date, and custom criteria
-- **Smart Burst Photo Handling:** Automatically detects and properly orders burst photo sequences
-- **Duplicate Detection:** Find and list duplicate assets based on filename and timestamp
-- **Stack-Aware Trash Management:** Fix incomplete trash operations by moving related stack members to trash
-- **Multi-User Support:** Process multiple users sequentially with comma-separated API keys
-- **Configurable Grouping:** Custom grouping logic via environment variables and command-line flags
-- **Parent/Child Promotion:** Fine-grained control over stack parent selection with intelligent sequence detection and regex-based promotion
-- **Safe Operations:** Dry-run mode, stack replacement, and reset with confirmation
-- **Comprehensive Logging:** Colorful, structured logs for all operations
-- **Tested and Modular:** Table-driven tests and clear separation of concerns
+```yaml
+services:
+  immich-front-back:
+    image: ghcr.io/sd-leighericksen/immich-front-back:latest
+    environment:
+      - API_KEY=${IMMICH_API_KEY}
+      - API_URL=http://immich:2283/api
+      - RUN_MODE=cron
+      - CRON_INTERVAL=3600
+    restart: unless-stopped
+```
 
 ## License
 
-MIT
+MIT (forked from https://github.com/Majorfi/immich-stack)
