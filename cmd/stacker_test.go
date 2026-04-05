@@ -77,8 +77,8 @@ func TestRealCommandStructure(t *testing.T) {
 	cmd := CreateRootCommand()
 
 	// Verify we get the real command structure
-	if cmd.Use != "immich-stack" {
-		t.Errorf("Expected command name 'immich-stack', got '%s'", cmd.Use)
+	if cmd.Use != "immich-front-back" {
+		t.Errorf("Expected command name 'immich-front-back', got '%s'", cmd.Use)
 	}
 
 	// Verify persistent flags are present

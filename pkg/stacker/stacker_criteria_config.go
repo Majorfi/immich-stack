@@ -37,8 +37,8 @@ func getCriteriaConfig(criteria string) (CriteriaConfig, error) {
 	}
 	if criteriaOverride == "" {
 		return CriteriaConfig{
-			Mode:   "legacy",
-			Legacy: utils.DefaultCriteria,
+			Mode:       "advanced",
+			Expression: utils.DefaultCriteriaOR,
 		}, nil
 	}
 

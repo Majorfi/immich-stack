@@ -49,10 +49,12 @@ func TestApplyCriteria(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Arrange
+			// Arrange — stagger timestamps so assets with different base names
+			// don't accidentally match via the 1000ms OR delta criterion.
+			base := time.Now()
 			assets := make([]utils.TAsset, len(tt.fileList))
 			for i, f := range tt.fileList {
-				assets[i] = assetFactory(f, time.Now())
+				assets[i] = assetFactory(f, base.Add(time.Duration(i)*2*time.Second))
 			}
 
 			// Act
@@ -1594,7 +1596,7 @@ func TestParseCriteria(t *testing.T) {
 		{
 			name:        "empty criteria string uses default",
 			criteria:    "",
-			expectMode:  "legacy",
+			expectMode:  "advanced",
 			expectError: false,
 		},
 		{

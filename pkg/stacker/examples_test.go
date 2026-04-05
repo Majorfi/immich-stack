@@ -466,7 +466,7 @@ func TestExamples_Photoshop_DifferentBaseNotGrouped(t *testing.T) {
 	now := time.Now()
 	assets := []utils.TAsset{
 		assetFactory("IMG_1234.jpg", now),
-		assetFactory("IMG_5678.psd", now),
+		assetFactory("IMG_5678.psd", now.Add(2*time.Second)),
 	}
 	groups, err := StackBy(assets, "", "", "", examplesLogger())
 	require.NoError(t, err)
@@ -558,8 +558,8 @@ func TestExamples_FullySequential_NotGroupedByDefault(t *testing.T) {
 	now := time.Now()
 	assets := []utils.TAsset{
 		assetFactory("IMG_1234.jpg", now),
-		assetFactory("IMG_1235.jpg", now),
-		assetFactory("IMG_1236.jpg", now),
+		assetFactory("IMG_1235.jpg", now.Add(2*time.Second)),
+		assetFactory("IMG_1236.jpg", now.Add(4*time.Second)),
 	}
 	groups, err := StackBy(assets, "", "", "", examplesLogger())
 	require.NoError(t, err)
@@ -617,11 +617,12 @@ func TestExamples_EditedOnTop(t *testing.T) {
 
 func TestExamples_MixedCameras_DefaultGrouping(t *testing.T) {
 	now := time.Now()
+	later := now.Add(2 * time.Second)
 	assets := []utils.TAsset{
 		assetFactory("PXL_20260120_120000000.jpg", now),
 		assetFactory("PXL_20260120_120000000.dng", now),
-		assetFactory("IMG_1234.JPG", now),
-		assetFactory("IMG_1234.CR2", now),
+		assetFactory("IMG_1234.JPG", later),
+		assetFactory("IMG_1234.CR2", later),
 	}
 	groups, err := StackBy(assets, "", "", "", examplesLogger())
 	require.NoError(t, err)
@@ -664,7 +665,7 @@ func TestExamples_MixedCameras_NoCrossContamination(t *testing.T) {
 	now := time.Now()
 	assets := []utils.TAsset{
 		assetFactory("PXL_20260120_120000000.jpg", now),
-		assetFactory("IMG_1234.JPG", now),
+		assetFactory("IMG_1234.JPG", now.Add(2*time.Second)),
 	}
 	groups, err := StackBy(assets, "", "", "", examplesLogger())
 	require.NoError(t, err)

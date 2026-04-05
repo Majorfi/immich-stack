@@ -8,24 +8,48 @@ import "strings"
 **************************************************************************************************/
 const TimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
+// orOp is used to create a pointer to the "OR" operator string for TCriteriaExpression.
+var orOp = "OR"
+
 /**************************************************************************************************
-** DefaultCriteria is the default criteria for grouping photos. It groups photos by:
-** 1. Original filename (before extension)
-** 2. Local capture time (with 1 second delta to handle minor timestamp variations)
+** DefaultCriteria is kept for reference and legacy/custom criteria usage.
 **************************************************************************************************/
 var DefaultCriteria = []TCriteria{
 	{
 		Key: "originalFileName",
 		Regex: &TRegex{
-			Key:   `^(.+?)(?:_[ab])?\\.`,
+			Key:   `^(.+?)(?:_[a-z])?\.`,
 			Index: 1,
 		},
 	},
 	{
 		Key: "localDateTime",
 		Delta: &TDelta{
-			Milliseconds: 1000, // 1 second delta to handle minor timestamp variations
+			Milliseconds: 1000,
 		},
+	},
+}
+
+/**************************************************************************************************
+** DefaultCriteriaOR is the default OR-based criteria expression. Assets are grouped if they
+** match EITHER:
+**   1. The same base filename (stripping any _a–_z suffix before the extension), OR
+**   2. Were captured within 1000ms of each other.
+**
+** This ensures front/back scans (e.g. photo.jpg + photo_a.jpg + photo_b.jpg) are grouped
+** even when scanned at different times.
+**************************************************************************************************/
+var DefaultCriteriaOR = &TCriteriaExpression{
+	Operator: &orOp,
+	Children: []TCriteriaExpression{
+		{Criteria: &TCriteria{
+			Key:   "originalFileName",
+			Regex: &TRegex{Key: `^(.+?)(?:_[a-z])?\.`, Index: 1},
+		}},
+		{Criteria: &TCriteria{
+			Key:   "localDateTime",
+			Delta: &TDelta{Milliseconds: 1000},
+		}},
 	},
 }
 

@@ -348,7 +348,7 @@ func TestStackBy(t *testing.T) {
 			name: "different filenames",
 			assets: []utils.TAsset{
 				assetFactory("test1.jpg", time.Now()),
-				assetFactory("test2.jpg", time.Now()),
+				assetFactory("test2.jpg", time.Now().Add(2*time.Second)),
 			},
 			expectedGroups: 0,
 		},
@@ -358,7 +358,8 @@ func TestStackBy(t *testing.T) {
 				assetFactory("test.jpg", time.Now()),
 				assetFactory("test.jpg", time.Now().Add(time.Hour)),
 			},
-			expectedGroups: 0,
+			// OR logic: same base filename matches regardless of timestamp distance
+			expectedGroups: 1,
 		},
 		{
 			name: "empty key handling",
@@ -366,7 +367,8 @@ func TestStackBy(t *testing.T) {
 				assetFactory("test.jpg", time.Now()),
 				assetFactory("test.jpg", time.Time{}),
 			},
-			expectedGroups: 0,
+			// OR logic: same base filename matches even when one asset has no timestamp
+			expectedGroups: 1,
 			skipMatchMiss:  true,
 		},
 	}
