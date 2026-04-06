@@ -348,7 +348,7 @@ func TestStackBy(t *testing.T) {
 			name: "different filenames",
 			assets: []utils.TAsset{
 				assetFactory("test1.jpg", time.Now()),
-				assetFactory("test2.jpg", time.Now().Add(2*time.Second)),
+				assetFactory("test2.jpg", time.Now().Add(6*time.Second)),
 			},
 			expectedGroups: 0,
 		},

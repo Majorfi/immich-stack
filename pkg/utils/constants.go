@@ -25,7 +25,7 @@ var DefaultCriteria = []TCriteria{
 	{
 		Key: "localDateTime",
 		Delta: &TDelta{
-			Milliseconds: 1000,
+			Milliseconds: 5000,
 		},
 	},
 }
@@ -34,7 +34,7 @@ var DefaultCriteria = []TCriteria{
 ** DefaultCriteriaOR is the default OR-based criteria expression. Assets are grouped if they
 ** match EITHER:
 **   1. The same base filename (stripping any _a–_z suffix before the extension), OR
-**   2. Were captured within 1000ms of each other.
+**   2. Were captured within 5000ms of each other.
 **
 ** This ensures front/back scans (e.g. photo.jpg + photo_a.jpg + photo_b.jpg) are grouped
 ** even when scanned at different times.
@@ -48,7 +48,7 @@ var DefaultCriteriaOR = &TCriteriaExpression{
 		}},
 		{Criteria: &TCriteria{
 			Key:   "localDateTime",
-			Delta: &TDelta{Milliseconds: 1000},
+			Delta: &TDelta{Milliseconds: 5000},
 		}},
 	},
 }
