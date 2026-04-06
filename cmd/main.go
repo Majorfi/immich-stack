@@ -35,6 +35,8 @@ func bindFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringSliceVar(&filterAlbumIDs, "filter-album-ids", nil, "Filter by album IDs or names, comma-separated (or set FILTER_ALBUM_IDS env var)")
 	rootCmd.PersistentFlags().StringVar(&filterTakenAfter, "filter-taken-after", "", "Filter assets taken after date, ISO 8601 (or set FILTER_TAKEN_AFTER env var)")
 	rootCmd.PersistentFlags().StringVar(&filterTakenBefore, "filter-taken-before", "", "Filter assets taken before date, ISO 8601 (or set FILTER_TAKEN_BEFORE env var)")
+	rootCmd.PersistentFlags().IntVar(&webPort, "web-port", 0, "Web UI port (0 to use WEB_PORT env var, default 8080; set to -1 to disable)")
+	rootCmd.PersistentFlags().IntVar(&deltaMs, "delta-ms", 0, "Timestamp grouping window in milliseconds (or set via settings file)")
 }
 
 /**************************************************************************************************

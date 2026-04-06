@@ -38,6 +38,8 @@ var removeSingleAssetStacks bool
 var filterAlbumIDs []string
 var filterTakenAfter string
 var filterTakenBefore string
+var deltaMs int
+var webPort int
 
 /**************************************************************************************************
 ** Configures the logger based on command-line flags and environment variables. Sets up the
@@ -314,11 +316,89 @@ func LoadEnvForTesting() LoadEnvConfig {
 	if filterTakenBefore == "" {
 		filterTakenBefore = strings.TrimSpace(os.Getenv("FILTER_TAKEN_BEFORE"))
 	}
+	if webPort == 0 {
+		if val := os.Getenv("WEB_PORT"); val != "" {
+			if n, err := strconv.Atoi(val); err == nil && n >= 0 {
+				webPort = n
+			}
+		}
+	}
+	if webPort == 0 {
+		webPort = 8080
+	}
+
+	// Apply settings file (overrides env vars for non-credential settings)
+	applySettingsFile(logger)
 
 	// Log startup configuration summary
 	logStartupSummary(logger)
 
 	return LoadEnvConfig{Logger: logger, Error: nil}
+}
+
+/**************************************************************************************************
+** applySettingsFile reads the settings JSON file and applies any values not already set by
+** env vars or flags. This allows the web UI to override settings without a restart.
+**
+** @param logger - Logger instance for outputting status
+**************************************************************************************************/
+func applySettingsFile(logger *logrus.Logger) {
+	s, ok := loadAppSettingsWithOK()
+	if !ok {
+		// Settings file not present or unreadable — nothing to apply
+		return
+	}
+
+	if deltaMs == 0 {
+		deltaMs = s.DeltaMs
+	}
+	if cronInterval == 0 || cronInterval == 86400 {
+		cronInterval = s.CronInterval
+	}
+	if !dryRun {
+		dryRun = s.DryRun
+	}
+	if !withArchived {
+		withArchived = s.WithArchived
+	}
+	if !withDeleted {
+		withDeleted = s.WithDeleted
+	}
+	if !removeSingleAssetStacks {
+		removeSingleAssetStacks = s.RemoveSingleAssetStacks
+	}
+	if len(filterAlbumIDs) == 0 && s.FilterAlbumIDs != "" {
+		filterAlbumIDs = strings.Split(s.FilterAlbumIDs, ",")
+	}
+	if filterTakenAfter == "" {
+		filterTakenAfter = s.FilterTakenAfter
+	}
+	if filterTakenBefore == "" {
+		filterTakenBefore = s.FilterTakenBefore
+	}
+	if logLevel == "" {
+		logLevel = s.LogLevel
+	}
+	if parentFilenamePromote == "" || parentFilenamePromote == utils.DefaultParentFilenamePromoteString {
+		if s.ParentFilenamePromote != "" {
+			parentFilenamePromote = s.ParentFilenamePromote
+		}
+	}
+	if parentExtPromote == "" || parentExtPromote == utils.DefaultParentExtPromoteString {
+		if s.ParentExtPromote != "" {
+			parentExtPromote = s.ParentExtPromote
+		}
+	}
+	if criteria == "" && s.Criteria != "" {
+		criteria = s.Criteria
+	}
+	if !replaceStacksFlagSet {
+		replaceStacks = s.ReplaceStacks
+	}
+
+	if deltaMs == 0 {
+		deltaMs = 5000
+	}
 }
 
 /**************************************************************************************************

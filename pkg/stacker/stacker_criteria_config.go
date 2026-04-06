@@ -8,6 +8,11 @@ import (
 	"github.com/sd-leighericksen/immich-front-back/pkg/utils"
 )
 
+// ConfiguredDeltaMs is the timestamp grouping window in milliseconds used when no
+// explicit CRITERIA override is provided. Set by the application layer before
+// calling StackBy. Defaults to 5000ms.
+var ConfiguredDeltaMs = 5000
+
 /**************************************************************************************************
 ** CriteriaConfig holds the processed criteria configuration, either from legacy format
 ** or advanced format.
@@ -36,10 +41,21 @@ func getCriteriaConfig(criteria string) (CriteriaConfig, error) {
 		criteriaOverride = os.Getenv("CRITERIA")
 	}
 	if criteriaOverride == "" {
-		return CriteriaConfig{
-			Mode:       "advanced",
-			Expression: utils.DefaultCriteriaOR,
-		}, nil
+		orOp := "OR"
+		expr := &utils.TCriteriaExpression{
+			Operator: &orOp,
+			Children: []utils.TCriteriaExpression{
+				{Criteria: &utils.TCriteria{
+					Key:   "originalFileName",
+					Regex: &utils.TRegex{Key: `^(.+?)(?:_[a-z])?\.`, Index: 1},
+				}},
+				{Criteria: &utils.TCriteria{
+					Key:   "localDateTime",
+					Delta: &utils.TDelta{Milliseconds: ConfiguredDeltaMs},
+				}},
+			},
+		}
+		return CriteriaConfig{Mode: "advanced", Expression: expr}, nil
 	}
 
 	// First, try to parse as advanced criteria format

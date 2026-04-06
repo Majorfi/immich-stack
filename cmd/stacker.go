@@ -7,6 +7,7 @@ package main
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sd-leighericksen/immich-front-back/pkg/immich"
@@ -15,6 +16,25 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+var (
+	manualRunCh = make(chan struct{}, 1)
+	lastRunTime time.Time
+	nextRunTime time.Time
+	statusMu    sync.RWMutex
+)
+
+func setNextRunTime(t time.Time) {
+	statusMu.Lock()
+	defer statusMu.Unlock()
+	nextRunTime = t
+}
+
+func setLastRunTime(t time.Time) {
+	statusMu.Lock()
+	defer statusMu.Unlock()
+	lastRunTime = t
+}
 
 /**************************************************************************************************
 ** Extracts parent and child asset IDs from a stack of assets. The first asset is considered
@@ -153,6 +173,12 @@ func getChildrenWithStack(stack []utils.TAsset) ([]string, bool) {
 func runStacker(cmd *cobra.Command, args []string) {
 	logger := loadEnv()
 
+	// Start web UI if port is configured
+	if webPort > 0 {
+		go startWebUI(webPort)
+		logger.Infof("Web UI started on port %d", webPort)
+	}
+
 	/**********************************************************************************************
 	** Support multiple API keys (comma-separated).
 	**********************************************************************************************/
@@ -165,6 +191,9 @@ func runStacker(cmd *cobra.Command, args []string) {
 	if len(apiKeys) == 0 {
 		logger.Fatalf("No API key(s) provided.")
 	}
+
+	// Set the delta for the stacker
+	stacker.ConfiguredDeltaMs = deltaMs
 
 	if runMode == "cron" {
 		logger.Infof("Running in cron mode with interval of %d seconds", cronInterval)
@@ -337,7 +366,26 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 ** @param logger - Logger instance for outputting status and errors
 **************************************************************************************************/
 func runCronLoopForAllUsers(apiKeys []string, apiURL string, logger *logrus.Logger) {
+	nextRun := time.Now()
 	for {
+		now := time.Now()
+		if now.Before(nextRun) {
+			wait := nextRun.Sub(now)
+			select {
+			case <-manualRunCh:
+				logger.Infof("Manual run triggered via web UI")
+			case <-time.After(wait):
+				// scheduled trigger
+			}
+		}
+
+		// Re-read settings file each iteration so changes take effect
+		applySettingsFile(logger)
+		stacker.ConfiguredDeltaMs = deltaMs
+
+		// Update next run time for the status API
+		setNextRunTime(nextRun.Add(time.Duration(cronInterval) * time.Second))
+
 		for i, key := range apiKeys {
 			if i > 0 {
 				logger.Infof("\n")
@@ -357,7 +405,10 @@ func runCronLoopForAllUsers(apiKeys []string, apiURL string, logger *logrus.Logg
 			logger.Infof("=====================================================================================")
 			runStackerOnce(client, logger)
 		}
+
+		setLastRunTime(time.Now())
+		nextRun = time.Now().Add(time.Duration(cronInterval) * time.Second)
+		setNextRunTime(nextRun)
 		logger.Infof("Sleeping for %d seconds until next run", cronInterval)
-		time.Sleep(time.Duration(cronInterval) * time.Second)
 	}
 }

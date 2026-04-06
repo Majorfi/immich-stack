@@ -23,6 +23,11 @@ services:
       - LOG_FORMAT=${LOG_FORMAT:-text} # Options: text, json
       - LOG_FILE=${LOG_FILE} # Optional: Set to /app/logs/immich-stack.log to enable file logging
       - CRITERIA=${CRITERIA}
+      - WEB_PORT=${WEB_PORT:-8080}
+      - CONFIG_FILE=/app/config.json
+    ports:
+      - "${WEB_PORT:-8080}:${WEB_PORT:-8080}"
     volumes:
       - ./logs:/app/logs # Mount for log files when LOG_FILE is set
+      - ./config.json:/app/config.json
     restart: on-failure
