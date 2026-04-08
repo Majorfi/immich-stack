@@ -40,6 +40,10 @@ var filterTakenAfter string
 var filterTakenBefore string
 var deltaMs int
 var webPort int
+var syncMetadataEnabled bool
+var syncDate bool
+var syncTags bool
+var syncPeople bool
 
 /**************************************************************************************************
 ** Configures the logger based on command-line flags and environment variables. Sets up the
@@ -395,6 +399,12 @@ func applySettingsFile(logger *logrus.Logger) {
 	if !replaceStacksFlagSet {
 		replaceStacks = s.ReplaceStacks
 	}
+
+	// Metadata sync — always applied from settings file (UI-only, no CLI/env override)
+	syncMetadataEnabled = s.SyncMetadataEnabled
+	syncDate = s.SyncDate
+	syncTags = s.SyncTags
+	syncPeople = s.SyncPeople
 
 	if deltaMs == 0 {
 		deltaMs = 5000

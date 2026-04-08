@@ -74,8 +74,10 @@ type TAsset struct {
 	Type             string  `json:"type"`             // Asset type
 	UpdatedAt        string  `json:"updatedAt"`        // Last update time
 	Checksum         string  `json:"checksum"`         // File checksum
-	Duration         string  `json:"duration"`         // Duration (for videos)
-	Stack            *TStack `json:"stack,omitempty"`  // Associated stack if any
+	Duration         string    `json:"duration"`          // Duration (for videos)
+	Stack            *TStack   `json:"stack,omitempty"`   // Associated stack if any
+	People           []TPerson `json:"people,omitempty"`  // Recognized people (populated by GetAssetDetails only)
+	Tags             []TTag    `json:"tags,omitempty"`    // Tags (populated by GetAssetDetails only)
 }
 
 /**************************************************************************************************
@@ -153,6 +155,31 @@ type TCriteriaExpression struct {
 	Operator *string               `json:"operator,omitempty"` // "AND", "OR", "NOT" - logical operator
 	Criteria *TCriteria            `json:"criteria,omitempty"` // Leaf criteria for evaluation
 	Children []TCriteriaExpression `json:"children,omitempty"` // Child expressions for logical operations
+}
+
+/**************************************************************************************************
+** TPerson represents a recognized person attached to an asset.
+**************************************************************************************************/
+type TPerson struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+/**************************************************************************************************
+** TTag represents an Immich tag that can be assigned to assets.
+**************************************************************************************************/
+type TTag struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+/**************************************************************************************************
+** TFace represents a detected face on an asset. Person is nil if unassigned.
+**************************************************************************************************/
+type TFace struct {
+	ID     string   `json:"id"`
+	Person *TPerson `json:"person"`
 }
 
 /**************************************************************************************************

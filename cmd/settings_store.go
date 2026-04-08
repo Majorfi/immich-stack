@@ -29,6 +29,11 @@ type AppSettings struct {
 	FilterTakenBefore string `json:"filterTakenBefore"`
 	// Logging
 	LogLevel string `json:"logLevel"`
+	// Metadata Sync
+	SyncMetadataEnabled bool `json:"syncMetadataEnabled"`
+	SyncDate            bool `json:"syncDate"`
+	SyncTags            bool `json:"syncTags"`
+	SyncPeople          bool `json:"syncPeople"`
 }
 
 var settingsMu sync.RWMutex

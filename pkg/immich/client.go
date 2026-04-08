@@ -541,6 +541,99 @@ func (c *Client) TrashAssets(assetIDs []string) error {
 }
 
 /**************************************************************************************************
+** GetAssetDetails fetches a single asset by ID with full metadata including people and tags.
+**
+** @param assetID - ID of the asset to fetch
+** @return utils.TAsset - Asset with People and Tags populated
+** @return error - Any error that occurred
+**************************************************************************************************/
+func (c *Client) GetAssetDetails(assetID string) (utils.TAsset, error) {
+	var asset utils.TAsset
+	if err := c.doRequest(http.MethodGet, fmt.Sprintf("/assets/%s", assetID), nil, &asset); err != nil {
+		return asset, fmt.Errorf("error fetching asset details for %s: %w", assetID, err)
+	}
+	return asset, nil
+}
+
+/**************************************************************************************************
+** GetAssetFaces fetches all detected faces for an asset.
+**
+** @param assetID - ID of the asset
+** @return []utils.TFace - List of detected faces (Person is nil if unassigned)
+** @return error - Any error that occurred
+**************************************************************************************************/
+func (c *Client) GetAssetFaces(assetID string) ([]utils.TFace, error) {
+	var faces []utils.TFace
+	if err := c.doRequest(http.MethodGet, fmt.Sprintf("/faces?id=%s", assetID), nil, &faces); err != nil {
+		return nil, fmt.Errorf("error fetching faces for asset %s: %w", assetID, err)
+	}
+	return faces, nil
+}
+
+/**************************************************************************************************
+** AssignPersonToFace assigns a recognized person to a detected face on an asset.
+** In dry run mode, only logs the action.
+**
+** @param faceID - ID of the face to update
+** @param personID - ID of the person to assign
+** @return error - Any error that occurred
+**************************************************************************************************/
+func (c *Client) AssignPersonToFace(faceID, personID string) error {
+	if c.dryRun {
+		c.logger.Infof("[DRY RUN] Would assign person %s to face %s", personID, faceID)
+		return nil
+	}
+	payload := map[string]string{"personId": personID}
+	if err := c.doRequest(http.MethodPut, fmt.Sprintf("/faces/%s", faceID), payload, nil); err != nil {
+		return fmt.Errorf("error assigning person %s to face %s: %w", personID, faceID, err)
+	}
+	return nil
+}
+
+/**************************************************************************************************
+** UpdateAssetDateTime updates the dateTimeOriginal field of an asset.
+** In dry run mode, only logs the action.
+**
+** @param assetID - ID of the asset to update
+** @param dateTimeOriginal - New datetime string in "2006-01-02T15:04:05" format
+** @return error - Any error that occurred
+**************************************************************************************************/
+func (c *Client) UpdateAssetDateTime(assetID, dateTimeOriginal string) error {
+	if c.dryRun {
+		c.logger.Infof("[DRY RUN] Would update dateTimeOriginal of %s to %s", assetID, dateTimeOriginal)
+		return nil
+	}
+	payload := map[string]string{"dateTimeOriginal": dateTimeOriginal}
+	if err := c.doRequest(http.MethodPut, fmt.Sprintf("/assets/%s", assetID), payload, nil); err != nil {
+		return fmt.Errorf("error updating dateTimeOriginal for asset %s: %w", assetID, err)
+	}
+	return nil
+}
+
+/**************************************************************************************************
+** TagAssets applies a tag to multiple assets. This operation is idempotent.
+** In dry run mode, only logs the action.
+**
+** @param tagID - ID of the tag to apply
+** @param assetIDs - List of asset IDs to tag
+** @return error - Any error that occurred
+**************************************************************************************************/
+func (c *Client) TagAssets(tagID string, assetIDs []string) error {
+	if len(assetIDs) == 0 {
+		return nil
+	}
+	if c.dryRun {
+		c.logger.Infof("[DRY RUN] Would assign tag %s to %d asset(s)", tagID, len(assetIDs))
+		return nil
+	}
+	payload := map[string]interface{}{"ids": assetIDs}
+	if err := c.doRequest(http.MethodPut, fmt.Sprintf("/tags/%s/assets", tagID), payload, nil); err != nil {
+		return fmt.Errorf("error tagging assets with tag %s: %w", tagID, err)
+	}
+	return nil
+}
+
+/**************************************************************************************************
 ** FetchAlbums fetches all albums for the authenticated user.
 **
 ** @return []utils.TAlbum - List of albums

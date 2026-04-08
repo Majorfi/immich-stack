@@ -163,6 +163,29 @@ const settingsHTML = `<!DOCTYPE html>
         </select>
       </div>
     </div>
+
+    <!-- Metadata Sync -->
+    <div class="card rounded-lg p-5 mb-4">
+      <h2 class="font-semibold text-slate-300 mb-4">Metadata Sync <span class="text-xs text-slate-500 font-normal">&#8212; syncs primary&#8217;s metadata to sub-assets after each stacking run</span></h2>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="flex items-center gap-3 cursor-pointer col-span-2">
+          <input id="syncMetadataEnabled" type="checkbox" class="w-4 h-4 rounded accent-blue-500">
+          <div><div class="text-sm font-medium">Enable Metadata Sync</div><div class="text-slate-500 text-xs">Master switch &#8212; must be on for any sync to run</div></div>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input id="syncDate" type="checkbox" class="w-4 h-4 rounded accent-blue-500">
+          <div><div class="text-sm font-medium">Sync Date</div><div class="text-slate-500 text-xs">Apply primary&#8217;s date to sub-assets (preserves sub&#8217;s time)</div></div>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input id="syncTags" type="checkbox" class="w-4 h-4 rounded accent-blue-500">
+          <div><div class="text-sm font-medium">Sync Tags</div><div class="text-slate-500 text-xs">Copy all primary tags to sub-assets</div></div>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input id="syncPeople" type="checkbox" class="w-4 h-4 rounded accent-blue-500">
+          <div><div class="text-sm font-medium">Sync People (best-effort)</div><div class="text-slate-500 text-xs">Assign unmatched faces using primary&#8217;s recognized people</div></div>
+        </label>
+      </div>
+    </div>
   </div>
 
   <!-- Toast notification -->
@@ -198,6 +221,10 @@ const settingsHTML = `<!DOCTYPE html>
       document.getElementById('filterTakenAfter').value = d.filterTakenAfter != null ? d.filterTakenAfter : '';
       document.getElementById('filterTakenBefore').value = d.filterTakenBefore != null ? d.filterTakenBefore : '';
       document.getElementById('logLevel').value = d.logLevel != null ? d.logLevel : 'info';
+      document.getElementById('syncMetadataEnabled').checked = !!d.syncMetadataEnabled;
+      document.getElementById('syncDate').checked = !!d.syncDate;
+      document.getElementById('syncTags').checked = !!d.syncTags;
+      document.getElementById('syncPeople').checked = !!d.syncPeople;
     }
 
     function updateNextRun(seconds) {
@@ -235,6 +262,10 @@ const settingsHTML = `<!DOCTYPE html>
         filterTakenAfter: document.getElementById('filterTakenAfter').value,
         filterTakenBefore: document.getElementById('filterTakenBefore').value,
         logLevel: document.getElementById('logLevel').value,
+        syncMetadataEnabled: document.getElementById('syncMetadataEnabled').checked,
+        syncDate: document.getElementById('syncDate').checked,
+        syncTags: document.getElementById('syncTags').checked,
+        syncPeople: document.getElementById('syncPeople').checked,
       };
       const res = await fetch('/api/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       if (res.ok) showToast('Settings saved ✓', '#22c55e');
@@ -377,6 +408,10 @@ func startWebUI(port int) {
 				"filterTakenAfter":      s.FilterTakenAfter,
 				"filterTakenBefore":     s.FilterTakenBefore,
 				"logLevel":              s.LogLevel,
+				"syncMetadataEnabled":   s.SyncMetadataEnabled,
+				"syncDate":              s.SyncDate,
+				"syncTags":              s.SyncTags,
+				"syncPeople":            s.SyncPeople,
 				// read-only
 				"apiURL":      maskedAPIURL(os.Getenv("API_URL")),
 				"apiKeyCount": keyCount,

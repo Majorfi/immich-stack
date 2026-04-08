@@ -355,6 +355,9 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 			logger.Errorf("Error modifying stack: %v", err)
 		}
 	}
+
+	// Sync metadata (date, tags, people) from primary to sub-assets for all stacks.
+	syncStackMetadata(client, stacks, logger)
 }
 
 /**************************************************************************************************
