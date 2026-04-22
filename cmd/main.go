@@ -20,7 +20,7 @@ func bindFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key (or set API_KEY env var)")
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "API URL (or set API_URL env var)")
 	rootCmd.PersistentFlags().BoolVar(&resetStacks, "reset-stacks", false, "Delete all existing stacks (or set RESET_STACKS=true)")
-	rootCmd.PersistentFlags().BoolVar(&replaceStacks, "replace-stacks", true, "Replace stacks for new groups (or set REPLACE_STACKS=true)")
+	rootCmd.PersistentFlags().BoolVar(&replaceStacks, "replace-stacks", false, "Replace stacks for new groups (or set REPLACE_STACKS=true)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Dry run (or set DRY_RUN=true)")
 	rootCmd.PersistentFlags().StringVar(&criteria, "criteria", "", "Criteria (or set CRITERIA env var)")
 	rootCmd.PersistentFlags().StringVar(&parentFilenamePromote, "parent-filename-promote", utils.DefaultParentFilenamePromoteString, "Parent filename promote (or set PARENT_FILENAME_PROMOTE env var)")

@@ -32,7 +32,7 @@ func resetGlobalConfig() {
 	withArchived = false
 	resetStacks = false
 	dryRun = false
-	replaceStacks = true
+	replaceStacks = false
 	replaceStacksFlagSet = false
 	withDeleted = false
 	logLevel = ""
@@ -840,8 +840,8 @@ func TestBooleanEnvironmentOverrides(t *testing.T) {
 		{"WITH_ARCHIVED false", "WITH_ARCHIVED", "false", &withArchived, false},
 		{"WITH_DELETED true", "WITH_DELETED", "true", &withDeleted, true},
 		{"DRY_RUN true", "DRY_RUN", "true", &dryRun, true},
-		// NOTE: replaceStacks has default=true, and env is only checked if !replaceStacks
-		// So REPLACE_STACKS env is only effective if flag is set to false first
+		{"REPLACE_STACKS true", "REPLACE_STACKS", "true", &replaceStacks, true},
+		{"REPLACE_STACKS false", "REPLACE_STACKS", "false", &replaceStacks, false},
 		{"REMOVE_SINGLE_ASSET_STACKS true", "REMOVE_SINGLE_ASSET_STACKS", "true", &removeSingleAssetStacks, true},
 	}
 
