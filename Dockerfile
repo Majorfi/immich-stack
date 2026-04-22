@@ -32,8 +32,10 @@ RUN apk add --no-cache bash
 COPY --from=builder /app/immich-stack .
 
 
-# Create a non-root user
-RUN adduser -D -g '' appuser
+# Create a non-root user and logs directory with correct ownership
+RUN adduser -D -g '' appuser && \
+    mkdir -p /app/logs && \
+    chown appuser:appuser /app/logs
 USER appuser
 
 # Set the entrypoint
