@@ -166,7 +166,7 @@ func logStartupSummary(logger *logrus.Logger) {
 		if filterTakenBefore != "" {
 			fields["filterTakenBefore"] = filterTakenBefore
 		}
-		logger.WithFields(fields).Info("Configuration loaded")
+		logger.WithFields(fields).Warn("Configuration loaded")
 	} else {
 		// Build human-readable summary
 		var summary []string
@@ -210,7 +210,7 @@ func logStartupSummary(logger *logrus.Logger) {
 			summary = append(summary, fmt.Sprintf("filter-before=%s", filterTakenBefore))
 		}
 
-		logger.Infof("Starting with config: %s", strings.Join(summary, ", "))
+		logger.Warnf("Starting with config: %s", strings.Join(summary, ", "))
 	}
 }
 
