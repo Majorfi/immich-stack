@@ -3,6 +3,7 @@ package immich
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,21 @@ import (
 	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
+
+/**************************************************************************************************
+** APIError represents a non-2xx response from the Immich API. It preserves the status code
+** for typed inspection (e.g., to detect 5xx for the FetchAllStacks fallback path) while still
+** rendering as the same error string the codebase has historically produced.
+**************************************************************************************************/
+type APIError struct {
+	StatusCode int
+	Status     string
+	Body       string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("error response: %s - %s", e.Status, e.Body)
+}
 
 // HTTP client configuration constants
 const (
@@ -162,7 +178,11 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 		}
 
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("error response: %s - %s", resp.Status, string(body))
+		return &APIError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       string(body),
+		}
 	}
 
 	return fmt.Errorf("failed after %d retries", maxRetries)
@@ -179,7 +199,27 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 	var stacks []utils.TStack
 	if err := c.doRequest(http.MethodGet, "/stacks", nil, &stacks); err != nil {
-		return nil, fmt.Errorf("error fetching stacks: %w", err)
+		if !isLikelyLargeLibrary5xx(err) {
+			return nil, fmt.Errorf("error fetching stacks: %w", err)
+		}
+		c.logger.Warnf("⚠️  GET /stacks failed: %v", err)
+		var apiErr *APIError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusInternalServerError {
+			c.logger.Warnf("    A 500 here is typically the JSON.stringify limit on large libraries (Immich issue #15332).")
+		}
+		c.logger.Warnf("    Falling back to per-asset hybrid lookup. Slower but bypasses the failing endpoint.")
+		hybridMap, hErr := c.fetchAllStacksHybrid(10)
+		if hErr != nil {
+			return nil, fmt.Errorf("error fetching stacks (both /stacks and hybrid fallback failed): /stacks=%w, hybrid=%v", err, hErr)
+		}
+		seen := make(map[string]bool)
+		for _, st := range hybridMap {
+			if seen[st.ID] {
+				continue
+			}
+			seen[st.ID] = true
+			stacks = append(stacks, st)
+		}
 	}
 
 	// Log info when starting reset stacks operation
@@ -749,4 +789,19 @@ func (c *Client) UpdateAlbum(albumID string, updates map[string]interface{}) err
 	}
 
 	return nil
+}
+
+/**************************************************************************************************
+** isLikelyLargeLibrary5xx returns true when an error from /stacks looks like a server-side
+** 5xx response. On large libraries Immich's GET /stacks endpoint returns 500 because the
+** unpaginated response exceeds Node.js's max string length at JSON.stringify (issue #15332).
+** Any 5xx is treated as a candidate for the hybrid fallback; the fallback path is safe to run
+** even on transient hiccups (it just takes longer than the direct call).
+**************************************************************************************************/
+func isLikelyLargeLibrary5xx(err error) bool {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return apiErr.StatusCode >= 500 && apiErr.StatusCode < 600
 }
