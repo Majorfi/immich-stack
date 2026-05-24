@@ -53,6 +53,9 @@ func isTransientUpstreamError(err error) bool {
 ** callers (per-asset lookup, per-primary lookup, search pagination).
 **************************************************************************************************/
 func (c *Client) doRequestWithUpstreamRetry(method, path string, body interface{}, result interface{}, attempts int) error {
+	if attempts < 1 {
+		attempts = 1
+	}
 	var lastErr error
 	for i := 0; i < attempts; i++ {
 		err := c.doRequest(method, path, body, result)
