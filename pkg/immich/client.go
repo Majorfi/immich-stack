@@ -3,6 +3,7 @@ package immich
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,37 @@ import (
 	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
+
+/**************************************************************************************************
+** APIError represents a non-2xx response from the Immich API. It preserves the status code
+** for typed inspection (e.g., to detect 5xx for the FetchAllStacks fallback path) while still
+** rendering as the same error string the codebase has historically produced.
+**************************************************************************************************/
+type APIError struct {
+	StatusCode int
+	Status     string
+	Body       string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("error response: %s - %s", e.Status, e.Body)
+}
+
+/**************************************************************************************************
+** PartialResultError indicates that a result map was returned but some lookups failed along
+** the way. Callers can inspect Phase1Failed / Phase2Failed to decide whether the partial map
+** is acceptable for their use case (e.g., accept if failures < some threshold) or treat the
+** result as fatal. Returned by fetchAllStacksHybrid when at least one underlying call failed
+** but the bulk of the work succeeded.
+**************************************************************************************************/
+type PartialResultError struct {
+	Phase1Failed int
+	Phase2Failed int
+}
+
+func (e *PartialResultError) Error() string {
+	return fmt.Sprintf("partial result: %d phase-1 failures, %d phase-2 failures", e.Phase1Failed, e.Phase2Failed)
+}
 
 // HTTP client configuration constants
 const (
@@ -162,7 +194,11 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 		}
 
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("error response: %s - %s", resp.Status, string(body))
+		return &APIError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       string(body),
+		}
 	}
 
 	return fmt.Errorf("failed after %d retries", maxRetries)
@@ -179,7 +215,31 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 	var stacks []utils.TStack
 	if err := c.doRequest(http.MethodGet, "/stacks", nil, &stacks); err != nil {
-		return nil, fmt.Errorf("error fetching stacks: %w", err)
+		if !isLikelyLargeLibrary5xx(err) {
+			return nil, fmt.Errorf("error fetching stacks: %w", err)
+		}
+		c.logger.Warnf("⚠️  GET /stacks failed: %v", err)
+		var apiErr *APIError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusInternalServerError {
+			c.logger.Warnf("    A 500 here is typically the JSON.stringify limit on large libraries (Immich issue #15332).")
+		}
+		c.logger.Warnf("    Falling back to per-asset hybrid lookup. Slower but bypasses the failing endpoint.")
+		hybridMap, hErr := c.fetchAllStacksHybrid(10)
+		if hErr != nil {
+			var partial *PartialResultError
+			if !errors.As(hErr, &partial) {
+				return nil, fmt.Errorf("error fetching stacks: both /stacks and hybrid fallback failed: %w", errors.Join(err, hErr))
+			}
+			c.logger.Warnf("    Hybrid fallback returned partial result (%s) — proceeding with what we have", partial)
+		}
+		seen := make(map[string]bool)
+		for _, st := range hybridMap {
+			if seen[st.ID] {
+				continue
+			}
+			seen[st.ID] = true
+			stacks = append(stacks, st)
+		}
 	}
 
 	// Log info when starting reset stacks operation
@@ -749,4 +809,19 @@ func (c *Client) UpdateAlbum(albumID string, updates map[string]interface{}) err
 	}
 
 	return nil
+}
+
+/**************************************************************************************************
+** isLikelyLargeLibrary5xx returns true when an error from /stacks looks like a server-side
+** 5xx response. On large libraries Immich's GET /stacks endpoint returns 500 because the
+** unpaginated response exceeds Node.js's max string length at JSON.stringify (issue #15332).
+** Any 5xx is treated as a candidate for the hybrid fallback; the fallback path is safe to run
+** even on transient hiccups (it just takes longer than the direct call).
+**************************************************************************************************/
+func isLikelyLargeLibrary5xx(err error) bool {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return apiErr.StatusCode >= 500 && apiErr.StatusCode < 600
 }

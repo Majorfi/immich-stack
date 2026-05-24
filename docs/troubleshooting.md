@@ -51,6 +51,53 @@ This guide helps you resolve common issues with Immich Stack.
    WITH_DELETED=false
    ```
 
+### Large Library: 5xx on `GET /stacks`
+
+**Symptoms:**
+
+```
+level=warning msg="⚠️  GET /stacks failed: error response: 500 Internal Server Error - {...}"
+level=warning msg="    A 500 here is typically the JSON.stringify limit on large libraries (Immich issue #15332)."
+level=warning msg="    Falling back to per-asset hybrid lookup. Slower but bypasses the failing endpoint."
+```
+
+**Cause:**
+
+The Immich `GET /stacks` endpoint is unpaginated. On libraries with roughly >100k stacks, the
+JSON response exceeds Node.js's max string length (~512 MB) and the Immich server crashes at
+`JSON.stringify`, returning HTTP 500. See [immich-app/immich#15332](https://github.com/immich-app/immich/issues/15332).
+
+**What the tool does:**
+
+`FetchAllStacks` detects 5xx responses and automatically falls back to a per-asset hybrid
+lookup that bypasses the failing endpoint:
+
+1. Enumerate all asset IDs via paginated `POST /search/metadata`
+2. Phase 1 — parallel `GET /assets/{id}` per asset to read each asset's stack reference
+3. Phase 2 — for assets where Phase 1 reported "no stack" (typically archived primaries that
+   Immich strips from `/assets/{id}` responses), call `GET /stacks?primaryAssetId=X` to
+   recover the missing stack metadata
+
+The result is a stacks map equivalent to what `GET /stacks` would have returned, reconstructed
+from many small HTTP calls instead of one giant one. No user action is required.
+
+**Performance implications:**
+
+- Healthy responses on small/medium libraries are unaffected — `/stacks` is still the primary
+  path (~1 s for ~6k stacks).
+- When the fallback fires, expect on the order of `total_assets / 800` seconds with the default
+  concurrency of 10 in-flight requests. For 450k assets, that's roughly 10 minutes per run.
+- Transient nginx upstream errors (502/503/504) during the fallback are retried automatically.
+  Persistent failures surface as a `PartialResultError` that the caller treats as a soft
+  failure (returns the partial map and continues).
+
+**When to be concerned:**
+
+- A 4xx (401, 403, 404) on `/stacks` is **not** the JSON-limit bug — those propagate as
+  hard errors with no fallback. Check your API key and URL.
+- If the warning fires repeatedly on a small library, the underlying Immich server may be
+  unhealthy for another reason. Check Immich server logs.
+
 ### Grouping Issues
 
 **Symptoms:**
@@ -182,7 +229,6 @@ If you experienced this issue, update to the latest version and verify:
    - If you specify `0000,0001,0002,0003` but have files up to `0999`, they will be sorted correctly at position 999
 
 1. Understanding `sequence:X` behavior:
-
    - `sequence` - Matches any numeric sequence (1, 2, 10, 100, etc.)
    - `sequence:4` - Matches ONLY 4-digit numbers (0001, 0002, not 1, 10, 100)
    - `sequence:IMG_` - Matches only files with IMG\_ prefix followed by numbers
@@ -372,7 +418,6 @@ docker logs -f immich-stack
    - Configuration review
 
 1. **Security**
-
    - Secure API keys
    - Regular updates
    - Access control
