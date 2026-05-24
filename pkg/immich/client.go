@@ -30,6 +30,22 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("error response: %s - %s", e.Status, e.Body)
 }
 
+/**************************************************************************************************
+** PartialResultError indicates that a result map was returned but some lookups failed along
+** the way. Callers can inspect Phase1Failed / Phase2Failed to decide whether the partial map
+** is acceptable for their use case (e.g., accept if failures < some threshold) or treat the
+** result as fatal. Returned by fetchAllStacksHybrid when at least one underlying call failed
+** but the bulk of the work succeeded.
+**************************************************************************************************/
+type PartialResultError struct {
+	Phase1Failed int
+	Phase2Failed int
+}
+
+func (e *PartialResultError) Error() string {
+	return fmt.Sprintf("partial result: %d phase-1 failures, %d phase-2 failures", e.Phase1Failed, e.Phase2Failed)
+}
+
 // HTTP client configuration constants
 const (
 	defaultHTTPTimeout  = 600 * time.Second
@@ -210,7 +226,11 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 		c.logger.Warnf("    Falling back to per-asset hybrid lookup. Slower but bypasses the failing endpoint.")
 		hybridMap, hErr := c.fetchAllStacksHybrid(10)
 		if hErr != nil {
-			return nil, fmt.Errorf("error fetching stacks (both /stacks and hybrid fallback failed): /stacks=%w, hybrid=%v", err, hErr)
+			var partial *PartialResultError
+			if !errors.As(hErr, &partial) {
+				return nil, fmt.Errorf("error fetching stacks: both /stacks and hybrid fallback failed: %w", errors.Join(err, hErr))
+			}
+			c.logger.Warnf("    Hybrid fallback returned partial result (%s) — proceeding with what we have", partial)
 		}
 		seen := make(map[string]bool)
 		for _, st := range hybridMap {

@@ -35,10 +35,6 @@ func (c *Client) fetchAllStacksHybrid(concurrency int) (map[string]utils.TStack,
 	p2Recovered, p2Failed := c.phase2Fallback(noStackAssetIDs, concurrency, stacksByID)
 	c.logger.Infof("📚 Phase 2: %d additional stacks recovered", p2Recovered)
 
-	if p1Failed > 0 || p2Failed > 0 {
-		c.logger.Warnf("⚠️  Failures — phase 1: %d, phase 2: %d", p1Failed, p2Failed)
-	}
-
 	stacksMap := make(map[string]utils.TStack)
 	for _, stack := range stacksByID {
 		for _, asset := range stack.Assets {
@@ -47,6 +43,11 @@ func (c *Client) fetchAllStacksHybrid(concurrency int) (map[string]utils.TStack,
 	}
 
 	c.logger.Infof("📚 Hybrid total: %d stacks", len(stacksByID))
+
+	if p1Failed > 0 || p2Failed > 0 {
+		c.logger.Warnf("⚠️  Failures — phase 1: %d, phase 2: %d", p1Failed, p2Failed)
+		return stacksMap, &PartialResultError{Phase1Failed: p1Failed, Phase2Failed: p2Failed}
+	}
 	return stacksMap, nil
 }
 
