@@ -280,6 +280,138 @@ func TestFetchAllStacksFallbackBothFail(t *testing.T) {
 }
 
 /**************************************************************************************************
+** TestFetchAllStacksFallbackPartialResult verifies that when the hybrid path completes with
+** some per-asset failures (e.g., transient 4xx on individual /assets/{id} calls), it returns
+** a PartialResultError. FetchAllStacks then treats that as a soft failure: the partial map
+** is returned to the caller with nil error, since "incomplete map" is strictly better than
+** "no stack info at all" when the primary /stacks endpoint already failed.
+**************************************************************************************************/
+func TestFetchAllStacksFallbackPartialResult(t *testing.T) {
+	handler := func(req *http.Request) (int, string) {
+		path := req.URL.Path
+		query := req.URL.RawQuery
+		switch {
+		case path == "/api/stacks" && query == "":
+			return http.StatusInternalServerError, `{"message":"Internal server error"}`
+		case strings.HasPrefix(path, "/api/stacks") && strings.Contains(query, "primaryAssetId="):
+			return http.StatusOK, `[]`
+		case path == "/api/search/metadata":
+			return http.StatusOK, `{"assets":{"items":[{"id":"a-ok"},{"id":"a-fail"}],"nextPage":""}}`
+		case path == "/api/assets/a-ok":
+			return http.StatusOK, `{"id":"a-ok","stack":{"id":"s1","primaryAssetId":"a-ok","assetCount":1}}`
+		case path == "/api/assets/a-fail":
+			return http.StatusNotFound, `{"error":"asset gone"}`
+		}
+		return http.StatusNotFound, `{"error":"no mock for ` + path + `"}`
+	}
+
+	transport := &pathRouterMockTransport{handler: handler}
+	client := &Client{
+		apiKey: "test",
+		apiURL: "http://test/api",
+		logger: newSilentLogger(),
+		client: &http.Client{Transport: transport},
+	}
+
+	stacksMap, err := client.FetchAllStacks()
+	require.NoError(t, err, "FetchAllStacks should accept PartialResultError as a soft failure")
+	require.NotNil(t, stacksMap)
+	assert.Equal(t, "s1", stacksMap["a-ok"].ID, "successful asset should be in partial result")
+}
+
+/**************************************************************************************************
+** TestFetchAllStacksHybridReturnsPartialResultError verifies that fetchAllStacksHybrid itself
+** returns a typed *PartialResultError when there are per-asset failures, so callers that don't
+** want partial results can distinguish via errors.As.
+**************************************************************************************************/
+func TestFetchAllStacksHybridReturnsPartialResultError(t *testing.T) {
+	handler := func(req *http.Request) (int, string) {
+		path := req.URL.Path
+		switch {
+		case path == "/api/search/metadata":
+			return http.StatusOK, `{"assets":{"items":[{"id":"a-ok"},{"id":"a-fail"}],"nextPage":""}}`
+		case path == "/api/assets/a-ok":
+			return http.StatusOK, `{"id":"a-ok","stack":null}`
+		case path == "/api/assets/a-fail":
+			return http.StatusNotFound, `{"error":"asset gone"}`
+		case strings.HasPrefix(path, "/api/stacks"):
+			return http.StatusOK, `[]`
+		}
+		return http.StatusNotFound, `{"error":"no mock for ` + path + `"}`
+	}
+
+	transport := &pathRouterMockTransport{handler: handler}
+	client := &Client{
+		apiKey: "test",
+		apiURL: "http://test/api",
+		logger: newSilentLogger(),
+		client: &http.Client{Transport: transport},
+	}
+
+	_, err := client.fetchAllStacksHybrid(2)
+	require.Error(t, err, "hybrid should report partial failure")
+
+	var partial *PartialResultError
+	require.ErrorAs(t, err, &partial, "error should be inspectable as *PartialResultError")
+	assert.Equal(t, 1, partial.Phase1Failed, "should report exactly 1 phase-1 failure")
+	assert.Equal(t, 0, partial.Phase2Failed, "phase 2 had no failures (no archived primary candidates)")
+}
+
+/**************************************************************************************************
+** TestFetchAllStacksFallbackBothFailErrorsArePreserved verifies that when both /stacks and the
+** hybrid fallback fail with APIErrors, both are reachable via errors.As (thanks to errors.Join
+** preserving the full chain), letting callers inspect the underlying status codes.
+**************************************************************************************************/
+func TestFetchAllStacksFallbackBothFailErrorsArePreserved(t *testing.T) {
+	handler := func(req *http.Request) (int, string) {
+		return http.StatusInternalServerError, `{"message":"Internal server error"}`
+	}
+
+	transport := &pathRouterMockTransport{handler: handler}
+	client := &Client{
+		apiKey: "test",
+		apiURL: "http://test/api",
+		logger: newSilentLogger(),
+		client: &http.Client{Transport: transport},
+	}
+
+	_, err := client.FetchAllStacks()
+	require.Error(t, err)
+
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr, "an APIError should be reachable via errors.As")
+	assert.Equal(t, http.StatusInternalServerError, apiErr.StatusCode)
+}
+
+/**************************************************************************************************
+** TestDoRequestWithUpstreamRetryAttemptsGuard verifies that calling with attempts <= 0 still
+** issues exactly one request (defensive guard against silent no-op success).
+**************************************************************************************************/
+func TestDoRequestWithUpstreamRetryAttemptsGuard(t *testing.T) {
+	for _, attempts := range []int{0, -1, -100} {
+		t.Run(fmt.Sprintf("attempts=%d", attempts), func(t *testing.T) {
+			callCount := 0
+			handler := func(req *http.Request) (int, string) {
+				callCount++
+				return http.StatusOK, `{}`
+			}
+			transport := &pathRouterMockTransport{handler: handler}
+			client := &Client{
+				apiKey: "test",
+				apiURL: "http://test/api",
+				logger: newSilentLogger(),
+				client: &http.Client{Transport: transport},
+			}
+
+			var result struct{}
+			err := client.doRequestWithUpstreamRetry(http.MethodGet, "/probe", nil, &result, attempts)
+			require.NoError(t, err)
+			assert.Equal(t, 1, callCount, "attempts <= 0 must still issue one request")
+		})
+	}
+}
+
+/**************************************************************************************************
 ** TestIsLikelyLargeLibrary5xx verifies the predicate that decides whether to trigger the
 ** fallback. Only 5xx APIErrors should match; 4xx, plain errors, and nil should not.
 **************************************************************************************************/
