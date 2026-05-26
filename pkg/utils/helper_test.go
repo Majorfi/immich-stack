@@ -283,3 +283,63 @@ func TestGetDir(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterAssetsByOwner(t *testing.T) {
+	me := "11111111-1111-1111-1111-111111111111"
+	partner := "22222222-2222-2222-2222-222222222222"
+	mine := func(id string) TAsset { return TAsset{ID: id, OwnerID: me} }
+	theirs := func(id string) TAsset { return TAsset{ID: id, OwnerID: partner} }
+
+	tests := []struct {
+		name     string
+		assets   []TAsset
+		ownerID  string
+		expected []TAsset
+	}{
+		{
+			name:     "mixed owners drops partner assets and preserves order",
+			assets:   []TAsset{mine("a"), theirs("b"), mine("c"), theirs("d"), mine("e")},
+			ownerID:  me,
+			expected: []TAsset{mine("a"), mine("c"), mine("e")},
+		},
+		{
+			name:     "all owned by current user returns identical slice content",
+			assets:   []TAsset{mine("a"), mine("b"), mine("c")},
+			ownerID:  me,
+			expected: []TAsset{mine("a"), mine("b"), mine("c")},
+		},
+		{
+			name:     "none owned returns empty slice",
+			assets:   []TAsset{theirs("a"), theirs("b")},
+			ownerID:  me,
+			expected: []TAsset{},
+		},
+		{
+			name:     "empty input returns empty slice",
+			assets:   []TAsset{},
+			ownerID:  me,
+			expected: []TAsset{},
+		},
+		{
+			name:     "nil input returns empty slice",
+			assets:   nil,
+			ownerID:  me,
+			expected: []TAsset{},
+		},
+		{
+			name:     "empty ownerID returns input unchanged (defensive default)",
+			assets:   []TAsset{mine("a"), theirs("b")},
+			ownerID:  "",
+			expected: []TAsset{mine("a"), theirs("b")},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FilterAssetsByOwner(tt.assets, tt.ownerID)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("FilterAssetsByOwner = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}

@@ -120,3 +120,30 @@ func BoolToString(b bool) string {
 func GetDir(filePath string) string {
 	return filepath.Dir(filePath)
 }
+
+/**************************************************************************************************
+** FilterAssetsByOwner returns a new slice containing only the assets whose OwnerID matches
+** the given ownerID. Used to exclude partner-shared assets surfaced by /search/metadata when
+** "Show in timeline" is enabled on an incoming partner share: those assets are visible to
+** the current user but cannot be modified via the Immich stack API (permission denied), so
+** including them in stacking attempts wastes API calls and pollutes logs.
+**
+** When ownerID is empty, the input slice is returned unchanged to avoid filtering everything
+** out on a misconfigured caller (defensive default).
+**
+** @param assets - Input assets, typically the output of FetchAssets
+** @param ownerID - The current user's UUID (from GetCurrentUser)
+** @return []TAsset - Only the assets owned by ownerID, preserving input order
+**************************************************************************************************/
+func FilterAssetsByOwner(assets []TAsset, ownerID string) []TAsset {
+	if ownerID == "" {
+		return assets
+	}
+	out := make([]TAsset, 0, len(assets))
+	for _, a := range assets {
+		if a.OwnerID == ownerID {
+			out = append(out, a)
+		}
+	}
+	return out
+}
