@@ -98,6 +98,38 @@ from many small HTTP calls instead of one giant one. No user action is required.
 - If the warning fires repeatedly on a small library, the underlying Immich server may be
   unhealthy for another reason. Check Immich server logs.
 
+### Partner Sharing Assets Skipped
+
+**Symptoms:**
+
+```
+level=info msg="⏭️  Skipped 8755 assets owned by partners (not stackable via API)"
+```
+
+**Cause:**
+
+When a partner has shared their library with you and you have "Show in timeline" enabled
+for that share, Immich's `/search/metadata` endpoint surfaces the partner's assets in your
+timeline. immich-stack used to attempt to stack those assets and get rejected by Immich with
+permission errors (the stack write API requires `AssetUpdate` permission, which you don't
+have on partner-owned assets).
+
+**What the tool does:**
+
+After fetching assets, immich-stack compares `asset.ownerId` against your own user ID (from
+`GET /users/me`) and silently drops anything you don't own. Only owned assets reach the
+stacking pipeline, so no partner-related write attempts ever leave the client. The log line
+above is informational, not an error.
+
+**When to be concerned:**
+
+- A skip count that surprises you may indicate an unexpected partner share — check Immich's
+  Account Settings → Partner Sharing to confirm what's coming in.
+- A skip count of `0` is normal when you have no incoming partner shares or have `Show in
+timeline` disabled.
+
+This resolves [issue #55](https://github.com/Majorfi/immich-stack/issues/55).
+
 ### Grouping Issues
 
 **Symptoms:**
