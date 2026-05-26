@@ -36,6 +36,7 @@ var logLevel string
 var logFormat string
 var removeSingleAssetStacks bool
 var includeVideos bool
+var includeVideosFlagSet bool
 var filterAlbumIDs []string
 var filterTakenAfter string
 var filterTakenBefore string
@@ -294,8 +295,10 @@ func LoadEnvForTesting() LoadEnvConfig {
 	if !removeSingleAssetStacks {
 		removeSingleAssetStacks = os.Getenv("REMOVE_SINGLE_ASSET_STACKS") == "true"
 	}
-	if !includeVideos {
-		includeVideos = os.Getenv("INCLUDE_VIDEOS") == "true"
+	if !includeVideosFlagSet {
+		if envInclude := os.Getenv("INCLUDE_VIDEOS"); envInclude != "" {
+			includeVideos = envInclude == "true"
+		}
 	}
 	if parentFilenamePromote == "" || parentFilenamePromote == utils.DefaultParentFilenamePromoteString {
 		if envVal := os.Getenv("PARENT_FILENAME_PROMOTE"); envVal != "" {

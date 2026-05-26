@@ -37,6 +37,8 @@ func resetGlobalConfig() {
 	withDeleted = false
 	logLevel = ""
 	removeSingleAssetStacks = false
+	includeVideos = false
+	includeVideosFlagSet = false
 }
 
 func clearEnvironment() {

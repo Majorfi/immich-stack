@@ -40,19 +40,28 @@ type typeTrackingTransport struct {
 }
 
 func (t *typeTrackingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if t.typesCalls == nil {
-		t.typesCalls = make(map[string]int)
-	}
+	// Decode the asset type filter OUTSIDE the lock — I/O and JSON parsing are slow and
+	// holding the mutex through them would serialize concurrent requests unnecessarily.
+	var assetType string
 	if strings.HasSuffix(req.URL.Path, "/search/metadata") && req.Body != nil {
-		var payload map[string]interface{}
 		body, _ := io.ReadAll(req.Body)
+		_ = req.Body.Close()
+		var payload map[string]interface{}
 		_ = json.Unmarshal(body, &payload)
-		if assetType, ok := payload["type"].(string); ok {
-			t.typesCalls[assetType]++
+		if v, ok := payload["type"].(string); ok {
+			assetType = v
 		}
 	}
+
+	if assetType != "" {
+		t.mu.Lock()
+		if t.typesCalls == nil {
+			t.typesCalls = make(map[string]int)
+		}
+		t.typesCalls[assetType]++
+		t.mu.Unlock()
+	}
+
 	return &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       io.NopCloser(strings.NewReader(`{"assets":{"items":[],"nextPage":""}}`)),

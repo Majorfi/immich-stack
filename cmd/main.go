@@ -83,6 +83,9 @@ func CreateRootCommand() *cobra.Command {
 			if cmd.Flags().Lookup("replace-stacks") != nil && cmd.Flags().Lookup("replace-stacks").Changed {
 				replaceStacksFlagSet = true
 			}
+			if cmd.Flags().Lookup("include-videos") != nil && cmd.Flags().Lookup("include-videos").Changed {
+				includeVideosFlagSet = true
+			}
 		},
 	}
 

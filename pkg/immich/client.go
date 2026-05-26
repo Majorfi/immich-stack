@@ -90,6 +90,7 @@ type Client struct {
 ** @param withArchived - Whether to include archived assets
 ** @param withDeleted - Whether to include deleted assets
 ** @param removeSingleAssetStacks - Whether to remove stacks with only one asset
+** @param includeVideos - Whether to include VIDEO assets alongside IMAGE in searches
 ** @param filterAlbumIDs - Filter by album IDs (empty slice means no filter)
 ** @param filterTakenAfter - Filter assets taken after this date (empty means no filter)
 ** @param filterTakenBefore - Filter assets taken before this date (empty means no filter)
