@@ -82,40 +82,42 @@ func (c *Client) fetchAllAssetIDsViaSearch() ([]string, error) {
 	var ids []string
 
 	visibilityFilters := []interface{}{nil, "archive"}
-	for _, vis := range visibilityFilters {
-		page := 1
-		const pageSize = 1000
-		for {
-			var response utils.TSearchResponse
-			payload := map[string]interface{}{
-				"size":        pageSize,
-				"page":        page,
-				"order":       "asc",
-				"type":        "IMAGE",
-				"withStacked": true,
-				"withDeleted": true,
-			}
-			if vis != nil {
-				payload["visibility"] = vis
-			}
-			if err := c.doRequestWithUpstreamRetry(http.MethodPost, "/search/metadata", payload, &response, 4); err != nil {
-				return nil, fmt.Errorf("error fetching asset IDs (visibility=%v): %w", vis, err)
-			}
-			for _, asset := range response.Assets.Items {
-				if seen[asset.ID] {
-					continue
+	for _, assetType := range c.assetTypesForSearch() {
+		for _, vis := range visibilityFilters {
+			page := 1
+			const pageSize = 1000
+			for {
+				var response utils.TSearchResponse
+				payload := map[string]interface{}{
+					"size":        pageSize,
+					"page":        page,
+					"order":       "asc",
+					"type":        assetType,
+					"withStacked": true,
+					"withDeleted": true,
 				}
-				seen[asset.ID] = true
-				ids = append(ids, asset.ID)
+				if vis != nil {
+					payload["visibility"] = vis
+				}
+				if err := c.doRequestWithUpstreamRetry(http.MethodPost, "/search/metadata", payload, &response, 4); err != nil {
+					return nil, fmt.Errorf("error fetching asset IDs (type=%s, visibility=%v): %w", assetType, vis, err)
+				}
+				for _, asset := range response.Assets.Items {
+					if seen[asset.ID] {
+						continue
+					}
+					seen[asset.ID] = true
+					ids = append(ids, asset.ID)
+				}
+				if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
+					break
+				}
+				nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
+				if err != nil || nextPageInt == 0 {
+					break
+				}
+				page = nextPageInt
 			}
-			if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
-				break
-			}
-			nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
-			if err != nil || nextPageInt == 0 {
-				break
-			}
-			page = nextPageInt
 		}
 	}
 	return ids, nil
