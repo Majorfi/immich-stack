@@ -71,6 +71,7 @@ type Client struct {
 	withArchived            bool
 	withDeleted             bool
 	removeSingleAssetStacks bool
+	includeVideos           bool
 	filterAlbumIDs          []string
 	filterTakenAfter        string
 	filterTakenBefore       string
@@ -89,13 +90,14 @@ type Client struct {
 ** @param withArchived - Whether to include archived assets
 ** @param withDeleted - Whether to include deleted assets
 ** @param removeSingleAssetStacks - Whether to remove stacks with only one asset
+** @param includeVideos - Whether to include VIDEO assets alongside IMAGE in searches
 ** @param filterAlbumIDs - Filter by album IDs (empty slice means no filter)
 ** @param filterTakenAfter - Filter assets taken after this date (empty means no filter)
 ** @param filterTakenBefore - Filter assets taken before this date (empty means no filter)
 ** @param logger - Logger instance for output
 ** @return *Client - Configured Immich client instance
 **************************************************************************************************/
-func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, removeSingleAssetStacks bool, filterAlbumIDs []string, filterTakenAfter string, filterTakenBefore string, logger *logrus.Logger) *Client {
+func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, removeSingleAssetStacks bool, includeVideos bool, filterAlbumIDs []string, filterTakenAfter string, filterTakenBefore string, logger *logrus.Logger) *Client {
 	if apiKey == "" {
 		return nil
 	}
@@ -134,6 +136,7 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 		withArchived:            withArchived,
 		withDeleted:             withDeleted,
 		removeSingleAssetStacks: removeSingleAssetStacks,
+		includeVideos:           includeVideos,
 		filterAlbumIDs:          filterAlbumIDs,
 		filterTakenAfter:        filterTakenAfter,
 		filterTakenBefore:       filterTakenBefore,
@@ -298,6 +301,22 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 }
 
 /**************************************************************************************************
+** assetTypesForSearch returns the asset types to enumerate when calling /search/metadata.
+** Defaults to IMAGE only (historical behavior). When includeVideos is enabled, returns
+** [IMAGE, VIDEO] so the caller can run the same pagination twice and deduplicate, since the
+** Immich search endpoint only accepts a single type per request.
+**
+** Returned values must always be non-empty Immich AssetTypeEnum values (IMAGE, VIDEO, AUDIO,
+** or OTHER). An empty string would make the server return ALL types — never return one.
+**************************************************************************************************/
+func (c *Client) assetTypesForSearch() []string {
+	if c.includeVideos {
+		return []string{"IMAGE", "VIDEO"}
+	}
+	return []string{"IMAGE"}
+}
+
+/**************************************************************************************************
 ** FetchAssets retrieves all assets from Immich with pagination support.
 ** Assets are enriched with their stack information if available.
 **
@@ -349,63 +368,65 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 	seen := make(map[string]bool)
 	var allAssets []utils.TAsset
 
-	for _, albumFilter := range albumFilters {
-		page := 1
-		for {
-			if len(albumFilter) > 0 {
-				c.logger.Debugf("Fetching page %d for album(s) %v", page, albumFilter)
-			} else {
-				c.logger.Debugf("Fetching page %d", page)
-			}
-			var response utils.TSearchResponse
-
-			payload := map[string]interface{}{
-				"size":         size,
-				"page":         page,
-				"order":        "asc",
-				"type":         "IMAGE",
-				"isVisible":    true,
-				"withStacked":  true,
-				"withArchived": c.withArchived,
-				"withDeleted":  c.withDeleted,
-			}
-			if len(albumFilter) > 0 {
-				payload["albumIds"] = albumFilter
-			}
-			if c.filterTakenAfter != "" {
-				payload["takenAfter"] = c.filterTakenAfter
-			}
-			if c.filterTakenBefore != "" {
-				payload["takenBefore"] = c.filterTakenBefore
-			}
-
-			if err := c.doRequest(http.MethodPost, "/search/metadata", payload, &response); err != nil {
-				c.logger.Errorf("Error fetching assets: %v", err)
-				return nil, fmt.Errorf("error fetching assets: %w", err)
-			}
-
-			// Enrich assets with stack information and deduplicate
-			for i := range response.Assets.Items {
-				asset := &response.Assets.Items[i]
-				if seen[asset.ID] {
-					continue
+	for _, assetType := range c.assetTypesForSearch() {
+		for _, albumFilter := range albumFilters {
+			page := 1
+			for {
+				if len(albumFilter) > 0 {
+					c.logger.Debugf("Fetching page %d (%s) for album(s) %v", page, assetType, albumFilter)
+				} else {
+					c.logger.Debugf("Fetching page %d (%s)", page, assetType)
 				}
-				seen[asset.ID] = true
-				if stack, ok := stacksMap[asset.ID]; ok {
-					asset.Stack = &stack
-				}
-				allAssets = append(allAssets, *asset)
-			}
+				var response utils.TSearchResponse
 
-			// Handle string nextPage: empty string means no more pages
-			if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
-				break
+				payload := map[string]interface{}{
+					"size":         size,
+					"page":         page,
+					"order":        "asc",
+					"type":         assetType,
+					"isVisible":    true,
+					"withStacked":  true,
+					"withArchived": c.withArchived,
+					"withDeleted":  c.withDeleted,
+				}
+				if len(albumFilter) > 0 {
+					payload["albumIds"] = albumFilter
+				}
+				if c.filterTakenAfter != "" {
+					payload["takenAfter"] = c.filterTakenAfter
+				}
+				if c.filterTakenBefore != "" {
+					payload["takenBefore"] = c.filterTakenBefore
+				}
+
+				if err := c.doRequest(http.MethodPost, "/search/metadata", payload, &response); err != nil {
+					c.logger.Errorf("Error fetching assets: %v", err)
+					return nil, fmt.Errorf("error fetching assets: %w", err)
+				}
+
+				// Enrich assets with stack information and deduplicate
+				for i := range response.Assets.Items {
+					asset := &response.Assets.Items[i]
+					if seen[asset.ID] {
+						continue
+					}
+					seen[asset.ID] = true
+					if stack, ok := stacksMap[asset.ID]; ok {
+						asset.Stack = &stack
+					}
+					allAssets = append(allAssets, *asset)
+				}
+
+				// Handle string nextPage: empty string means no more pages
+				if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
+					break
+				}
+				nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
+				if err != nil || nextPageInt == 0 {
+					break
+				}
+				page = nextPageInt
 			}
-			nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
-			if err != nil || nextPageInt == 0 {
-				break
-			}
-			page = nextPageInt
 		}
 	}
 
@@ -526,42 +547,47 @@ func (c *Client) GetCurrentUser() (utils.TUserResponse, error) {
 **************************************************************************************************/
 func (c *Client) FetchTrashedAssets(size int) ([]utils.TAsset, error) {
 	var allTrashedAssets []utils.TAsset
-	page := 1
+	seen := make(map[string]bool)
 
 	c.logger.Debugf("🗑️  Fetching trashed assets:")
-	for {
-		c.logger.Debugf("Fetching trashed assets page %d", page)
-		var response utils.TSearchResponse
-		if err := c.doRequest(http.MethodPost, "/search/metadata", map[string]interface{}{
-			"size":         size,
-			"page":         page,
-			"order":        "asc",
-			"type":         "IMAGE",
-			"isVisible":    true,
-			"withStacked":  true,
-			"withArchived": false,
-			"withDeleted":  true,
-		}, &response); err != nil {
-			c.logger.Errorf("Error fetching trashed assets: %v", err)
-			return nil, fmt.Errorf("error fetching trashed assets: %w", err)
-		}
+	for _, assetType := range c.assetTypesForSearch() {
+		page := 1
+		for {
+			c.logger.Debugf("Fetching trashed assets page %d (%s)", page, assetType)
+			var response utils.TSearchResponse
+			if err := c.doRequest(http.MethodPost, "/search/metadata", map[string]interface{}{
+				"size":         size,
+				"page":         page,
+				"order":        "asc",
+				"type":         assetType,
+				"isVisible":    true,
+				"withStacked":  true,
+				"withArchived": false,
+				"withDeleted":  true,
+			}, &response); err != nil {
+				c.logger.Errorf("Error fetching trashed assets: %v", err)
+				return nil, fmt.Errorf("error fetching trashed assets: %w", err)
+			}
 
-		// Filter for only trashed assets
-		for _, asset := range response.Assets.Items {
-			if asset.IsTrashed {
+			// Filter for only trashed assets, deduplicating across type passes
+			for _, asset := range response.Assets.Items {
+				if !asset.IsTrashed || seen[asset.ID] {
+					continue
+				}
+				seen[asset.ID] = true
 				allTrashedAssets = append(allTrashedAssets, asset)
 			}
-		}
 
-		// Handle string nextPage: empty string means no more pages
-		if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
-			break
+			// Handle string nextPage: empty string means no more pages
+			if response.Assets.NextPage == "" || response.Assets.NextPage == "0" {
+				break
+			}
+			nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
+			if err != nil || nextPageInt == 0 {
+				break
+			}
+			page = nextPageInt
 		}
-		nextPageInt, err := strconv.Atoi(response.Assets.NextPage)
-		if err != nil || nextPageInt == 0 {
-			break
-		}
-		page = nextPageInt
 	}
 	c.logger.Debugf("🗑️  %d trashed assets found", len(allTrashedAssets))
 

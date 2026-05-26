@@ -35,6 +35,8 @@ var withDeleted bool
 var logLevel string
 var logFormat string
 var removeSingleAssetStacks bool
+var includeVideos bool
+var includeVideosFlagSet bool
 var filterAlbumIDs []string
 var filterTakenAfter string
 var filterTakenBefore string
@@ -153,6 +155,7 @@ func logStartupSummary(logger *logrus.Logger) {
 			"withArchived":            withArchived,
 			"withDeleted":             withDeleted,
 			"removeSingleAssetStacks": removeSingleAssetStacks,
+			"includeVideos":           includeVideos,
 			"criteria":                criteria,
 			"parentFilenamePromote":   parentFilenamePromote,
 			"parentExtPromote":        parentExtPromote,
@@ -196,6 +199,9 @@ func logStartupSummary(logger *logrus.Logger) {
 		}
 		if removeSingleAssetStacks {
 			summary = append(summary, "remove-single=true")
+		}
+		if includeVideos {
+			summary = append(summary, "include-videos=true")
 		}
 		if criteria != "" {
 			summary = append(summary, fmt.Sprintf("criteria=%s", criteria))
@@ -288,6 +294,11 @@ func LoadEnvForTesting() LoadEnvConfig {
 	}
 	if !removeSingleAssetStacks {
 		removeSingleAssetStacks = os.Getenv("REMOVE_SINGLE_ASSET_STACKS") == "true"
+	}
+	if !includeVideosFlagSet {
+		if envInclude := os.Getenv("INCLUDE_VIDEOS"); envInclude != "" {
+			includeVideos = envInclude == "true"
+		}
 	}
 	if parentFilenamePromote == "" || parentFilenamePromote == utils.DefaultParentFilenamePromoteString {
 		if envVal := os.Getenv("PARENT_FILENAME_PROMOTE"); envVal != "" {

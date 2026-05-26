@@ -131,6 +131,47 @@ timeline` disabled.
 
 This resolves [issue #55](https://github.com/Majorfi/immich-stack/issues/55).
 
+### Stacking Video Files
+
+**Symptoms:**
+
+- Stacking criteria match but `.mov`/`.mp4`/other video files are never picked up
+- Live Photos (`.HEIC` + `.MOV` pairs) only stack the photo, not the motion file
+- Edited videos (trimmed, cropped) cannot be stacked with their originals
+
+**Cause:**
+
+By default, immich-stack restricts `/search/metadata` calls to `type=IMAGE`. Video assets
+are excluded from the candidate pool entirely, regardless of whether your stacking criteria
+would otherwise match them.
+
+**Solution:**
+
+Enable `INCLUDE_VIDEOS=true` (or the CLI flag `--include-videos`). When set, every asset
+fetch runs twice — once for `IMAGE` and once for `VIDEO` — and results are deduplicated.
+Existing stacking criteria (filename patterns, time deltas, regex, etc.) work on videos
+the same way they work on images.
+
+```sh
+INCLUDE_VIDEOS=true
+```
+
+**Examples of use cases this unlocks:**
+
+- iPhone Live Photos: `IMG_1234.HEIC` paired with `IMG_1234.MOV` (same base name)
+- Trimmed/edited videos paired with the original file
+- Android burst videos with identical timestamps
+
+**Performance implications:**
+
+- A second pagination round runs for VIDEO. Wall-clock latency increases by the time the
+  VIDEO scan takes — proportional to how many videos you have. A library that's mostly
+  images sees a small bump; a library with many videos sees more.
+- The `OTHER` and `AUDIO` Immich types are still excluded — only `IMAGE` and `VIDEO` are
+  pulled in.
+
+This resolves [issue #54](https://github.com/Majorfi/immich-stack/issues/54).
+
 ### Grouping Issues
 
 **Symptoms:**
