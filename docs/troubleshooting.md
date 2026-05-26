@@ -98,6 +98,39 @@ from many small HTTP calls instead of one giant one. No user action is required.
 - If the warning fires repeatedly on a small library, the underlying Immich server may be
   unhealthy for another reason. Check Immich server logs.
 
+### Partner Sharing Assets Skipped
+
+**Symptoms:**
+
+```
+level=info msg="⏭️  Skipped 8755 assets owned by partners (not stackable via API)"
+```
+
+**Cause:**
+
+When a partner has shared their library with you and you have "Show in timeline" enabled
+for that share, Immich's `/search/metadata` endpoint surfaces the partner's assets in your
+timeline. immich-stack used to attempt to stack those assets and get rejected by Immich with
+permission errors (the stack write API requires `AssetUpdate` permission, which you don't
+have on partner-owned assets).
+
+**What the tool does:**
+
+`GET /users/me`) and drops anything you don't own. When any assets are dropped, an info-level
+log line reports the count (see the symptom above). When nothing is dropped — your normal
+case if you have no incoming partner shares — no log line is emitted. Either way, only owned
+assets reach the stacking pipeline, so no partner-related write attempts ever leave the
+client.
+
+**When to be concerned:**
+
+- A skip count that surprises you may indicate an unexpected partner share — check Immich's
+  Account Settings → Partner Sharing to confirm what's coming in.
+- A skip count of `0` is normal when you have no incoming partner shares or have `Show in
+timeline` disabled.
+
+This resolves [issue #55](https://github.com/Majorfi/immich-stack/issues/55).
+
 ### Grouping Issues
 
 **Symptoms:**
@@ -225,7 +258,6 @@ If you experienced this issue, update to the latest version and verify:
    ```
 
 1. Files with numbers beyond your promote list are handled automatically:
-
    - If you specify `0000,0001,0002,0003` but have files up to `0999`, they will be sorted correctly at position 999
 
 1. Understanding `sequence:X` behavior:
@@ -400,19 +432,16 @@ docker logs -f immich-stack
 ## Best Practices
 
 1. **Testing**
-
    - Always use dry run mode first
    - Test with small asset sets
    - Verify criteria before production
 
 1. **Monitoring**
-
    - Enable debug logging
    - Monitor resource usage
    - Check operation results
 
 1. **Maintenance**
-
    - Regular stack cleanup
    - API key rotation
    - Configuration review
