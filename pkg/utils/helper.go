@@ -122,18 +122,22 @@ func GetDir(filePath string) string {
 }
 
 /**************************************************************************************************
-** FilterAssetsByOwner returns a new slice containing only the assets whose OwnerID matches
-** the given ownerID. Used to exclude partner-shared assets surfaced by /search/metadata when
-** "Show in timeline" is enabled on an incoming partner share: those assets are visible to
-** the current user but cannot be modified via the Immich stack API (permission denied), so
-** including them in stacking attempts wastes API calls and pollutes logs.
+** FilterAssetsByOwner returns the assets whose OwnerID matches the given ownerID. Used to
+** exclude partner-shared assets surfaced by /search/metadata when "Show in timeline" is
+** enabled on an incoming partner share: those assets are visible to the current user but
+** cannot be modified via the Immich stack API (permission denied), so including them in
+** stacking attempts wastes API calls and pollutes logs.
 **
-** When ownerID is empty, the input slice is returned unchanged to avoid filtering everything
-** out on a misconfigured caller (defensive default).
+** Return-value contract:
+**   - When ownerID is non-empty (the normal case), a NEW slice is returned containing only
+**     the matching assets, in their original order. The input slice is not modified.
+**   - When ownerID is empty (defensive default for misconfigured callers), the input slice
+**     itself is returned unchanged — no copy is made. Callers that intend to mutate the
+**     result must handle this case explicitly.
 **
 ** @param assets - Input assets, typically the output of FetchAssets
 ** @param ownerID - The current user's UUID (from GetCurrentUser)
-** @return []TAsset - Only the assets owned by ownerID, preserving input order
+** @return []TAsset - Either a new filtered slice, or the input slice when ownerID is empty
 **************************************************************************************************/
 func FilterAssetsByOwner(assets []TAsset, ownerID string) []TAsset {
 	if ownerID == "" {

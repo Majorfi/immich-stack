@@ -116,11 +116,11 @@ have on partner-owned assets).
 
 **What the tool does:**
 
-After fetching assets, immich-stack compares `asset.ownerId` against your own user ID (from
-`GET /users/me`) and filters out anything you don't own before it reaches the stacking
-pipeline. Only owned assets reach the stacking pipeline, so no partner-related write
-attempts ever leave the client. When any assets are filtered out, the skipped count may be
-logged as an informational message, not an error.
+`GET /users/me`) and drops anything you don't own. When any assets are dropped, an info-level
+log line reports the count (see the symptom above). When nothing is dropped — your normal
+case if you have no incoming partner shares — no log line is emitted. Either way, only owned
+assets reach the stacking pipeline, so no partner-related write attempts ever leave the
+client.
 
 **When to be concerned:**
 
@@ -258,7 +258,6 @@ If you experienced this issue, update to the latest version and verify:
    ```
 
 1. Files with numbers beyond your promote list are handled automatically:
-
    - If you specify `0000,0001,0002,0003` but have files up to `0999`, they will be sorted correctly at position 999
 
 1. Understanding `sequence:X` behavior:
@@ -433,19 +432,16 @@ docker logs -f immich-stack
 ## Best Practices
 
 1. **Testing**
-
    - Always use dry run mode first
    - Test with small asset sets
    - Verify criteria before production
 
 1. **Monitoring**
-
    - Enable debug logging
    - Monitor resource usage
    - Check operation results
 
 1. **Maintenance**
-
    - Regular stack cleanup
    - API key rotation
    - Configuration review
