@@ -58,7 +58,7 @@ func TestNewClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Act
-			client := NewClient(tt.apiURL, tt.apiKey, tt.resetStacks, tt.replaceStacks, tt.dryRun, true, false, false, nil, "", "", logrus.New())
+			client := NewClient(tt.apiURL, tt.apiKey, tt.resetStacks, tt.replaceStacks, tt.dryRun, true, false, false, false, nil, "", "", logrus.New())
 
 			// Assert
 			if tt.wantErr {
@@ -892,7 +892,7 @@ func TestNewClientWithFilterParams(t *testing.T) {
 			client := NewClient(
 				"http://test.com",
 				"test-key",
-				false, false, false, false, false, false,
+				false, false, false, false, false, false, false,
 				tt.filterAlbumIDs,
 				tt.filterTakenAfter,
 				tt.filterTakenBefore,
@@ -1689,7 +1689,7 @@ func TestNewClientEdgeCases(t *testing.T) {
 			client := NewClient(
 				tt.apiURL,
 				tt.apiKey,
-				false, false, false, false, false, false,
+				false, false, false, false, false, false, false,
 				nil, "", "",
 				tt.logger,
 			)
