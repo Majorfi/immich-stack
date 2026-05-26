@@ -73,6 +73,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 			logger.Errorf("Error fetching trashed assets: %v", err)
 			continue
 		}
+		trashedAssets = filterOutPartnerAssets(trashedAssets, user.ID, logger)
 
 		if len(trashedAssets) == 0 {
 			logger.Info("No trashed assets found. Nothing to fix.")
@@ -92,6 +93,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 			logger.Errorf("Error fetching all assets: %v", err)
 			continue
 		}
+		allAssets = filterOutPartnerAssets(allAssets, user.ID, logger)
 
 		/**********************************************************************************************
 		** Find assets that should be trashed using reverse criteria matching.

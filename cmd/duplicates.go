@@ -74,6 +74,7 @@ func runDuplicates(cmd *cobra.Command, args []string) {
 			logger.Errorf("Error fetching assets: %v", err)
 			continue
 		}
+		assets = filterOutPartnerAssets(assets, user.ID, logger)
 
 		/**********************************************************************************************
 		** List duplicates using the existing function.

@@ -188,7 +188,7 @@ func runStacker(cmd *cobra.Command, args []string) {
 			logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
 			logger.Infof("=====================================================================================")
 			logger.Info("Running in once mode")
-			runStackerOnce(client, logger)
+			runStackerOnce(client, logger, user.ID)
 		}
 	}
 }
@@ -199,8 +199,11 @@ func runStacker(cmd *cobra.Command, args []string) {
 **
 ** @param client - Immich client instance
 ** @param logger - Logger instance for outputting status and errors
+** @param ownerID - Current user's UUID; non-owned assets (e.g., partner-shared with timeline
+**                  visibility) are filtered out before stacking since the API rejects writes
+**                  on them.
 **************************************************************************************************/
-func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
+func runStackerOnce(client *immich.Client, logger *logrus.Logger, ownerID string) {
 	/**********************************************************************************************
 	** Fetch all the assets from Immich.
 	**********************************************************************************************/
@@ -212,6 +215,7 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger) {
 	if err != nil {
 		logger.Fatalf("Error fetching assets: %v", err)
 	}
+	assets = filterOutPartnerAssets(assets, ownerID, logger)
 
 	/**********************************************************************************************
 	** Group the assets into stacks.
@@ -355,7 +359,7 @@ func runCronLoopForAllUsers(apiKeys []string, apiURL string, logger *logrus.Logg
 			logger.Infof("=====================================================================================")
 			logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
 			logger.Infof("=====================================================================================")
-			runStackerOnce(client, logger)
+			runStackerOnce(client, logger, user.ID)
 		}
 		logger.Infof("Sleeping for %d seconds until next run", cronInterval)
 		time.Sleep(time.Duration(cronInterval) * time.Second)
