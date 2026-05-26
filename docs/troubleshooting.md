@@ -117,9 +117,10 @@ have on partner-owned assets).
 **What the tool does:**
 
 After fetching assets, immich-stack compares `asset.ownerId` against your own user ID (from
-`GET /users/me`) and silently drops anything you don't own. Only owned assets reach the
-stacking pipeline, so no partner-related write attempts ever leave the client. The log line
-above is informational, not an error.
+`GET /users/me`) and filters out anything you don't own before it reaches the stacking
+pipeline. Only owned assets reach the stacking pipeline, so no partner-related write
+attempts ever leave the client. When any assets are filtered out, the skipped count may be
+logged as an informational message, not an error.
 
 **When to be concerned:**
 
