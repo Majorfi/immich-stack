@@ -39,6 +39,10 @@ func resetGlobalConfig() {
 	removeSingleAssetStacks = false
 	includeVideos = false
 	includeVideosFlagSet = false
+	preventSelfRekt = false
+	preventSelfRektFlagSet = false
+	stackConcurrency = 0
+	stackConcurrencyFlagSet = false
 }
 
 func clearEnvironment() {

@@ -7,6 +7,7 @@ package main
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/majorfi/immich-stack/pkg/immich"
@@ -174,7 +175,7 @@ func runStacker(cmd *cobra.Command, args []string) {
 			if i > 0 {
 				logger.Infof("\n")
 			}
-			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, includeVideos, filterAlbumIDs, filterTakenAfter, filterTakenBefore, logger)
+			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, includeVideos, stackConcurrency, filterAlbumIDs, filterTakenAfter, filterTakenBefore, logger)
 			if client == nil {
 				logger.Errorf("Invalid client for API key: %s", key)
 				continue
@@ -225,110 +226,135 @@ func runStackerOnce(client *immich.Client, logger *logrus.Logger, ownerID string
 		logger.Fatalf("Error stacking assets: %v", err)
 	}
 
+	/**********************************************************************************************
+	** Process each candidate stack. When stackConcurrency > 1, multiple stacks are written in
+	** parallel using a bounded semaphore — the sequence WITHIN each stack (delete children →
+	** modify) stays ordered, only different stacks run concurrently. Default concurrency = 1
+	** preserves the historical sequential behavior. See issue #53.
+	**********************************************************************************************/
+	concurrency := max(stackConcurrency, 1)
+	sem := make(chan struct{}, concurrency)
+	var wg sync.WaitGroup
 	for i, stack := range stacks {
-		_, _, newStackIDs := getParentAndChildrenIDs(stack)
-		_, _, originalStackIDs := getOriginalStackIDs(stack)
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(i int, stack []utils.TAsset) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			processStack(client, logger, i, len(stacks), stack)
+		}(i, stack)
+	}
+	wg.Wait()
+}
 
-		/******************************************************************************************
-		** Adding debug logs
-		******************************************************************************************/
-		{
-			logger.Debugf("--------------------------------")
-			logger.Debugf("%d/%d Key: %s", i+1, len(stacks), stack[0].OriginalFileName)
+/**************************************************************************************************
+** processStack runs the per-stack pipeline: compare against existing state, optionally delete
+** child stacks (for replace mode), throttle if requested, and call ModifyStack. Designed to be
+** safe to invoke from many goroutines in parallel — operates on its own stack slice and uses
+** the client/logger which are themselves goroutine-safe.
+**************************************************************************************************/
+func processStack(client *immich.Client, logger *logrus.Logger, i int, total int, stack []utils.TAsset) {
+	_, _, newStackIDs := getParentAndChildrenIDs(stack)
+	_, _, originalStackIDs := getOriginalStackIDs(stack)
+
+	/**********************************************************************************************
+	** Adding debug logs
+	**********************************************************************************************/
+	logger.Debugf("--------------------------------")
+	logger.Debugf("%d/%d Key: %s", i+1, total, stack[0].OriginalFileName)
+	logger.WithFields(logrus.Fields{
+		"Name": stack[0].OriginalFileName,
+		"ID":   stack[0].ID,
+		"Time": stack[0].LocalDateTime,
+	}).Debugf("\tParent")
+	for _, child := range stack[1:] {
+		logger.WithFields(logrus.Fields{
+			"Name": child.OriginalFileName,
+			"ID":   child.ID,
+			"Time": child.LocalDateTime,
+		}).Debugf("\tChild")
+	}
+
+	/**********************************************************************************************
+	** Doing standard stacker checks.
+	**********************************************************************************************/
+	if !isValidStack(newStackIDs) {
+		logger.Debugf("\t⚠️ Invalid stack: %s", stack[0].OriginalFileName)
+		return
+	}
+	if !needsStackUpdate(originalStackIDs, newStackIDs) {
+		logger.Debugf("\tℹ️ No update needed for stack: %s", stack[0].OriginalFileName)
+		return
+	}
+	childrenWithStack, hasChildrenWithStack := getChildrenWithStack(stack)
+	if hasChildrenWithStack && !replaceStacks {
+		logger.Debugf("\tℹ️ No replaceStacks, skipping stack: %s", stack[0].OriginalFileName)
+		return
+	}
+
+	/**********************************************************************************************
+	** Adding info logs, but only if we are not in debug mode.
+	**********************************************************************************************/
+	if !logger.IsLevelEnabled(logrus.DebugLevel) {
+		logger.Infof("--------------------------------")
+		logger.Infof("%d/%d Key: %s", i+1, total, stack[0].OriginalFileName)
+		logger.WithFields(logrus.Fields{
+			"Name": stack[0].OriginalFileName,
+			"ID":   stack[0].ID,
+			"Time": stack[0].LocalDateTime,
+		}).Infof("\tParent")
+		for _, child := range stack[1:] {
 			logger.WithFields(logrus.Fields{
-				"Name": stack[0].OriginalFileName,
-				"ID":   stack[0].ID,
-				"Time": stack[0].LocalDateTime,
-			}).Debugf("\tParent")
-			for _, child := range stack[1:] {
-				logger.WithFields(logrus.Fields{
-					"Name": child.OriginalFileName,
-					"ID":   child.ID,
-					"Time": child.LocalDateTime,
-				}).Debugf("\tChild")
-			}
+				"Name": child.OriginalFileName,
+				"ID":   child.ID,
+				"Time": child.LocalDateTime,
+			}).Infof("\tChild")
 		}
+	}
 
-		/******************************************************************************************
-		** Doing standard stacker checks.
-		******************************************************************************************/
-		if !isValidStack(newStackIDs) {
-			logger.Debugf("\t⚠️ Invalid stack: %s", stack[0].OriginalFileName)
-			continue
-		}
-		if !needsStackUpdate(originalStackIDs, newStackIDs) {
-			logger.Debugf("\tℹ️ No update needed for stack: %s", stack[0].OriginalFileName)
-			continue
-		}
-		childrenWithStack, hasChildrenWithStack := getChildrenWithStack(stack)
-		if hasChildrenWithStack && !replaceStacks {
-			logger.Debugf("\tℹ️ No replaceStacks, skipping stack: %s", stack[0].OriginalFileName)
-			continue
-		}
+	/**********************************************************************************************
+	** Add comparison debug logging.
+	**********************************************************************************************/
+	if logger.IsLevelEnabled(logrus.DebugLevel) {
+		logger.Debugf("\tStack comparison:")
+		logger.Debugf("\t  Original: %v", originalStackIDs)
+		logger.Debugf("\t  Expected: %v", newStackIDs)
+		logger.Debugf("\t  REPLACE_STACKS: %v", replaceStacks)
+	}
 
-		/******************************************************************************************
-		** Adding info logs, but only if we are not in debug mode.
-		******************************************************************************************/
-		{
-			if !logger.IsLevelEnabled(logrus.DebugLevel) {
-				logger.Infof("--------------------------------")
-				logger.Infof("%d/%d Key: %s", i+1, len(stacks), stack[0].OriginalFileName)
-			}
-			if !logger.IsLevelEnabled(logrus.DebugLevel) {
-				logger.WithFields(logrus.Fields{
-					"Name": stack[0].OriginalFileName,
-					"ID":   stack[0].ID,
-					"Time": stack[0].LocalDateTime,
-				}).Infof("\tParent")
-				for _, child := range stack[1:] {
-					logger.WithFields(logrus.Fields{
-						"Name": child.OriginalFileName,
-						"ID":   child.ID,
-						"Time": child.LocalDateTime,
-					}).Infof("\tChild")
-				}
-			}
+	/**********************************************************************************************
+	** Delete children stacks if replaceStacks is true.
+	**********************************************************************************************/
+	if replaceStacks {
+		for _, childID := range childrenWithStack {
+			client.DeleteStack(childID, utils.REASON_REPLACE_CHILD_STACK_WITH_NEW_ONE)
 		}
+	}
 
-		/******************************************************************************************
-		** Add comparison debug logging.
-		******************************************************************************************/
-		if logger.IsLevelEnabled(logrus.DebugLevel) {
-			logger.Debugf("\tStack comparison:")
-			logger.Debugf("\t  Original: %v", originalStackIDs)
-			logger.Debugf("\t  Expected: %v", newStackIDs)
-			logger.Debugf("\t  REPLACE_STACKS: %v", replaceStacks)
-		}
+	/**********************************************************************************************
+	** Determine action type for logging.
+	**********************************************************************************************/
+	var actionMsg string
+	if len(originalStackIDs) == 0 {
+		actionMsg = "\t🆕 Creating new stack"
+	} else if replaceStacks && len(childrenWithStack) > 0 {
+		actionMsg = "\t🔄 Replacing existing stack (deleted child stacks)"
+	} else {
+		actionMsg = "\t✏️  Updating stack configuration"
+	}
+	logger.Info(actionMsg)
 
-		/******************************************************************************************
-		** Delete children stacks if replaceStacks is true.
-		******************************************************************************************/
-		if replaceStacks {
-			for _, childID := range childrenWithStack {
-				client.DeleteStack(childID, utils.REASON_REPLACE_CHILD_STACK_WITH_NEW_ONE)
-			}
-		}
-
-		/******************************************************************************************
-		** Determine action type for logging.
-		******************************************************************************************/
-		var actionMsg string
-		if len(originalStackIDs) == 0 {
-			actionMsg = "\t🆕 Creating new stack"
-		} else if replaceStacks && len(childrenWithStack) > 0 {
-			actionMsg = "\t🔄 Replacing existing stack (deleted child stacks)"
-		} else {
-			actionMsg = "\t✏️  Updating stack configuration"
-		}
-		logger.Info(actionMsg)
-
-		/******************************************************************************************
-		** Modify the stack after a little delay to avoid self-rekt.
-		******************************************************************************************/
-		time.Sleep(100 * time.Millisecond)
-		if err := client.ModifyStack(newStackIDs); err != nil {
-			logger.Errorf("Error modifying stack: %v", err)
-		}
+	/**********************************************************************************************
+	** Optional throttle between stack writes. Default is no delay — empirically Immich has no
+	** rate limit on POST /stacks and handles bursts fine. Users with very large libraries on
+	** slow hosting can opt in to a 50ms gap via PREVENT_SELF_REKT=true if they observe upstream
+	** errors. See issue #53.
+	**********************************************************************************************/
+	if preventSelfRekt {
+		time.Sleep(50 * time.Millisecond)
+	}
+	if err := client.ModifyStack(newStackIDs); err != nil {
+		logger.Errorf("Error modifying stack: %v", err)
 	}
 }
 
@@ -346,7 +372,7 @@ func runCronLoopForAllUsers(apiKeys []string, apiURL string, logger *logrus.Logg
 			if i > 0 {
 				logger.Infof("\n")
 			}
-			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, includeVideos, filterAlbumIDs, filterTakenAfter, filterTakenBefore, logger)
+			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, includeVideos, stackConcurrency, filterAlbumIDs, filterTakenAfter, filterTakenBefore, logger)
 			if client == nil {
 				logger.Errorf("Invalid client for API key: %s", key)
 				continue
