@@ -33,6 +33,8 @@ func bindFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringVar(&logFormat, "log-format", "", "Log format: text, json (or set LOG_FORMAT env var)")
 	rootCmd.PersistentFlags().BoolVar(&removeSingleAssetStacks, "remove-single-asset-stacks", false, "Remove stacks with only one asset (or set REMOVE_SINGLE_ASSET_STACKS=true)")
 	rootCmd.PersistentFlags().BoolVar(&includeVideos, "include-videos", false, "Include VIDEO assets alongside IMAGE in stacking (or set INCLUDE_VIDEOS=true)")
+	rootCmd.PersistentFlags().BoolVar(&preventSelfRekt, "prevent-self-rekt", false, "Insert a 50ms delay before each stack write to prevent overwhelming Immich on huge libraries (or set PREVENT_SELF_REKT=true)")
+	rootCmd.PersistentFlags().IntVar(&stackConcurrency, "stack-concurrency", 0, "Parallel stack writes (default 1 = sequential; values like 10-20 speed up large libraries; or set STACK_CONCURRENCY)")
 	rootCmd.PersistentFlags().StringSliceVar(&filterAlbumIDs, "filter-album-ids", nil, "Filter by album IDs or names, comma-separated (or set FILTER_ALBUM_IDS env var)")
 	rootCmd.PersistentFlags().StringVar(&filterTakenAfter, "filter-taken-after", "", "Filter assets taken after date, ISO 8601 (or set FILTER_TAKEN_AFTER env var)")
 	rootCmd.PersistentFlags().StringVar(&filterTakenBefore, "filter-taken-before", "", "Filter assets taken before date, ISO 8601 (or set FILTER_TAKEN_BEFORE env var)")
@@ -85,6 +87,12 @@ func CreateRootCommand() *cobra.Command {
 			}
 			if cmd.Flags().Lookup("include-videos") != nil && cmd.Flags().Lookup("include-videos").Changed {
 				includeVideosFlagSet = true
+			}
+			if cmd.Flags().Lookup("prevent-self-rekt") != nil && cmd.Flags().Lookup("prevent-self-rekt").Changed {
+				preventSelfRektFlagSet = true
+			}
+			if cmd.Flags().Lookup("stack-concurrency") != nil && cmd.Flags().Lookup("stack-concurrency").Changed {
+				stackConcurrencyFlagSet = true
 			}
 		},
 	}
