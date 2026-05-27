@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
@@ -72,6 +73,7 @@ type Client struct {
 	withDeleted             bool
 	removeSingleAssetStacks bool
 	includeVideos           bool
+	stackConcurrency        int
 	filterAlbumIDs          []string
 	filterTakenAfter        string
 	filterTakenBefore       string
@@ -97,7 +99,10 @@ type Client struct {
 ** @param logger - Logger instance for output
 ** @return *Client - Configured Immich client instance
 **************************************************************************************************/
-func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, removeSingleAssetStacks bool, includeVideos bool, filterAlbumIDs []string, filterTakenAfter string, filterTakenBefore string, logger *logrus.Logger) *Client {
+func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryRun bool, withArchived bool, withDeleted bool, removeSingleAssetStacks bool, includeVideos bool, stackConcurrency int, filterAlbumIDs []string, filterTakenAfter string, filterTakenBefore string, logger *logrus.Logger) *Client {
+	if stackConcurrency < 1 {
+		stackConcurrency = 1
+	}
 	if apiKey == "" {
 		return nil
 	}
@@ -137,6 +142,7 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 		withDeleted:             withDeleted,
 		removeSingleAssetStacks: removeSingleAssetStacks,
 		includeVideos:           includeVideos,
+		stackConcurrency:        stackConcurrency,
 		filterAlbumIDs:          filterAlbumIDs,
 		filterTakenAfter:        filterTakenAfter,
 		filterTakenBefore:       filterTakenBefore,
@@ -254,18 +260,40 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 		}
 	}
 
-	// Handle single-asset stacks and reset if needed
-	for _, stack := range stacks {
-		if c.resetStacks {
-			c.logger.Debugf("🔄 Resetting stack %s", stack.PrimaryAssetID)
-			if err := c.DeleteStack(stack.ID, utils.REASON_RESET_STACK); err != nil {
-				c.logger.Errorf("Error deleting stack: %v", err)
+	// Handle single-asset stacks and reset if needed.
+	// Capture the flags locally — c.resetStacks is mutated AFTER this block (line below),
+	// so goroutines reading the field directly could race with that mutation if a future
+	// refactor moves the reset earlier. Capturing is defensive and makes intent explicit.
+	shouldReset := c.resetStacks
+	shouldRemoveSingle := c.removeSingleAssetStacks
+	{
+		concurrency := max(c.stackConcurrency, 1)
+		sem := make(chan struct{}, concurrency)
+		var wg sync.WaitGroup
+		for _, stack := range stacks {
+			var reason string
+			switch {
+			case shouldReset:
+				reason = utils.REASON_RESET_STACK
+			case shouldRemoveSingle && len(stack.Assets) <= 1:
+				reason = utils.REASON_DELETE_STACK_WITH_ONE_ASSET
+			default:
+				continue
 			}
-		} else if c.removeSingleAssetStacks && len(stack.Assets) <= 1 {
-			if err := c.DeleteStack(stack.ID, utils.REASON_DELETE_STACK_WITH_ONE_ASSET); err != nil {
-				c.logger.Errorf("Error deleting stack: %v", err)
-			}
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(stack utils.TStack, reason string) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				if reason == utils.REASON_RESET_STACK {
+					c.logger.Debugf("🔄 Resetting stack %s", stack.PrimaryAssetID)
+				}
+				if err := c.DeleteStack(stack.ID, reason); err != nil {
+					c.logger.Errorf("Error deleting stack: %v", err)
+				}
+			}(stack, reason)
 		}
+		wg.Wait()
 	}
 
 	if c.resetStacks {
