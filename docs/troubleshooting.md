@@ -172,6 +172,61 @@ INCLUDE_VIDEOS=true
 
 This resolves [issue #54](https://github.com/Majorfi/immich-stack/issues/54).
 
+### Slow Stacking on Large Libraries
+
+**Symptoms:**
+
+- A single stacking run takes 30 minutes or more on a library with thousands of stacks
+- CPU usage during the run is near 0% (the tool is waiting, not computing)
+- Reset operations (`RESET_STACKS=true`) take comparable time on big libraries
+
+**Cause:**
+
+Historically the tool inserted a 100 ms pause before every `POST /stacks` call to avoid
+hammering Immich. For libraries with 10k+ stacks, that single pause dominated wall-clock
+time (e.g., 21 000 stacks × 100 ms ≈ 35 minutes of pure sleep). See [issue #53](https://github.com/Majorfi/immich-stack/issues/53).
+
+**What changed:**
+
+- The preemptive sleep is no longer applied by default — empirically Immich has no rate
+  limit on `POST /stacks` and handles bursts of hundreds of requests per second cleanly.
+- Stack writes can now run in parallel via `STACK_CONCURRENCY` (default `1`, i.e., sequential).
+- Both the main stacking loop AND the `RESET_STACKS` / `REMOVE_SINGLE_ASSET_STACKS` cleanup
+  paths respect the same concurrency setting.
+
+**Configuration:**
+
+```sh
+# Default — sequential writes, no artificial delay
+STACK_CONCURRENCY=1
+
+# Recommended for libraries above 10k stacks — 10× speedup typical
+STACK_CONCURRENCY=10
+
+# Aggressive — use only if your Immich host is sized for it
+STACK_CONCURRENCY=20
+
+# Safety throttle — opt in if you observe upstream errors on a slow host
+# (inserts a 50 ms pause before each write; combinable with STACK_CONCURRENCY)
+PREVENT_SELF_REKT=true
+```
+
+**Expect interleaved logs when `STACK_CONCURRENCY > 1`:**
+
+Each individual log line stays intact (the logger is goroutine-safe), but the per-stack
+sequence ("1/N Key: …", "Parent …", "Child …", "Creating new stack") is no longer printed
+together for a given stack — lines from different stacks interleave. This is the visible
+trade-off for the speedup. Drop back to `STACK_CONCURRENCY=1` if you need sequential logs
+for debugging a specific stack.
+
+**When to enable `PREVENT_SELF_REKT`:**
+
+- Self-hosted Immich on a single low-power machine (e.g., Raspberry Pi) where the database
+  starts queueing under sustained writes
+- You see repeated `502 Bad Gateway` errors during stack writes
+- You're combining `STACK_CONCURRENCY > 10` with a constrained host and want a per-write
+  cooldown
+
 ### Grouping Issues
 
 **Symptoms:**
@@ -299,6 +354,7 @@ If you experienced this issue, update to the latest version and verify:
    ```
 
 1. Files with numbers beyond your promote list are handled automatically:
+
    - If you specify `0000,0001,0002,0003` but have files up to `0999`, they will be sorted correctly at position 999
 
 1. Understanding `sequence:X` behavior:
@@ -473,16 +529,19 @@ docker logs -f immich-stack
 ## Best Practices
 
 1. **Testing**
+
    - Always use dry run mode first
    - Test with small asset sets
    - Verify criteria before production
 
 1. **Monitoring**
+
    - Enable debug logging
    - Monitor resource usage
    - Check operation results
 
 1. **Maintenance**
+
    - Regular stack cleanup
    - API key rotation
    - Configuration review
