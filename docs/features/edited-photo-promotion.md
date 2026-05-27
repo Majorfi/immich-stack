@@ -127,6 +127,52 @@ Simply remove `biggestNumber` from your promote list:
 PARENT_FILENAME_PROMOTE=edit,crop,hdr
 ```
 
+## Promote by File Size (`biggestSize` / `smallestSize`)
+
+Sometimes the filename alone can't tell you which version of a photo was the post-processed
+export. A typical example: shooting JPG+RAW on a DSLR and exporting an edited JPG from
+Lightroom — all three end up sharing the same base filename but the exported JPG is
+substantially larger than the camera's original. Use the `biggestSize` (or, symmetrically,
+`smallestSize`) magic keyword in `PARENT_FILENAME_PROMOTE` to break ties on file size.
+
+### Configuration
+
+```bash
+# Always promote the largest file when other criteria don't resolve
+PARENT_FILENAME_PROMOTE=biggestSize
+
+# Combine with substring matches: pick "_edited" files first, then largest within that bucket
+PARENT_FILENAME_PROMOTE=_edited,biggestSize
+
+# Symmetric: promote the smallest file (useful for thumbnails / reduced exports)
+PARENT_FILENAME_PROMOTE=smallestSize
+```
+
+### Example: DSLR with JPG + RAW + Lightroom Export
+
+```
+Files:                                    Size
+- IMG_5821.JPG  (camera JPG)              4.8 MB
+- IMG_5821.CR2  (camera RAW)              28.0 MB
+- IMG_5821.jpg  (exported from Lightroom) 12.4 MB
+
+With PARENT_FILENAME_PROMOTE=biggestSize and PARENT_EXT_PROMOTE=.jpg,.jpeg,.png:
+1. IMG_5821.jpg   ← winner (largest among the JPGs)
+2. IMG_5821.JPG
+3. IMG_5821.CR2   (lower extension priority)
+```
+
+### How It Works
+
+- `biggestSize` and `smallestSize` are evaluated **after** extension preferences, so a
+  high-priority extension still wins over an unrelated larger file (e.g. a 28 MB RAW
+  doesn't outrank a 12 MB JPG when `.jpg` is listed first in `PARENT_EXT_PROMOTE`).
+- The tie-break uses `exifInfo.fileSizeInByte` from Immich. Assets without exif data
+  fall through to the alphabetical sort — they are **not** treated as size zero.
+- If both `biggestSize` and `smallestSize` are present, `biggestSize` wins.
+- The keywords compose with `biggestNumber` and substring matchers; ordering in the
+  list does not affect their precedence (it's hard-coded by sort layer).
+
 ## Technical Details
 
 The `biggestNumber` feature:

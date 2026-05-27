@@ -33,10 +33,10 @@ Note:
 
 ## Parent Selection
 
-| Variable                  | Description                                                                                                                                                       | Default                             | Example                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------- |
-| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames. Supports empty string for negative matching, the `sequence` keyword and automatic sequence detection for burst photos. | `cover,edit,crop,hdr,biggestNumber` | `,_edited` or `edit,raw` or `COVER,sequence` or `0000,0001,0002,0003` |
-| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files                                                                                                                             | `.jpg,.png,.jpeg,.heic,.dng`        | `.jpg,.dng`                                                           |
+| Variable                  | Description                                                                                                                                                                                                                                              | Default                             | Example                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `PARENT_FILENAME_PROMOTE` | Substrings to promote as parent filenames. Supports empty string for negative matching, the `sequence` keyword, automatic sequence detection for burst photos, and the `biggestNumber` / `biggestSize` / `smallestSize` magic keywords for tie-breakers. | `cover,edit,crop,hdr,biggestNumber` | `,_edited` or `edit,raw` or `COVER,sequence` or `0000,0001,0002,0003` or `_edited,biggestSize` |
+| `PARENT_EXT_PROMOTE`      | Extensions to promote as parent files                                                                                                                                                                                                                    | `.jpg,.png,.jpeg,.heic,.dng`        | `.jpg,.dng`                                                                                    |
 
 ### Empty String for Negative Matching
 
