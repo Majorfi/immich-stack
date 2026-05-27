@@ -47,7 +47,7 @@ func runDuplicates(cmd *cobra.Command, args []string) {
 		if i > 0 {
 			logger.Infof("\n")
 		}
-		client := immich.NewClient(apiURL, key, false, false, true, withArchived, withDeleted, false, includeVideos, nil, "", "", logger)
+		client := immich.NewClient(apiURL, key, false, false, true, withArchived, withDeleted, false, includeVideos, stackConcurrency, nil, "", "", logger)
 		if client == nil {
 			logger.Errorf("Invalid client for API key: %s", key)
 			continue
