@@ -34,6 +34,16 @@ func StackBy(assets []utils.TAsset, criteria string, parentFilenamePromote strin
 		if criteriaConfig.Expression != nil {
 			return stackByAdvanced(assets, criteriaConfig, parentFilenamePromote, parentExtPromote, logger)
 		} else if len(criteriaConfig.Groups) > 0 {
+			// Route AND-only groups through the expression code path so they inherit the
+			// sliding-window time merge.
+			// OR groups stay on the legacy connectivity-graph path because their
+			// cross-criterion union semantics aren't representable in expression OR.
+			if canConvertGroupsToExpression(criteriaConfig.Groups) {
+				criteriaConfig.Expression = convertGroupsToExpression(criteriaConfig.Groups)
+				if criteriaConfig.Expression != nil {
+					return stackByAdvanced(assets, criteriaConfig, parentFilenamePromote, parentExtPromote, logger)
+				}
+			}
 			return stackByLegacyGroups(assets, criteriaConfig, parentFilenamePromote, parentExtPromote, logger)
 		}
 		return nil, fmt.Errorf("advanced mode specified but no expression or groups provided")

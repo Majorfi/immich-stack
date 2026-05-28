@@ -1,11 +1,16 @@
 package stacker
 
 import (
+	"encoding/json"
+	"io"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildExpressionGroupingKey(t *testing.T) {
@@ -575,4 +580,212 @@ func TestAdvancedCriteriaIntegration(t *testing.T) {
 	if pxlCount != 1 || imgCount != 1 {
 		t.Errorf("Expected 1 PXL stack and 1 IMG stack, got %d PXL and %d IMG", pxlCount, imgCount)
 	}
+}
+
+/**************************************************************************************************
+** quietTestLogger returns a logger that discards output but is still safe to call from tests
+** that don't want their debug noise in `go test -v` runs.
+**************************************************************************************************/
+func quietTestLogger() *logrus.Logger {
+	l := logrus.New()
+	l.SetOutput(io.Discard)
+	l.SetLevel(logrus.WarnLevel)
+	return l
+}
+
+/**************************************************************************************************
+** mustMarshalCriteria serializes a CriteriaConfig into the JSON shape StackBy expects
+** (utils.TAdvancedCriteria — the public wire type) so a test can exercise the dispatcher
+** through its real public entry point rather than calling stackByLegacyGroups/stackByAdvanced
+** directly.
+**************************************************************************************************/
+func mustMarshalCriteria(t *testing.T, config CriteriaConfig) string {
+	t.Helper()
+	adv := utils.TAdvancedCriteria{
+		Mode:       config.Mode,
+		Groups:     config.Groups,
+		Expression: config.Expression,
+	}
+	b, err := json.Marshal(adv)
+	require.NoError(t, err)
+	return string(b)
+}
+
+/**************************************************************************************************
+** assertContainsStack fails the test unless one of the recorded stacks contains exactly the
+** given asset IDs (order-insensitive). Used to verify per-stack content without depending on
+** the deterministic-sort order of stacks themselves.
+**************************************************************************************************/
+func assertContainsStack(t *testing.T, stackIDs [][]string, expected []string) {
+	t.Helper()
+	want := stringSet(expected)
+	for _, ids := range stackIDs {
+		if len(ids) != len(expected) {
+			continue
+		}
+		if stringSet(ids) == want {
+			return
+		}
+	}
+	t.Errorf("no stack matched expected IDs %v; got stacks %v", expected, stackIDs)
+}
+
+/**************************************************************************************************
+** stringSet joins a sorted list of strings into a stable map-key for cheap set comparison.
+**************************************************************************************************/
+func stringSet(s []string) string {
+	cp := make([]string, len(s))
+	copy(cp, s)
+	sort.Strings(cp)
+	return strings.Join(cp, "|")
+}
+
+/**************************************************************************************************
+** TestStackByGroups_AndGroupsApplyTimeBucketMerge is the regression test for issue #46. A
+** prior fix (commit d94ba488, for issue #40) added a sliding-window time-merge post-pass that
+** re-groups photos within delta but straddling a fixed time bucket. That fix was applied to
+** stackByLegacy and stackByAdvanced but NOT to stackByLegacyGroups, so users configuring
+** criteria in advanced groups format still hit the original bucket-boundary bug.
+**
+** The fix converts AND-only groups into an OR(AND, AND) expression and routes them through
+** stackByAdvanced, which has the sliding-window pass. This test exercises that path through
+** the public StackBy entry point.
+**
+** Test data uses the realistic Pixel Motion-Photo / Live-Photo case where multiple variants
+** share the same timestamp prefix in their filename (so the filename regex match is identical
+** across variants) but have slightly different localDateTime values that can straddle a
+** time-delta bucket boundary. Without the fix, the variant straddling the boundary drops into
+** a different bucket and fails to stack with the rest — exactly the "2 of 3 stacks" symptom
+** in the issue report.
+**************************************************************************************************/
+func TestStackByGroups_AndGroupsApplyTimeBucketMerge(t *testing.T) {
+	logger := quietTestLogger()
+
+	assets := []utils.TAsset{
+		// Burst 1 — all three variants extract the same regex match
+		// "PXL_20240101_120015100" but their localDateTime values fall in different 16s buckets.
+		{ID: "b1cover", OriginalFileName: "PXL_20240101_120015100.COVER.jpg", LocalDateTime: "2024-01-01T12:00:15.100Z"},
+		{ID: "b1mp", OriginalFileName: "PXL_20240101_120015100.MP.jpg", LocalDateTime: "2024-01-01T12:00:17.000Z"},
+		{ID: "b1main", OriginalFileName: "PXL_20240101_120015100.jpg", LocalDateTime: "2024-01-01T12:00:18.100Z"},
+
+		// Burst 2 — same shape, different boundary
+		{ID: "b2cover", OriginalFileName: "PXL_20240101_120031900.COVER.jpg", LocalDateTime: "2024-01-01T12:00:31.900Z"},
+		{ID: "b2mp", OriginalFileName: "PXL_20240101_120031900.MP.jpg", LocalDateTime: "2024-01-01T12:00:33.000Z"},
+		{ID: "b2main", OriginalFileName: "PXL_20240101_120031900.jpg", LocalDateTime: "2024-01-01T12:00:34.900Z"},
+
+		// Burst 3 — DSC with 2.5s delta, variants straddle a 2.5s boundary
+		{ID: "b3jpg", OriginalFileName: "DSC_0001.JPG", LocalDateTime: "2024-01-01T12:01:04.499Z"},
+		{ID: "b3raw", OriginalFileName: "DSC_0001.RAW.jpg", LocalDateTime: "2024-01-01T12:01:05.500Z"},
+		{ID: "b3heic", OriginalFileName: "DSC_0001.HEIC", LocalDateTime: "2024-01-01T12:01:06.499Z"},
+	}
+
+	config := CriteriaConfig{
+		Mode: "advanced",
+		Groups: []utils.TCriteriaGroup{
+			{
+				Operator: "AND",
+				Criteria: []utils.TCriteria{
+					{Key: "originalFileName", Regex: &utils.TRegex{Key: `^PXL_\d{8}_\d{9}`, Index: 0}},
+					{Key: "localDateTime", Delta: &utils.TDelta{Milliseconds: 16000}},
+				},
+			},
+			{
+				Operator: "AND",
+				Criteria: []utils.TCriteria{
+					{Key: "originalFileName", Regex: &utils.TRegex{Key: `^DSC_\d+`, Index: 0}},
+					{Key: "localDateTime", Delta: &utils.TDelta{Milliseconds: 2500}},
+				},
+			},
+		},
+	}
+
+	require.NoError(t, PrecompileRegexes(config.Groups))
+
+	stacks, err := StackBy(assets, mustMarshalCriteria(t, config), "", "", logger)
+	require.NoError(t, err)
+	require.Len(t, stacks, 3, "expected 3 stacks (one per burst); the bug split or dropped some")
+
+	stackIDs := make([][]string, len(stacks))
+	for i, stack := range stacks {
+		for _, a := range stack {
+			stackIDs[i] = append(stackIDs[i], a.ID)
+		}
+	}
+	assertContainsStack(t, stackIDs, []string{"b1cover", "b1mp", "b1main"})
+	assertContainsStack(t, stackIDs, []string{"b2cover", "b2mp", "b2main"})
+	assertContainsStack(t, stackIDs, []string{"b3jpg", "b3raw", "b3heic"})
+}
+
+/**************************************************************************************************
+** TestStackByGroups_SingleAndGroupRoutedThroughAdvanced verifies the dispatcher actually takes
+** the new branch added for issue #46. We use a single AND group with photos straddling a
+** bucket boundary — before the dispatcher change this would have hit stackByLegacyGroups and
+** failed to stack.
+**************************************************************************************************/
+func TestStackByGroups_SingleAndGroupRoutedThroughAdvanced(t *testing.T) {
+	logger := quietTestLogger()
+
+	assets := []utils.TAsset{
+		{ID: "1", OriginalFileName: "IMG_0001.jpg", LocalDateTime: "2024-01-01T00:00:15.000Z"},
+		{ID: "2", OriginalFileName: "IMG_0001.MP.jpg", LocalDateTime: "2024-01-01T00:00:17.000Z"},
+	}
+
+	config := CriteriaConfig{
+		Mode: "advanced",
+		Groups: []utils.TCriteriaGroup{
+			{
+				Operator: "AND",
+				Criteria: []utils.TCriteria{
+					{Key: "originalFileName", Regex: &utils.TRegex{Key: `^IMG_\d+`, Index: 0}},
+					{Key: "localDateTime", Delta: &utils.TDelta{Milliseconds: 16000}},
+				},
+			},
+		},
+	}
+
+	require.NoError(t, PrecompileRegexes(config.Groups))
+	stacks, err := StackBy(assets, mustMarshalCriteria(t, config), "", "", logger)
+	require.NoError(t, err)
+	require.Len(t, stacks, 1,
+		"single AND group with photos straddling a 16s bucket boundary must stack after the fix")
+	assert.Len(t, stacks[0], 2)
+}
+
+/**************************************************************************************************
+** TestStackByGroups_OrGroupsKeepLegacyPath guards against a regression where the dispatcher
+** would incorrectly route OR groups through the expression path. OR-group semantics in legacy
+** mode use connectivity-graph union across criteria (see TestStackByLegacyGroups_UnionSemantics
+** for the union behavior); the expression OR collects values only from the first matching
+** branch and would lose that union.
+**************************************************************************************************/
+func TestStackByGroups_OrGroupsKeepLegacyPath(t *testing.T) {
+	logger := quietTestLogger()
+
+	// Same setup as TestStackByLegacyGroups_UnionSemantics "OR group with union semantics"
+	// case: 4 assets connected via the OR criteria, expected to form 1 stack.
+	assets := []utils.TAsset{
+		{ID: "1", OriginalFileName: "img1.jpg", OriginalPath: "/photos/2023/img1.jpg"},
+		{ID: "2", OriginalFileName: "img2.jpg", OriginalPath: "/photos/2023/img2.jpg"},
+		{ID: "3", OriginalFileName: "img3.jpg", OriginalPath: "/photos/2023/img3.jpg", LocalDateTime: "2023-01-01T12:00:00Z"},
+		{ID: "4", OriginalFileName: "img4.jpg", OriginalPath: "/photos/2024/img4.jpg", LocalDateTime: "2023-01-01T12:00:00Z"},
+	}
+
+	config := CriteriaConfig{
+		Mode: "advanced",
+		Groups: []utils.TCriteriaGroup{
+			{
+				Operator: "OR",
+				Criteria: []utils.TCriteria{
+					{Key: "originalPath", Split: &utils.TSplit{Delimiters: []string{"/"}, Index: 2}},
+					{Key: "localDateTime", Delta: &utils.TDelta{Milliseconds: 1000}},
+				},
+			},
+		},
+	}
+
+	require.NoError(t, PrecompileRegexes(config.Groups))
+	stacks, err := StackBy(assets, mustMarshalCriteria(t, config), "", "", logger)
+	require.NoError(t, err)
+	require.Len(t, stacks, 1, "OR group union semantics must still produce 1 connected component")
+	assert.Len(t, stacks[0], 4, "all 4 assets connected via shared criterion keys")
 }
