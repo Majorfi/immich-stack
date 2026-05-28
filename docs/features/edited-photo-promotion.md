@@ -167,8 +167,10 @@ With PARENT_FILENAME_PROMOTE=biggestSize and PARENT_EXT_PROMOTE=.jpg,.jpeg,.png:
 - `biggestSize` and `smallestSize` are evaluated **after** extension preferences, so a
   high-priority extension still wins over an unrelated larger file (e.g. a 28 MB RAW
   doesn't outrank a 12 MB JPG when `.jpg` is listed first in `PARENT_EXT_PROMOTE`).
-- The tie-break uses `exifInfo.fileSizeInByte` from Immich. Assets without exif data
-  fall through to the alphabetical sort — they are **not** treated as size zero.
+- The tie-break uses `exifInfo.fileSizeInByte` from Immich. Assets with a positive size
+  are sorted first (by size, in the chosen direction); assets **without** exif data are
+  bucketed at the back and never win as parent. Missing exif is treated as "no data",
+  not as size zero.
 - If both `biggestSize` and `smallestSize` are present, `biggestSize` wins.
 - The keywords compose with `biggestNumber` and substring matchers; ordering in the
   list does not affect their precedence (it's hard-coded by sort layer).

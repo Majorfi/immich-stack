@@ -723,6 +723,10 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 		matchMode = detectPromoteMatchMode(promoteSubstrings, stack[0].OriginalFileName)
 	}
 
+	hasBiggestSize := utils.Contains(promoteSubstrings, "biggestSize")
+	hasSmallestSize := utils.Contains(promoteSubstrings, "smallestSize")
+	sizeSortActive := hasBiggestSize || hasSmallestSize
+
 	sort.SliceStable(stack, func(i, j int) bool {
 		// First, check regex-based promotion
 		iRegexPromoteIdx := getRegexPromoteIndex(stack[i].ID, promoteData, stackCriteria, promotionMaps)
@@ -775,15 +779,21 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 
 		// Metadata-based tie-break: 'biggestSize' / 'smallestSize'. Placed after extension
 		// preferences so e.g. a 28MB .cr2 doesn't beat a 12MB .jpg when the user listed .jpg
-		// first in PARENT_EXT_PROMOTE. Requires positive sizes on both sides so assets with
-		// missing exif data fall through to the alphabetical sort below instead of being
-		// pinned at size=0.
-		hasBiggestSize := utils.Contains(promoteSubstrings, "biggestSize")
-		hasSmallestSize := utils.Contains(promoteSubstrings, "smallestSize")
-		if hasBiggestSize || hasSmallestSize {
+		// first in PARENT_EXT_PROMOTE.
+		//
+		// Bucket partition for transitivity: assets WITH a positive size form the front
+		// bucket (sorted by size), assets WITHOUT exif data form the back bucket (fall
+		// through to alphabetical). The "has size" predicate is a property of a single
+		// asset, not of the pair, so the comparator is transitive.
+		if sizeSortActive {
 			iSize := assetSize(stack[i])
 			jSize := assetSize(stack[j])
-			if iSize > 0 && jSize > 0 && iSize != jSize {
+			iHasSize := iSize > 0
+			jHasSize := jSize > 0
+			if iHasSize != jHasSize {
+				return iHasSize // assets with exif data come before those without
+			}
+			if iHasSize && iSize != jSize {
 				if hasBiggestSize {
 					return iSize > jSize // largest first
 				}
