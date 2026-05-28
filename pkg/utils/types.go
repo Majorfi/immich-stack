@@ -53,29 +53,39 @@ type TRegex struct {
 }
 
 /**************************************************************************************************
+** TExifInfo carries the subset of Immich's ExifResponseDto we care about.
+** Pointer-on-parent semantics: when Immich omits exifInfo entirely, the parent's pointer
+** is nil and downstream code can fall through cleanly instead of treating "missing" as zero.
+**************************************************************************************************/
+type TExifInfo struct {
+	FileSizeInByte int64 `json:"fileSizeInByte"` // Original file size in bytes
+}
+
+/**************************************************************************************************
 ** TAsset represents an Immich asset with all its metadata and properties.
 ** This structure matches the Immich API response format.
 **************************************************************************************************/
 type TAsset struct {
-	ID               string  `json:"id"`               // Unique identifier
-	DeviceAssetID    string  `json:"deviceAssetId"`    // Original device asset ID
-	DeviceID         string  `json:"deviceId"`         // Device identifier
-	OriginalFileName string  `json:"originalFileName"` // Original file name
-	OriginalPath     string  `json:"originalPath"`     // Original file path
-	LocalDateTime    string  `json:"localDateTime"`    // Local capture time
-	FileCreatedAt    string  `json:"fileCreatedAt"`    // File creation time
-	FileModifiedAt   string  `json:"fileModifiedAt"`   // File modification time
-	HasMetadata      bool    `json:"hasMetadata"`      // Whether asset has metadata
-	IsArchived       bool    `json:"isArchived"`       // Whether asset is archived
-	IsFavorite       bool    `json:"isFavorite"`       // Whether asset is favorited
-	IsOffline        bool    `json:"isOffline"`        // Whether asset is offline
-	IsTrashed        bool    `json:"isTrashed"`        // Whether asset is trashed
-	OwnerID          string  `json:"ownerId"`          // Owner identifier
-	Type             string  `json:"type"`             // Asset type
-	UpdatedAt        string  `json:"updatedAt"`        // Last update time
-	Checksum         string  `json:"checksum"`         // File checksum
-	Duration         string  `json:"duration"`         // Duration (for videos)
-	Stack            *TStack `json:"stack,omitempty"`  // Associated stack if any
+	ID               string     `json:"id"`                 // Unique identifier
+	DeviceAssetID    string     `json:"deviceAssetId"`      // Original device asset ID
+	DeviceID         string     `json:"deviceId"`           // Device identifier
+	OriginalFileName string     `json:"originalFileName"`   // Original file name
+	OriginalPath     string     `json:"originalPath"`       // Original file path
+	LocalDateTime    string     `json:"localDateTime"`      // Local capture time
+	FileCreatedAt    string     `json:"fileCreatedAt"`      // File creation time
+	FileModifiedAt   string     `json:"fileModifiedAt"`     // File modification time
+	HasMetadata      bool       `json:"hasMetadata"`        // Whether asset has metadata
+	IsArchived       bool       `json:"isArchived"`         // Whether asset is archived
+	IsFavorite       bool       `json:"isFavorite"`         // Whether asset is favorited
+	IsOffline        bool       `json:"isOffline"`          // Whether asset is offline
+	IsTrashed        bool       `json:"isTrashed"`          // Whether asset is trashed
+	OwnerID          string     `json:"ownerId"`            // Owner identifier
+	Type             string     `json:"type"`               // Asset type
+	UpdatedAt        string     `json:"updatedAt"`          // Last update time
+	Checksum         string     `json:"checksum"`           // File checksum
+	Duration         string     `json:"duration"`           // Duration (for videos)
+	Stack            *TStack    `json:"stack,omitempty"`    // Associated stack if any
+	ExifInfo         *TExifInfo `json:"exifInfo,omitempty"` // Optional EXIF metadata (size, etc.)
 }
 
 /**************************************************************************************************

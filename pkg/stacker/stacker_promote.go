@@ -44,6 +44,19 @@ func isSequenceKeyword(promote string) bool {
 }
 
 /**************************************************************************************************
+** isMagicPromoteKeyword reports whether a promote-list entry is a tie-breaker keyword that should
+** never be treated as a filename substring. These keywords influence ordering through a side path
+** (numeric suffix, file size, etc.) rather than substring matching.
+**************************************************************************************************/
+func isMagicPromoteKeyword(promote string) bool {
+	switch promote {
+	case "biggestNumber", "biggestSize", "smallestSize":
+		return true
+	}
+	return isSequenceKeyword(promote)
+}
+
+/**************************************************************************************************
 ** extractSequencePattern extracts the pattern from a sequence keyword.
 ** Examples:
 ** - "sequence" returns ("", 0)
@@ -80,7 +93,7 @@ func getPromoteIndex(value string, promoteList []string) int {
 			if emptyStringIndex == -1 {
 				emptyStringIndex = idx
 			}
-		} else if promote != "biggestNumber" {
+		} else if !isMagicPromoteKeyword(promote) {
 			hasNonEmptyStrings = true
 			loweredPromote := strings.ToLower(promote)
 			if strings.Contains(loweredValue, loweredPromote) {
@@ -100,9 +113,10 @@ func getPromoteIndex(value string, promoteList []string) int {
 		return emptyStringIndex
 	}
 
-	// If 'biggestNumber' is in the promote list, assign its index to unmatched files
+	// Magic keywords (biggestNumber, biggestSize, smallestSize) at the end of the list act as a
+	// "no match" fallback bucket so the sort routine can still apply a tie-breaker afterwards.
 	for idx, promote := range promoteList {
-		if promote == "biggestNumber" {
+		if isMagicPromoteKeyword(promote) {
 			return idx
 		}
 	}
@@ -168,7 +182,7 @@ func getPromoteIndexWithMode(value string, promoteList []string, matchMode strin
 			if emptyStringIndex == -1 {
 				emptyStringIndex = idx // Only record the first empty string
 			}
-		} else if !isSequenceKeyword(promote) {
+		} else if !isMagicPromoteKeyword(promote) {
 			hasNonEmptyStrings = true
 			// Check for match while we're iterating
 			loweredPromote := strings.ToLower(promote)
@@ -312,9 +326,13 @@ func getPromoteIndexWithMode(value string, promoteList []string, matchMode strin
 		}
 	}
 
-	// If 'biggestNumber' is in the promote list, assign its index to unmatched files
+	// Size/number tie-breaker keywords act as a fallback bucket for unmatched files so the
+	// sort routine can still apply a tie-breaker. Sequence keywords are intentionally NOT
+	// included here — they have their own resolution path above and falling through to
+	// len(promoteList) is the documented behavior when a sequence pattern is absent.
 	for idx, promote := range promoteList {
-		if promote == "biggestNumber" {
+		switch promote {
+		case "biggestNumber", "biggestSize", "smallestSize":
 			return idx
 		}
 	}
@@ -414,7 +432,7 @@ func detectPromoteMatchMode(promoteList []string, sampleFilename string) string 
 	for _, promote := range promoteList {
 		if isSequenceKeyword(promote) {
 			hasSequenceKeyword = true
-		} else if promote != "" && promote != "biggestNumber" {
+		} else if promote != "" && !isMagicPromoteKeyword(promote) {
 			hasNonSequenceItems = true
 		}
 	}
@@ -465,7 +483,7 @@ func isSequencePattern(promoteList []string) bool {
 	patternRegex := regexp.MustCompile(`^(.*?)(\d+)(.*?)$`)
 
 	for _, item := range promoteList {
-		if item == "biggestNumber" {
+		if isMagicPromoteKeyword(item) {
 			continue
 		}
 
@@ -613,6 +631,17 @@ func buildCriteriaIdentifier(key string, index int) string {
 }
 
 /**************************************************************************************************
+** assetSize returns the file size in bytes for an asset, or 0 when Immich didn't return exif info.
+** Used by the biggestSize / smallestSize promote keywords as a sort tie-breaker.
+**************************************************************************************************/
+func assetSize(a utils.TAsset) int64 {
+	if a.ExifInfo == nil {
+		return 0
+	}
+	return a.ExifInfo.FileSizeInByte
+}
+
+/**************************************************************************************************
 ** extractLargestNumberSuffix finds a numeric suffix at the end of the base filename (before the
 ** extension), but ONLY if it appears after a delimiter. If no delimiters are present, always
 ** return 0. If delimiters are present, split the base filename using them and check the last part
@@ -657,11 +686,16 @@ func extractLargestNumberSuffix(filename string, delimiters []string) int {
 /**************************************************************************************************
 ** sortStack sorts a stack of assets based on filename and extension priority.
 ** The order is:
-** 1. Regex-based promotion (if criteria has regex with promote_index)
-** 2. Promoted filenames (PARENT_FILENAME_PROMOTE, comma-separated, order matters)
-** 3. Promoted extensions (PARENT_EXT_PROMOTE, comma-separated, order matters)
-** 4. Extension priority (jpeg > jpg > png > others)
-** 5. Alphabetical order (case-sensitive)
+**  1. Regex-based promotion (if criteria has regex with promote_index)
+**  2. Promoted filenames (PARENT_FILENAME_PROMOTE, comma-separated, order matters)
+**  3. 'biggestNumber' tie-break within the same PARENT_FILENAME_PROMOTE bucket — runs early
+**     because it's filename-suffix based (e.g. picks photo~3.jpg over photo~2.jpg)
+**  4. Promoted extensions (PARENT_EXT_PROMOTE, comma-separated, order matters)
+**  5. Extension priority (jpeg > jpg > png > others)
+**  6. 'biggestSize' / 'smallestSize' tie-break — runs late because it's metadata-based,
+**     so configured extension preferences still win (e.g. a small .jpg beats a huge .cr2
+**     when .jpg is first in PARENT_EXT_PROMOTE)
+**  7. Alphabetical order (case-sensitive)
 **
 ** @param stack - List of assets to sort
 ** @param parentFilenamePromote - Comma-separated list of filename substrings to promote
@@ -688,6 +722,10 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 	if len(stack) > 0 {
 		matchMode = detectPromoteMatchMode(promoteSubstrings, stack[0].OriginalFileName)
 	}
+
+	hasBiggestSize := utils.Contains(promoteSubstrings, "biggestSize")
+	hasSmallestSize := utils.Contains(promoteSubstrings, "smallestSize")
+	sizeSortActive := hasBiggestSize || hasSmallestSize
 
 	sort.SliceStable(stack, func(i, j int) bool {
 		// First, check regex-based promotion
@@ -737,6 +775,30 @@ func sortStack(stack []utils.TAsset, parentFilenamePromote string, parentExtProm
 		rankJ := getExtensionRank(extJ)
 		if rankI != rankJ {
 			return rankI > rankJ
+		}
+
+		// Metadata-based tie-break: 'biggestSize' / 'smallestSize'. Placed after extension
+		// preferences so e.g. a 28MB .cr2 doesn't beat a 12MB .jpg when the user listed .jpg
+		// first in PARENT_EXT_PROMOTE.
+		//
+		// Bucket partition for transitivity: assets WITH a positive size form the front
+		// bucket (sorted by size), assets WITHOUT exif data form the back bucket (fall
+		// through to alphabetical). The "has size" predicate is a property of a single
+		// asset, not of the pair, so the comparator is transitive.
+		if sizeSortActive {
+			iSize := assetSize(stack[i])
+			jSize := assetSize(stack[j])
+			iHasSize := iSize > 0
+			jHasSize := jSize > 0
+			if iHasSize != jHasSize {
+				return iHasSize // assets with exif data come before those without
+			}
+			if iHasSize && iSize != jSize {
+				if hasBiggestSize {
+					return iSize > jSize // largest first
+				}
+				return iSize < jSize // smallest first
+			}
 		}
 
 		return iOriginalFileNameNoExt < jOriginalFileNameNoExt
