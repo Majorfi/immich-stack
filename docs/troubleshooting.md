@@ -117,8 +117,8 @@ have on partner-owned assets).
 **What the tool does:**
 
 `GET /users/me`) and drops anything you don't own. When any assets are dropped, an info-level
-log line reports the count (see the symptom above). When nothing is dropped — your normal
-case if you have no incoming partner shares — no log line is emitted. Either way, only owned
+log line reports the count (see the symptom above). When nothing is dropped (the normal
+case if you have no incoming partner shares), no log line is emitted. Either way, only owned
 assets reach the stacking pipeline, so no partner-related write attempts ever leave the
 client.
 
@@ -148,7 +148,7 @@ would otherwise match them.
 **Solution:**
 
 Enable `INCLUDE_VIDEOS=true` (or the CLI flag `--include-videos`). When set, every asset
-fetch runs twice — once for `IMAGE` and once for `VIDEO` — and results are deduplicated.
+fetch runs twice (once for `IMAGE`, once for `VIDEO`) and results are deduplicated.
 Existing stacking criteria (filename patterns, time deltas, regex, etc.) work on videos
 the same way they work on images.
 
