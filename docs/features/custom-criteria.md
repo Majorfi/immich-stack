@@ -138,7 +138,7 @@ Note: The `originalPath` splitter automatically normalizes Windows-style backsla
 
 ## Regex Configuration
 
-The `regex` configuration allows you to extract parts of string values using regular expressions. This provides more powerful pattern matching than simple delimiter splitting:
+The `regex` configuration extracts parts of string values using regular expressions. It handles patterns that delimiter splitting cannot, like capture groups or alternations:
 
 ```json
 {
@@ -245,7 +245,7 @@ Choose **regex** for complex patterns like extracting dates, validating formats,
 
 ## Expression Format Deep Dive
 
-The advanced expression format provides the most powerful grouping capabilities through recursive logical expressions.
+The advanced expression format covers the cases the legacy and groups formats can't: recursive logical expressions with AND, OR, and NOT.
 
 ### Expression Structure
 
