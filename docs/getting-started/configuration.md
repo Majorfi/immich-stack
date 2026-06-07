@@ -9,6 +9,35 @@ API_KEY=your_immich_api_key
 API_URL=http://your_immich_server:3001/api
 ```
 
+## API key permissions
+
+When you create the Immich API key, the permissions you tick determine which
+commands will work. If a run fails with `403 Forbidden — Missing required permission: X`, add `X` to the key and try again.
+
+### Minimum for `stacker`
+
+| Permission     | Why                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| `user.read`    | Identify the current user (needed for multi-user and partner filtering)                                 |
+| `asset.read`   | Search and fetch assets                                                                                 |
+| `stack.read`   | Read existing stacks                                                                                    |
+| `stack.create` | Create new stacks                                                                                       |
+| `stack.update` | Modify existing stacks (Immich enforces this even though replacement is implemented as delete + create) |
+| `stack.delete` | Delete stacks (`RESET_STACKS`, `REPLACE_STACKS`, single-asset cleanup)                                  |
+
+Add `album.read` if you filter by album (`ALBUM_NAMES` or `--filter-album-ids`).
+
+### Other commands
+
+`duplicates` needs nothing extra. It runs the detection client-side and
+groups assets by `OriginalFileName` and `LocalDateTime`.
+
+`fix-trash` needs `asset.delete` on top of the stacker set. It uses
+`DELETE /assets` to move matched assets to the trash.
+
+This list was confirmed by the maintainer in
+[discussion #29](https://github.com/Majorfi/immich-stack/discussions/29#discussioncomment-16000078).
+
 ## Run Modes
 
 Immich Stack supports two run modes:

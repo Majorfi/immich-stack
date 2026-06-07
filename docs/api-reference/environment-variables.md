@@ -215,7 +215,7 @@ Flexible format supporting multiple grouping strategies with OR/AND logic:
 
 ### Advanced Expression Format
 
-Most powerful format supporting unlimited nested logical expressions with AND, OR, and NOT operations:
+Supports nested logical expressions with AND, OR, and NOT (no nesting limit):
 
 ```json
 {
