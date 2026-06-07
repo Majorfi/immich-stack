@@ -320,7 +320,7 @@ When debugging parent selection:
 
 1. **Start Simple**: Test with basic promotion rules first
 1. **Use Dry-Run**: Always test with `DRY_RUN=true` before production
-1. **Enable Debug Logs**: Use `LOG_LEVEL=debug` for detailed insights
+1. **Enable Debug Logs**: Use `LOG_LEVEL=debug` to see per-asset evaluation
 1. **Document Expected Behavior**: Write down what you expect before running
 1. **Test Incrementally**: Add one promotion rule at a time
 1. **Use Sequence Keyword**: Prefer `sequence` over comma-separated numbers

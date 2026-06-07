@@ -102,7 +102,6 @@ docker run -it --rm \
    - Follow Go doc conventions
 
 1. **Testing**
-
    - Write unit tests
    - Use table-driven tests
    - Test edge cases
@@ -154,7 +153,6 @@ docker run -it --rm \
    - Verify documentation
 
 1. **Pull Request**
-
    - Push changes
    - Create pull request
    - Wait for review
@@ -169,9 +167,9 @@ docker run -it --rm \
 
 1. **Testing**
 
-   - Write comprehensive tests
-   - Test edge cases
-   - Maintain test coverage
+   - Cover happy path and edge cases
+   - Keep test coverage from regressing
+   - Prefer table-driven tests for variants
 
 1. **Documentation**
 
@@ -180,7 +178,6 @@ docker run -it --rm \
    - Document changes
 
 1. **Performance**
-
    - Profile code
    - Optimize bottlenecks
    - Consider memory usage
@@ -200,7 +197,6 @@ docker run -it --rm \
    - Sign releases
 
 1. **Deployment**
-
    - Push to registries
    - Update documentation
    - Announce release

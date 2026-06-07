@@ -1,6 +1,6 @@
 # Command Architecture
 
-Immich Stack uses the [Cobra](https://github.com/spf13/cobra) framework to provide a modular, extensible command-line interface.
+Immich Stack uses the [Cobra](https://github.com/spf13/cobra) framework for its command-line interface. Subcommands live under `cmd/` and share helpers in `cmd/common.go`.
 
 ## Architecture Overview
 

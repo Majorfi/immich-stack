@@ -2,25 +2,23 @@
 
 ## Grouping Modes
 
-Immich Stack supports three grouping modes with increasing complexity and power:
+Immich Stack has three grouping modes, from simple to fully expressive.
 
 ### 1. Legacy Mode (Default)
 
-- **Default Criteria:** Groups by base filename (before extension) and local capture time
-- **Logic:** Simple AND operation - all criteria must match
-- **Configuration:** Array format in `CRITERIA` environment variable
+Groups by base filename (before extension) and local capture time. All criteria
+must match (AND). Configured as a JSON array in the `CRITERIA` environment
+variable.
 
 ### 2. Advanced Groups Mode
 
-- **Multiple Strategies:** Support for multiple grouping approaches
-- **Logic:** Configurable AND/OR operations per group
-- **Configuration:** Object format with `"mode": "advanced"` and `groups` array
+Multiple grouping strategies, each with its own AND/OR operator. Configured as
+an object with `"mode": "advanced"` and a `groups` array.
 
 ### 3. Advanced Expression Mode
 
-- **Maximum Flexibility:** Unlimited nested logical expressions
-- **Logic:** Full support for AND, OR, and NOT operations with unlimited nesting
-- **Configuration:** Object format with `"mode": "advanced"` and `expression` tree
+Nested logical expressions with AND, OR, and NOT (no nesting limit). Configured
+as an object with `"mode": "advanced"` and an `expression` tree.
 
 ## Custom Criteria
 
@@ -28,13 +26,27 @@ Override default grouping behavior with the `--criteria` flag or `CRITERIA` envi
 
 ## Sorting
 
-- **Parent Promotion:** Use `--parent-filename-promote` or `PARENT_FILENAME_PROMOTE` (comma-separated substrings) to promote files as stack parents
-- **Empty String for Negative Matching:** Use an empty string in the promote list to prioritize files that DON'T contain any of the other substrings (e.g., `,edit` promotes unedited files first)
-- **Sequence Keyword:** Use the `sequence` keyword for flexible sequential file handling (e.g., `sequence`, `sequence:4`, `sequence:IMG_`)
-- **Sequence Detection:** Automatically detects numeric sequences in promote lists (e.g., `0000,0001,0002`) and uses intelligent matching for burst photos
-- **Extension Promotion:** Use `--parent-ext-promote` or `PARENT_EXT_PROMOTE` (comma-separated extensions) to further prioritize
-- **Extension Rank:** Built-in priority: `.jpeg` > `.jpg` > `.png` > others
-- **Alphabetical:** Final tiebreaker
+The sort layers, in order:
+
+1. Regex-based promotion when a criterion has `promote_index` configured
+   (see [Custom Criteria](custom-criteria.md)).
+1. `--parent-filename-promote` / `PARENT_FILENAME_PROMOTE`: comma-separated
+   substrings, leftmost match wins. This layer also recognizes:
+   - An empty entry (e.g. `,edit`) as a negative match for files that contain
+     none of the other substrings.
+   - The `sequence` keyword: `sequence`, `sequence:4` (four-digit), or
+     `sequence:IMG_` (prefix-scoped).
+   - Auto-detected numeric sequences, e.g. `0000,0001,0002` extends naturally
+     to bursts beyond your listed range.
+1. `biggestNumber` keyword (when present in `PARENT_FILENAME_PROMOTE`):
+   tie-break by the largest numeric suffix in the filename.
+1. `--parent-ext-promote` / `PARENT_EXT_PROMOTE`: comma-separated extensions.
+1. Built-in extension rank: `.jpeg` > `.jpg` > `.png` > others.
+1. `biggestSize` / `smallestSize` keyword (when present in
+   `PARENT_FILENAME_PROMOTE`): tie-break by `exifInfo.fileSizeInByte` (largest
+   or smallest wins). Runs after extension rank so a smaller JPG can still beat
+   a larger CR2 when `.jpg` is preferred in `PARENT_EXT_PROMOTE`.
+1. Alphabetical filename as the final tie-breaker.
 
 ## Examples
 
@@ -83,7 +95,7 @@ The sequence detection works even with numbers beyond your promote list. For exa
 
 ### Sequence Keyword Examples
 
-The `sequence` keyword provides powerful and flexible sequence handling:
+The `sequence` keyword handles sequential filenames with a few variants:
 
 ```sh
 # Order any numeric sequence (1, 2, 10, 100, etc.)
@@ -115,24 +127,27 @@ The system can detect various sequence patterns when using comma-separated numbe
 
 ## Stacking Process
 
-1. **Fetch all stacks and assets** from Immich
-1. **Determine grouping mode** based on `CRITERIA` configuration:
-   - **Legacy Mode:** Apply simple AND logic to array of criteria
-   - **Groups Mode:** Process each criteria group with configured AND/OR logic
-   - **Expression Mode:** Recursively evaluate nested logical expressions
-1. **Group assets** into stacks using the selected mode and criteria
-1. **Sort each stack** to determine the parent and children using promotion rules
-1. **Apply changes** via the Immich API (create, update, or delete stacks as needed)
-1. **Log all actions** and optionally run in dry-run mode for safety
+1. Fetch all stacks and assets from Immich.
+1. Pick the grouping mode based on `CRITERIA`:
+   - Legacy: apply AND logic to the criteria array.
+   - Groups: process each group with its configured AND/OR operator.
+   - Expression: recursively evaluate the nested logical tree.
+1. Group assets into stacks using the selected mode and criteria.
+1. Sort each stack to determine parent and children using the promotion rules.
+1. Apply changes via the Immich API (create, update, or delete stacks).
+1. Log all actions. In dry-run mode no API writes happen.
 
 ## Safe Operations
 
 The stacker includes several safety features:
 
-- **Dry Run Mode:** Use `--dry-run` or `DRY_RUN=true` to simulate actions without making changes
-- **Stack Replacement:** Use `--replace-stacks` or `REPLACE_STACKS=true` to replace existing stacks
-- **Stack Reset:** Use `--reset-stacks` or `RESET_STACKS=true` with confirmation to delete all stacks (requires `RUN_MODE=once`)
-- **Confirmation Required:** Stack reset requires explicit confirmation via `CONFIRM_RESET_STACK`
+- `--dry-run` or `DRY_RUN=true` simulates the run without writing anything back
+  to Immich.
+- `--replace-stacks` or `REPLACE_STACKS=true` rebuilds existing stacks when the
+  criteria pick a different membership.
+- `--reset-stacks` or `RESET_STACKS=true` deletes all stacks before
+  re-stacking. Requires `RUN_MODE=once` and explicit confirmation via
+  `CONFIRM_RESET_STACK`.
 
 ## Parent Selection Edge Cases
 
@@ -140,10 +155,10 @@ The stacker includes several safety features:
 
 When multiple promotion rules apply to different files in a group, the selection follows this strict precedence order:
 
-1. **PARENT_FILENAME_PROMOTE list order** (left to right)
-1. **PARENT_EXT_PROMOTE list order** (left to right)
-1. **Built-in extension rank** (`.jpeg` > `.jpg` > `.png` > others)
-1. **Alphabetical order** (case-insensitive)
+1. `PARENT_FILENAME_PROMOTE` list order (left to right)
+1. `PARENT_EXT_PROMOTE` list order (left to right)
+1. Built-in extension rank (`.jpeg` > `.jpg` > `.png` > others)
+1. Alphabetical order (case-insensitive)
 
 **Example with multiple matches**:
 
@@ -190,9 +205,10 @@ However, alphabetical tie-breaking is also case-insensitive, so `IMG_123.jpg` an
 
 ### Unicode and Special Characters
 
-- **Unicode characters** are supported in filename matching
-- **Special regex characters** in promote strings are treated as literals (no regex escaping needed)
-- **Whitespace** in filenames is preserved and matched exactly
+- Unicode characters are supported in filename matching.
+- Special regex characters in promote strings are treated as literals; no
+  escaping needed.
+- Whitespace in filenames is preserved and matched exactly.
 
 **Example**:
 
@@ -206,9 +222,9 @@ This will match files containing these exact Unicode strings.
 
 When two files have equal rank after all promotion rules, the final tie-breaker is:
 
-1. **Original filename** (alphabetically, case-insensitive)
-1. If filenames are identical: **Local date/time** (earliest first)
-1. If both are identical: **Asset ID** (lexicographic order)
+1. Original filename (alphabetical, case-insensitive)
+1. If filenames are identical: local date/time, earliest first
+1. If both are identical: asset ID, lexicographic order
 
 This ensures deterministic, reproducible parent selection across multiple runs.
 
@@ -281,9 +297,9 @@ This has 3 levels of nesting. Each additional level multiplies the evaluation co
 
 Memory usage scales with:
 
-1. **Asset count**: ~1KB per asset in memory
-1. **Criteria complexity**: Expression trees consume additional memory per evaluation
-1. **Stack size**: Larger stacks (more assets per group) increase memory overhead
+1. Asset count: ~1KB per asset in memory.
+1. Criteria complexity: expression trees add memory per evaluation.
+1. Stack size: larger stacks (more assets per group) raise the overhead.
 
 **Guidelines**:
 
@@ -337,9 +353,9 @@ Time-based criteria with small deltas create smaller, more numerous groups:
 
 ## Logging
 
-The stacker provides comprehensive logging:
+The stacker logs:
 
-- Colorful, structured logs for all operations
-- Clear indication of actions taken
-- Error reporting with context
-- Progress updates for long-running operations
+- Colorized, structured output for every operation.
+- The action taken on each stack (created, updated, skipped).
+- Errors with the asset or stack context that caused them.
+- Progress counters during long runs.

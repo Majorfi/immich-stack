@@ -61,16 +61,15 @@ Identifies trashed assets and moves their related stack members to trash for con
 
 ## Features
 
-- **Automatic Stacking:** Groups similar photos into stacks based on filename, date, and custom criteria
-- **Smart Burst Photo Handling:** Automatically detects and properly orders burst photo sequences
-- **Duplicate Detection:** Find and list duplicate assets based on filename and timestamp
-- **Stack-Aware Trash Management:** Fix incomplete trash operations by moving related stack members to trash
-- **Multi-User Support:** Process multiple users sequentially with comma-separated API keys
-- **Configurable Grouping:** Custom grouping logic via environment variables and command-line flags
-- **Parent/Child Promotion:** Fine-grained control over stack parent selection with intelligent sequence detection and regex-based promotion
-- **Safe Operations:** Dry-run mode, stack replacement, and reset with confirmation
-- **Comprehensive Logging:** Colorful, structured logs for all operations
-- **Tested and Modular:** Table-driven tests and clear separation of concerns
+- Groups similar photos into stacks based on filename, date, and custom criteria.
+- Detects burst sequences via the `sequence` keyword (Sony's `DSCPDC_0001_BURST`,
+  Canon's `IMG_0001`, and similar patterns).
+- Lists duplicates by filename and capture time.
+- Cleans up trash operations: moves stack members of trashed assets to trash too.
+- Runs against multiple users in one go (comma-separated API keys).
+- Lets you pick the stack parent by extension, filename pattern, regex, or size.
+- Dry-run mode, stack replacement, and a confirmation-gated reset.
+- Colorized, structured logs at configurable verbosity.
 
 ## License
 

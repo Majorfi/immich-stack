@@ -33,9 +33,9 @@ docker run -d \
 
 ## Extending
 
-- **Custom Grouping:** Edit or override criteria via command-line flags or environment variables
-- **Custom Promotion:** Set `--parent-filename-promote` and/or `--parent-ext-promote` for your workflow
-- **API Integration:** Extend `pkg/immich/client.go` for new Immich endpoints
+- Override grouping with `--criteria` / `CRITERIA` (see [Custom Criteria](../features/custom-criteria.md)).
+- Tune parent selection with `--parent-filename-promote` and `--parent-ext-promote`.
+- Add new Immich endpoints in `pkg/immich/client.go`.
 
 ## Library Structure
 

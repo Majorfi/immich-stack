@@ -1,6 +1,8 @@
 # What’s New: Advanced Filtering & Safer Grouping
 
-This branch introduces easier, more powerful ways to tell Immich Stack how to group your photos into stacks — with simple, copy‑pasteable examples. It focuses on new capabilities; no test/refactor details here.
+This branch adds new ways to describe how Immich Stack should group your
+photos, with copy-pasteable examples. It covers the user-facing changes only;
+internal refactors and tests are not discussed here.
 
 ## Highlights
 
@@ -198,4 +200,5 @@ What you’ll notice:
 - Advanced mode is opt‑in (`{"mode":"advanced": ...}`)
 - If you don’t set `mode`, legacy behavior applies
 
-That’s it — more control, safer grouping, and easier runs from the CLI.
+That's the lot. The legacy array format is still the default and nothing here
+is required for existing setups.
