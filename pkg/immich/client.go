@@ -471,24 +471,41 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 ** @return error - Any error that occurred during deletion
 **************************************************************************************************/
 func (c *Client) DeleteStack(stackID string, reason string) error {
+	msg, err := c.DeleteStackCollect(stackID, reason)
+	if err != nil {
+		return err
+	}
+	if c.dryRun {
+		c.logger.Warn(msg)
+	} else {
+		c.logger.Info(msg)
+	}
+	return nil
+}
+
+/**************************************************************************************************
+** DeleteStackCollect performs the same deletion as DeleteStack but returns the human-readable
+** result line instead of logging it. Callers running stacks concurrently use this so the line
+** can be folded into a single contiguous per-stack log block instead of interleaving with the
+** output of other in-flight stacks. Errors are still returned (and logged here) since they are
+** exceptional and should surface immediately.
+**************************************************************************************************/
+func (c *Client) DeleteStackCollect(stackID string, reason string) (string, error) {
 	reasonMsg := ""
 	if reason != utils.REASON_DELETE_STACK_WITH_ONE_ASSET {
 		reasonMsg = "\t"
 	}
 
 	if c.dryRun {
-
-		c.logger.Warnf("%sDeleted Stack %s (dry run) - %s", reasonMsg, stackID, reason)
-		return nil
+		return fmt.Sprintf("%sDeleted Stack %s (dry run) - %s", reasonMsg, stackID, reason), nil
 	}
 
 	if err := c.doRequest(http.MethodDelete, fmt.Sprintf("/stacks/%s", stackID), nil, nil); err != nil {
 		c.logger.Errorf("Error deleting stack: %v", err)
-		return fmt.Errorf("error deleting stack: %w", err)
+		return "", fmt.Errorf("error deleting stack: %w", err)
 	}
 
-	c.logger.Infof("%sDeleted Stack %s - %s", reasonMsg, stackID, reason)
-	return nil
+	return fmt.Sprintf("%sDeleted Stack %s - %s", reasonMsg, stackID, reason), nil
 }
 
 /**************************************************************************************************

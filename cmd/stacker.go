@@ -258,25 +258,8 @@ func processStack(client *immich.Client, logger *logrus.Logger, i int, total int
 	_, _, originalStackIDs := getOriginalStackIDs(stack)
 
 	/**********************************************************************************************
-	** Adding debug logs
-	**********************************************************************************************/
-	logger.Debugf("--------------------------------")
-	logger.Debugf("%d/%d Key: %s", i+1, total, stack[0].OriginalFileName)
-	logger.WithFields(logrus.Fields{
-		"Name": stack[0].OriginalFileName,
-		"ID":   stack[0].ID,
-		"Time": stack[0].LocalDateTime,
-	}).Debugf("\tParent")
-	for _, child := range stack[1:] {
-		logger.WithFields(logrus.Fields{
-			"Name": child.OriginalFileName,
-			"ID":   child.ID,
-			"Time": child.LocalDateTime,
-		}).Debugf("\tChild")
-	}
-
-	/**********************************************************************************************
-	** Doing standard stacker checks.
+	** Doing standard stacker checks. These early-returns only emit debug-level skip reasons, so
+	** they never produce interleaved info output.
 	**********************************************************************************************/
 	if !isValidStack(newStackIDs) {
 		logger.Debugf("\t⚠️ Invalid stack: %s", stack[0].OriginalFileName)
@@ -293,41 +276,18 @@ func processStack(client *immich.Client, logger *logrus.Logger, i int, total int
 	}
 
 	/**********************************************************************************************
-	** Adding info logs, but only if we are not in debug mode.
+	** Delete children stacks if replaceStacks is true. The deletes run here (concurrently with
+	** other stacks) but their result lines are collected so they can be printed inside the
+	** contiguous block below rather than interleaving with other in-flight stacks.
 	**********************************************************************************************/
-	if !logger.IsLevelEnabled(logrus.DebugLevel) {
-		logger.Infof("--------------------------------")
-		logger.Infof("%d/%d Key: %s", i+1, total, stack[0].OriginalFileName)
-		logger.WithFields(logrus.Fields{
-			"Name": stack[0].OriginalFileName,
-			"ID":   stack[0].ID,
-			"Time": stack[0].LocalDateTime,
-		}).Infof("\tParent")
-		for _, child := range stack[1:] {
-			logger.WithFields(logrus.Fields{
-				"Name": child.OriginalFileName,
-				"ID":   child.ID,
-				"Time": child.LocalDateTime,
-			}).Infof("\tChild")
-		}
-	}
-
-	/**********************************************************************************************
-	** Add comparison debug logging.
-	**********************************************************************************************/
-	if logger.IsLevelEnabled(logrus.DebugLevel) {
-		logger.Debugf("\tStack comparison:")
-		logger.Debugf("\t  Original: %v", originalStackIDs)
-		logger.Debugf("\t  Expected: %v", newStackIDs)
-		logger.Debugf("\t  REPLACE_STACKS: %v", replaceStacks)
-	}
-
-	/**********************************************************************************************
-	** Delete children stacks if replaceStacks is true.
-	**********************************************************************************************/
+	var deleteMsgs []string
 	if replaceStacks {
 		for _, childID := range childrenWithStack {
-			client.DeleteStack(childID, utils.REASON_REPLACE_CHILD_STACK_WITH_NEW_ONE)
+			msg, err := client.DeleteStackCollect(childID, utils.REASON_REPLACE_CHILD_STACK_WITH_NEW_ONE)
+			if err != nil {
+				continue
+			}
+			deleteMsgs = append(deleteMsgs, msg)
 		}
 	}
 
@@ -342,7 +302,8 @@ func processStack(client *immich.Client, logger *logrus.Logger, i int, total int
 	} else {
 		actionMsg = "\t✏️  Updating stack configuration"
 	}
-	logger.Info(actionMsg)
+
+	emitStackReport(logger, i, total, stack, originalStackIDs, newStackIDs, deleteMsgs, actionMsg)
 
 	/**********************************************************************************************
 	** Optional throttle between stack writes. Default is no delay — empirically Immich has no
@@ -356,6 +317,46 @@ func processStack(client *immich.Client, logger *logrus.Logger, i int, total int
 	if err := client.ModifyStack(newStackIDs); err != nil {
 		logger.Errorf("Error modifying stack: %v", err)
 	}
+}
+
+/**************************************************************************************************
+** stackLogMu serializes the multi-line per-stack report so that, when STACK_CONCURRENCY > 1,
+** the lines of one stack stay contiguous instead of interleaving with other in-flight stacks.
+** Only the (fast) logging is serialized — the API work in processStack still runs concurrently.
+**************************************************************************************************/
+var stackLogMu sync.Mutex
+
+/**************************************************************************************************
+** emitStackReport prints one stack's full report as a contiguous block. Each line is a separate
+** logrus entry (preserving structured fields and text/json formatting); the mutex is what keeps
+** the block together under concurrency. The block is emitted at info level so it shows in normal
+** runs; the extra comparison line is debug-only.
+**************************************************************************************************/
+func emitStackReport(logger *logrus.Logger, i int, total int, stack []utils.TAsset, originalStackIDs []string, newStackIDs []string, deleteMsgs []string, actionMsg string) {
+	stackLogMu.Lock()
+	defer stackLogMu.Unlock()
+
+	logger.Info("--------------------------------")
+	logger.Infof("%d/%d Key: %s", i+1, total, stack[0].OriginalFileName)
+	logger.WithFields(logrus.Fields{
+		"Name": stack[0].OriginalFileName,
+		"ID":   stack[0].ID,
+		"Time": stack[0].LocalDateTime,
+	}).Info("\tParent")
+	for _, child := range stack[1:] {
+		logger.WithFields(logrus.Fields{
+			"Name": child.OriginalFileName,
+			"ID":   child.ID,
+			"Time": child.LocalDateTime,
+		}).Info("\tChild")
+	}
+	if logger.IsLevelEnabled(logrus.DebugLevel) {
+		logger.Debugf("\tStack comparison: Original=%v Expected=%v REPLACE_STACKS=%v", originalStackIDs, newStackIDs, replaceStacks)
+	}
+	for _, msg := range deleteMsgs {
+		logger.Info(msg)
+	}
+	logger.Info(actionMsg)
 }
 
 /**************************************************************************************************
