@@ -29,7 +29,7 @@ docker logs -f immich-stack
 
 ## Documentation
 
-For detailed documentation, please visit our [documentation](https://github.com/Majorfi/immich-stack/wiki).
+For detailed documentation, please visit the repo's [wiki](https://github.com/Majorfi/immich-stack/wiki) and our [documentation site](https://majorfi.github.io/immich-stack/)
 
 ## Commands
 
