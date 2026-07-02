@@ -1,5 +1,35 @@
 package utils
 
+import (
+	"bytes"
+	"encoding/json"
+)
+
+// Duration accepts Immich's asset duration as a string (<= v2) or a number of ms (v3, issue #69).
+type Duration string
+
+func (d *Duration) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 || string(data) == "null" {
+		*d = ""
+		return nil
+	}
+	if data[0] == '"' {
+		var s string
+		if err := json.Unmarshal(data, &s); err != nil {
+			return err
+		}
+		*d = Duration(s)
+		return nil
+	}
+	var n json.Number
+	if err := json.Unmarshal(data, &n); err != nil {
+		return err
+	}
+	*d = Duration(n.String())
+	return nil
+}
+
 /**************************************************************************************************
 ** TDelta represents a time delta configuration for comparing time-based values.
 ** It allows for a buffer when comparing timestamps.
@@ -83,7 +113,7 @@ type TAsset struct {
 	Type             string     `json:"type"`               // Asset type
 	UpdatedAt        string     `json:"updatedAt"`          // Last update time
 	Checksum         string     `json:"checksum"`           // File checksum
-	Duration         string     `json:"duration"`           // Duration (for videos)
+	Duration         Duration   `json:"duration"`           // Duration; string on Immich <= v2, ms number on v3
 	Stack            *TStack    `json:"stack,omitempty"`    // Associated stack if any
 	ExifInfo         *TExifInfo `json:"exifInfo,omitempty"` // Optional EXIF metadata (size, etc.)
 }
