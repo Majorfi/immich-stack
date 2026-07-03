@@ -339,11 +339,7 @@ func LoadEnvForTesting() LoadEnvConfig {
 	}
 	if len(filterAlbumIDs) == 0 {
 		if envVal := os.Getenv("FILTER_ALBUM_IDS"); envVal != "" {
-			parts := strings.Split(envVal, ",")
-			for i := range parts {
-				parts[i] = strings.TrimSpace(parts[i])
-			}
-			filterAlbumIDs = utils.RemoveEmptyStrings(parts)
+			filterAlbumIDs = splitCommaList(envVal)
 		}
 	}
 	if filterTakenAfter == "" {

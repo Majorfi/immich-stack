@@ -5,9 +5,26 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
+
+/**************************************************************************************************
+** splitCommaList splits a comma-separated string into individual values, trimming whitespace
+** and dropping empty entries. Used for API keys, album ID filters, and similar list inputs.
+**
+** @param raw - Comma-separated values (e.g. "key1, key2")
+** @return []string - Cleaned list of values; empty if none provided
+**************************************************************************************************/
+func splitCommaList(raw string) []string {
+	values := strings.Split(raw, ",")
+	for i, value := range values {
+		values[i] = strings.TrimSpace(value)
+	}
+	return utils.RemoveEmptyStrings(values)
+}
 
 /**************************************************************************************************
 ** filterOutPartnerAssets removes assets not owned by the current user from a fetched list

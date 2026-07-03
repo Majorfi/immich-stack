@@ -6,10 +6,7 @@
 package main
 
 import (
-	"strings"
-
 	"github.com/majorfi/immich-stack/pkg/immich"
-	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -33,12 +30,7 @@ func runDuplicates(cmd *cobra.Command, args []string) {
 	/**********************************************************************************************
 	** Support multiple API keys (comma-separated).
 	**********************************************************************************************/
-	apiKeys := utils.RemoveEmptyStrings(func(keys []string) []string {
-		for i, key := range keys {
-			keys[i] = strings.TrimSpace(key)
-		}
-		return keys
-	}(strings.Split(apiKey, ",")))
+	apiKeys := splitCommaList(apiKey)
 	if len(apiKeys) == 0 {
 		logger.Fatalf("No API key(s) provided.")
 	}
