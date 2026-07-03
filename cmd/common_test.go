@@ -77,3 +77,32 @@ func TestFilterOutPartnerAssets(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitCommaList(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  []string
+	}{
+		{name: "plain list", input: "a,b,c", want: []string{"a", "b", "c"}},
+		{name: "trims whitespace", input: " a , b ,c ", want: []string{"a", "b", "c"}},
+		{name: "drops empty entries", input: "a,,b,", want: []string{"a", "b"}},
+		{name: "drops whitespace-only entries", input: "a, ,b", want: []string{"a", "b"}},
+		{name: "empty input yields empty list", input: "", want: []string{}},
+		{name: "single value", input: "key", want: []string{"key"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := splitCommaList(tt.input)
+			if len(got) != len(tt.want) {
+				t.Fatalf("splitCommaList(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Fatalf("splitCommaList(%q)[%d] = %q, want %q", tt.input, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}

@@ -213,6 +213,16 @@ func TestFindStackRelatedAssets(t *testing.T) {
 	}
 }
 
+func TestFindStackRelatedAssetsInvalidCriteria(t *testing.T) {
+	trashed := []utils.TAsset{{ID: "t1", OriginalFileName: "a.jpg", IsTrashed: true}}
+	active := []utils.TAsset{{ID: "a1", OriginalFileName: "a.dng"}}
+
+	_, _, _, err := findStackRelatedAssets(trashed, active, `{"mode":"advanced"}`, "", "", quietFixTrashLogger())
+	if err == nil {
+		t.Fatal("expected an error for advanced criteria without groups or expression")
+	}
+}
+
 func TestFindStackRelatedAssetsNeverMarksTrashedOrTriggers(t *testing.T) {
 	t0 := "2024-01-01T10:00:00.000000000Z"
 	trashed := []utils.TAsset{
