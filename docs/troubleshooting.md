@@ -116,6 +116,7 @@ have on partner-owned assets).
 
 **What the tool does:**
 
+The client compares each asset's `ownerId` against your own user ID (fetched via
 `GET /users/me`) and drops anything you don't own. When any assets are dropped, an info-level
 log line reports the count (see the symptom above). When nothing is dropped (the normal
 case if you have no incoming partner shares), no log line is emitted. Either way, only owned
