@@ -32,6 +32,7 @@ func bindFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "", "Log level: debug, info, warn, error (or set LOG_LEVEL env var)")
 	rootCmd.PersistentFlags().StringVar(&logFormat, "log-format", "", "Log format: text, json (or set LOG_FORMAT env var)")
 	rootCmd.PersistentFlags().BoolVar(&removeSingleAssetStacks, "remove-single-asset-stacks", false, "Remove stacks with only one asset (or set REMOVE_SINGLE_ASSET_STACKS=true)")
+	rootCmd.PersistentFlags().BoolVar(&trashOrphanedRAWs, "trash-orphaned-raws", false, "fix-trash: also trash RAW files without a developed companion (or set TRASH_ORPHANED_RAWS=true)")
 	rootCmd.PersistentFlags().BoolVar(&includeVideos, "include-videos", false, "Include VIDEO assets alongside IMAGE in stacking (or set INCLUDE_VIDEOS=true)")
 	rootCmd.PersistentFlags().BoolVar(&preventSelfRekt, "prevent-self-rekt", false, "Insert a 50ms delay before each stack write to prevent overwhelming Immich on huge libraries (or set PREVENT_SELF_REKT=true)")
 	rootCmd.PersistentFlags().IntVar(&stackConcurrency, "stack-concurrency", 0, "Parallel stack writes (default 1 = sequential; values like 10-20 speed up large libraries; or set STACK_CONCURRENCY)")

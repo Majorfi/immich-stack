@@ -35,6 +35,7 @@ var withDeleted bool
 var logLevel string
 var logFormat string
 var removeSingleAssetStacks bool
+var trashOrphanedRAWs bool
 var includeVideos bool
 var includeVideosFlagSet bool
 var preventSelfRekt bool
@@ -159,6 +160,7 @@ func logStartupSummary(logger *logrus.Logger) {
 			"withArchived":            withArchived,
 			"withDeleted":             withDeleted,
 			"removeSingleAssetStacks": removeSingleAssetStacks,
+			"trashOrphanedRAWs":       trashOrphanedRAWs,
 			"includeVideos":           includeVideos,
 			"preventSelfRekt":         preventSelfRekt,
 			"stackConcurrency":        stackConcurrency,
@@ -205,6 +207,9 @@ func logStartupSummary(logger *logrus.Logger) {
 		}
 		if removeSingleAssetStacks {
 			summary = append(summary, "remove-single=true")
+		}
+		if trashOrphanedRAWs {
+			summary = append(summary, "trash-orphaned-raws=true")
 		}
 		if includeVideos {
 			summary = append(summary, "include-videos=true")
@@ -306,6 +311,9 @@ func LoadEnvForTesting() LoadEnvConfig {
 	}
 	if !removeSingleAssetStacks {
 		removeSingleAssetStacks = os.Getenv("REMOVE_SINGLE_ASSET_STACKS") == "true"
+	}
+	if !trashOrphanedRAWs {
+		trashOrphanedRAWs = os.Getenv("TRASH_ORPHANED_RAWS") == "true"
 	}
 	if !includeVideosFlagSet {
 		if envInclude := os.Getenv("INCLUDE_VIDEOS"); envInclude != "" {

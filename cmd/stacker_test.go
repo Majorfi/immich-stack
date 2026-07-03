@@ -37,6 +37,7 @@ func resetGlobalConfig() {
 	withDeleted = false
 	logLevel = ""
 	removeSingleAssetStacks = false
+	trashOrphanedRAWs = false
 	includeVideos = false
 	includeVideosFlagSet = false
 	preventSelfRekt = false
@@ -96,6 +97,14 @@ func TestRealCommandStructure(t *testing.T) {
 	apiKeyFlag := cmd.PersistentFlags().Lookup("api-key")
 	if apiKeyFlag == nil {
 		t.Fatal("Expected --api-key flag to be present")
+	}
+
+	trashOrphanedRAWsFlag := cmd.PersistentFlags().Lookup("trash-orphaned-raws")
+	if trashOrphanedRAWsFlag == nil {
+		t.Fatal("Expected --trash-orphaned-raws flag to be present")
+	}
+	if trashOrphanedRAWsFlag.DefValue != "false" {
+		t.Errorf("Expected --trash-orphaned-raws to default to false, got %s", trashOrphanedRAWsFlag.DefValue)
 	}
 
 	// Verify subcommands are present

@@ -97,7 +97,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 
 		/**********************************************************************************************
 		** Find the active assets that would stack with the trashed ones (replaced files are
-		** skipped), then the orphaned DNGs.
+		** skipped), then the orphaned RAWs.
 		**********************************************************************************************/
 		logger.Infof("🔍 Analyzing %d trashed assets against %d active assets...", len(trashedAssets), len(activeAssets))
 		assetsToTrash, triggeredBy, replacedCount, err := findStackRelatedAssets(
@@ -110,17 +110,24 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 			logger.Infof("🔄 Skipped %d trashed assets that appear to have been replaced", replacedCount)
 		}
 
-		logger.Info("🔍 Looking for orphaned DNG files...")
-		orphanedDNGs, skippedStackedDNGCount := findOrphanedDNGs(activeAssets, logger)
-		for id, asset := range orphanedDNGs {
-			assetsToTrash[id] = asset
-			triggeredBy[id] = orphanedDNGTrigger
-		}
-		if len(orphanedDNGs) > 0 {
-			logger.Infof("📸 Found %d orphaned DNG files without corresponding JPG files", len(orphanedDNGs))
-		}
-		if skippedStackedDNGCount > 0 {
-			logger.Infof("✅ Skipped %d DNG files that are already in stacks with JPG files", skippedStackedDNGCount)
+		if trashOrphanedRAWs {
+			logger.Info("🔍 Looking for orphaned RAW files...")
+			orphanedRAWs, keptStackedRAWCount, err := findOrphanedRAWs(activeAssets, criteria, parentFilenamePromote, parentExtPromote, logger)
+			if err != nil {
+				logger.Errorf("Error detecting orphaned RAW files (continuing with pass 1 results): %v", err)
+			}
+			for id, asset := range orphanedRAWs {
+				assetsToTrash[id] = asset
+				triggeredBy[id] = orphanedRAWTrigger
+			}
+			if len(orphanedRAWs) > 0 {
+				logger.Infof("📸 Found %d orphaned RAW files without a developed companion", len(orphanedRAWs))
+			}
+			if keptStackedRAWCount > 0 {
+				logger.Infof("✅ Kept %d RAW files already stacked with a developed file", keptStackedRAWCount)
+			}
+		} else {
+			logger.Info("⏭️  Orphaned RAW cleanup disabled (enable with --trash-orphaned-raws)")
 		}
 
 		/**********************************************************************************************
@@ -151,7 +158,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 
 /**************************************************************************************************
 ** logTrashSummary prints the assets about to be trashed, grouped by the trashed asset that
-** triggered them (orphaned DNGs first), plus a per-extension count at debug level.
+** triggered them (orphaned RAWs first), plus a per-extension count at debug level.
 **
 ** @param logger - Logger instance
 ** @param assetsToTrash - Assets to trash, by ID
@@ -165,7 +172,7 @@ func logTrashSummary(logger *logrus.Logger, assetsToTrash map[string]utils.TAsse
 
 		for id, asset := range assetsToTrash {
 			trigger := triggeredBy[id]
-			if trigger == orphanedDNGTrigger {
+			if trigger == orphanedRAWTrigger {
 				orphanedNames = append(orphanedNames, asset.OriginalFileName)
 			} else {
 				groupedByTrigger[trigger] = append(groupedByTrigger[trigger], asset.OriginalFileName)
@@ -173,7 +180,7 @@ func logTrashSummary(logger *logrus.Logger, assetsToTrash map[string]utils.TAsse
 		}
 
 		if len(orphanedNames) > 0 {
-			logger.Infof("\t📸 Orphaned DNG files (no JPG found): %s\n", strings.Join(orphanedNames, ", "))
+			logger.Infof("\t📸 Orphaned RAW files (no developed companion): %s\n", strings.Join(orphanedNames, ", "))
 		}
 		for trigger, names := range groupedByTrigger {
 			logger.Infof("\t%s (in trash): %s\n", trigger, strings.Join(names, ", "))
