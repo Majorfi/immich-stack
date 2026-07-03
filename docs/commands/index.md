@@ -30,7 +30,7 @@ Finds and reports duplicate assets in your library based on filename and timesta
 immich-stack fix-trash [flags]
 ```
 
-Maintains stack consistency by moving related assets to trash when their stack members have been deleted.
+Maintains stack consistency by moving related assets to trash when their stack members have been deleted. An opt-in pass (`--trash-orphaned-raws`) also removes RAW files left without a developed companion.
 
 [Full documentation →](fix-trash.md)
 

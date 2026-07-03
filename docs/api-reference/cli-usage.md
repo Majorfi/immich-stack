@@ -69,7 +69,7 @@ immich-stack [command] [flags]
 ### Command-Specific Notes
 
 - **duplicates**: Uses global flags only, particularly `--with-archived` and `--with-deleted` to control which assets are checked
-- **fix-trash**: Uses global flags plus the stacking criteria flags (`--criteria`, `--parent-filename-promote`, etc.) to determine which assets to move to trash
+- **fix-trash**: Uses global flags plus the stacking criteria flags (`--criteria`, `--parent-filename-promote`, etc.) to determine which assets to move to trash; `--trash-orphaned-raws` additionally enables the orphaned RAW cleanup pass
 
 ## Examples
 

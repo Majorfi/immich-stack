@@ -9,14 +9,14 @@ When you delete a photo in Immich that would stack with other photos (for exampl
 The command runs two passes:
 
 1. **Stack cascade** — active assets that would stack with a trashed asset are moved to trash.
-1. **Orphaned DNG cleanup** — active DNG files with no JPG companion are moved to trash. This pass always runs, independently of what is in your trash.
+1. **Orphaned RAW cleanup** (opt-in via `--trash-orphaned-raws`) — active RAW files (DNG, NEF, ARW, CR2/CR3, ...) with no developed companion (JPG, HEIC, or any non-RAW file) are moved to trash, independently of what is in your trash.
 
 !!! warning "RAW-only libraries"
 
-    The orphaned-DNG pass treats every DNG without a matching `.jpg`/`.jpeg` as orphaned,
-    regardless of your trash contents. If you shoot RAW-only (DNG files without JPG
-    sidecars), this pass will flag those DNGs for trash. Other companion formats (HEIC,
-    PNG, ...) are not recognized. Always run with `--dry-run` first and review the summary.
+    With `--trash-orphaned-raws` enabled, every RAW file without a developed companion is
+    treated as orphaned, regardless of your trash contents. If you shoot RAW-only (no
+    JPG/HEIC sidecars), this pass will flag those files for trash. Always run with
+    `--dry-run` first and review the summary.
 
 ## How It Works
 
@@ -27,10 +27,12 @@ The command runs two passes:
 1. Runs the stacking algorithm once over the remaining trashed assets plus all active assets, using the same criteria as the main command (`--criteria`, `--parent-filename-promote`, `--parent-ext-promote`).
 1. Every active asset that lands in a group containing a trashed asset is marked for trash.
 
-### Pass 2: orphaned DNG cleanup
+### Pass 2: orphaned RAW cleanup (opt-in)
 
-1. Groups active assets by base filename: the extension is stripped, suffixes after `_` or `~` are dropped, and the Leica prefixes `DO0`/`DL0`/`DL`/`L` are stripped when followed by digits (so `DO01001336.jpg` and `L1001336.dng` share the base `1001336`).
-1. A DNG whose group contains no `.jpg`/`.jpeg` file is marked for trash, unless it already sits in an Immich stack that contains a JPG.
+This pass only runs with `--trash-orphaned-raws` (or `TRASH_ORPHANED_RAWS=true`).
+
+1. Groups your active assets with the same stacking criteria as pass 1, so filename matching follows your `--criteria` configuration. Cameras that pair a RAW and a JPG under different names (for example Leica's `L1001336.dng` + `DO01001336.jpg`) need a regex criterion that maps both to the same key, such as `{"key":"originalFileName","regex":{"key":"^(?:L|DO0)(\\d+)","index":1}}`.
+1. A RAW file whose group contains no developed file — or that groups with nothing at all — is marked for trash, unless it already sits in an Immich stack that contains a developed file.
 
 ### Safety
 
@@ -82,18 +84,18 @@ immich-stack fix-trash --api-key your_key --log-level debug
 🗑️  Found 5 trashed assets
 🔍 Analyzing 5 trashed assets against 1000 active assets...
 🔄 Skipped 2 trashed assets that appear to have been replaced
-🔍 Looking for orphaned DNG files...
-📸 Found 2 orphaned DNG files without corresponding JPG files
-✅ Skipped 1 DNG files that are already in stacks with JPG files
+🔍 Looking for orphaned RAW files...
+📸 Found 2 orphaned RAW files without a developed companion
+✅ Kept 1 RAW files already stacked with a developed file
 📋 Summary of assets to trash (4):
-	📸 Orphaned DNG files (no JPG found): L1000746.dng, L1000901.dng
+	📸 Orphaned RAW files (no developed companion): L1000746.dng, L1000901.dng
 	IMG_1234.jpg (in trash): IMG_1234.dng, IMG_1234~2.jpg
 🗑️  Moving 4 assets to trash... done
 ```
 
-With `--dry-run`, the last line becomes `🗑️  Moving 4 assets to trash... (dry run)` and nothing is modified. When nothing needs to move, the command prints `✅ No related assets need to be trashed.`
+This example runs with `--trash-orphaned-raws`; without it, the RAW lines are replaced by `⏭️  Orphaned RAW cleanup disabled (enable with --trash-orphaned-raws)`. With `--dry-run`, the last line becomes `🗑️  Moving 4 assets to trash... (dry run)` and nothing is modified. When nothing needs to move, the command prints `✅ No related assets need to be trashed.`
 
-In debug mode, you additionally get the base-name normalization of every asset, the per-asset cascade decisions, and a count of assets to trash by file type.
+In debug mode, you additionally get the per-asset cascade and orphan decisions, and a count of assets to trash by file type.
 
 ## Flags
 
@@ -102,6 +104,7 @@ The command uses all global flags, particularly:
 - `--dry-run` - Preview what would be deleted without making changes
 - `--criteria` - Custom stacking criteria (uses same format as main command)
 - `--parent-filename-promote` - Filename patterns for stacking
+- `--trash-orphaned-raws` - Enable the orphaned RAW cleanup pass (off by default)
 - `--with-archived` - Also look for archived assets in the trash scan
 - `--log-level` - Set to `debug` for detailed matching information
 
@@ -148,8 +151,8 @@ Add to a cron job for automatic cleanup:
 
 ## Important Notes
 
-1. **Uses Stacking Criteria**: The command uses the same criteria as the main stacking command, so the cascade matches what the stacker would group.
-1. **The DNG pass always runs**: There is currently no flag to disable the orphaned-DNG cleanup — see the warning at the top if your library contains DNGs without JPG companions.
+1. **Uses Stacking Criteria**: Both passes use the same criteria as the main stacking command, so the cascade and the orphan matching follow what the stacker would group.
+1. **The RAW pass is opt-in**: The orphaned-RAW cleanup only runs with `--trash-orphaned-raws` — see the warning at the top before enabling it on a library that contains RAW files without developed companions.
 1. **Trash, not deletion**: Assets go to Immich's trash and can be restored there; this tool has no undo command.
 1. **Safety First**: Always use `--dry-run` first to preview changes.
 

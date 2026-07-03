@@ -19,11 +19,14 @@ immich-stack (root command)
 
 ```
 cmd/
-├── main.go          # Entry point and root command setup
-├── config.go        # Shared configuration and environment loading
-├── stack.go         # Main stacking command implementation
-├── duplicates.go    # Duplicate detection command
-└── fixtrash.go      # Fix trash consistency command
+├── main.go               # Entry point and root command setup
+├── config.go             # Shared configuration and environment loading
+├── common.go             # Helpers shared by the subcommands
+├── stacker.go            # Main stacking command implementation
+├── duplicates.go         # Duplicate detection command
+├── fixtrash.go           # Fix trash command orchestration
+├── fixtrash_analysis.go  # Fix trash: stack cascade decision logic
+└── fixtrash_orphans.go   # Fix trash: orphaned RAW detection (opt-in)
 ```
 
 ## Command Implementation Pattern

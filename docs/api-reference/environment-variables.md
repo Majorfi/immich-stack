@@ -25,6 +25,7 @@ This document provides a complete reference of all environment variables support
 | `REPLACE_STACKS`             | Replace stacks for new groups                                          | false   | `true`               |
 | `DRY_RUN`                    | Simulate actions without making changes                                | false   | `true`               |
 | `REMOVE_SINGLE_ASSET_STACKS` | Remove stacks containing only one asset                                | false   | `true`               |
+| `TRASH_ORPHANED_RAWS`        | fix-trash only: trash RAW files without a developed companion          | false   | `true`               |
 
 Note:
 

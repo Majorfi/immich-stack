@@ -57,7 +57,7 @@ Scans your library and reports duplicate assets based on filename and timestamp.
 immich-stack fix-trash
 ```
 
-Identifies trashed assets and moves their related stack members to trash for consistency.
+Identifies trashed assets and moves their related stack members to trash for consistency. With `--trash-orphaned-raws`, it also removes RAW files left without a developed companion (JPG, HEIC, ...).
 
 ## Features
 
@@ -65,7 +65,8 @@ Identifies trashed assets and moves their related stack members to trash for con
 - Detects burst sequences via the `sequence` keyword (Sony's `DSCPDC_0001_BURST`,
   Canon's `IMG_0001`, and similar patterns).
 - Lists duplicates by filename and capture time.
-- Cleans up trash operations: moves stack members of trashed assets to trash too.
+- Cleans up trash operations: moves stack members of trashed assets to trash too, and
+  optionally RAW files left without a developed companion.
 - Runs against multiple users in one go (comma-separated API keys).
 - Lets you pick the stack parent by extension, filename pattern, regex, or size.
 - Dry-run mode, stack replacement, and a confirmation-gated reset.
