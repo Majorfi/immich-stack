@@ -46,6 +46,7 @@ func TestStartupConfigurationSummary(t *testing.T) {
 				"WITH_DELETED":               "true",
 				"REMOVE_SINGLE_ASSET_STACKS": "true",
 				"TRASH_ORPHANED_RAWS":        "true",
+				"RAW_ORPHAN_EXTENSIONS":      "dng",
 			},
 			wantInLog: []string{
 				"Configuration loaded",
@@ -59,6 +60,7 @@ func TestStartupConfigurationSummary(t *testing.T) {
 				`"withDeleted":true`,
 				`"removeSingleAssetStacks":true`,
 				`"trashOrphanedRAWs":true`,
+				`"rawOrphanExtensions":"dng"`,
 			},
 		},
 		{
@@ -373,7 +375,7 @@ func resetTestEnv() {
 		"LOG_LEVEL", "LOG_FORMAT", "LOG_FILE",
 		"DRY_RUN", "RESET_STACKS", "CONFIRM_RESET_STACK",
 		"REPLACE_STACKS", "WITH_ARCHIVED", "WITH_DELETED",
-		"REMOVE_SINGLE_ASSET_STACKS", "TRASH_ORPHANED_RAWS", "CRITERIA",
+		"REMOVE_SINGLE_ASSET_STACKS", "TRASH_ORPHANED_RAWS", "RAW_ORPHAN_EXTENSIONS", "CRITERIA",
 		"PARENT_FILENAME_PROMOTE", "PARENT_EXT_PROMOTE",
 		"FILTER_ALBUM_IDS", "FILTER_TAKEN_AFTER", "FILTER_TAKEN_BEFORE",
 	}
@@ -398,6 +400,7 @@ func resetTestEnv() {
 	logLevel = ""
 	removeSingleAssetStacks = false
 	trashOrphanedRAWs = false
+	rawOrphanExtensions = ""
 	filterAlbumIDs = nil
 	filterTakenAfter = ""
 	filterTakenBefore = ""

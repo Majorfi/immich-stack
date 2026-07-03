@@ -12,6 +12,7 @@ package main
 
 import (
 	"io"
+	"maps"
 	"path/filepath"
 	"strings"
 
@@ -39,8 +40,39 @@ var rawExtensions = map[string]bool{
 	".srw": true, ".x3f": true,
 }
 
+func hasExtension(set map[string]bool, fileName string) bool {
+	return set[strings.ToLower(filepath.Ext(fileName))]
+}
+
 func isRAWFile(fileName string) bool {
-	return rawExtensions[strings.ToLower(filepath.Ext(fileName))]
+	return hasExtension(rawExtensions, fileName)
+}
+
+/**************************************************************************************************
+** parseOrphanExtensions turns the RAW_ORPHAN_EXTENSIONS setting into the set of extensions
+** the orphan pass may flag. Empty means every known RAW format. Entries are matched against
+** rawExtensions so a typo cannot silently extend the pass to non-RAW files; unknown entries
+** are warned about and ignored. This only restricts the candidates — companion detection
+** still treats every RAW format as non-developed.
+**
+** @param raw - Comma-separated extensions, with or without leading dots (e.g. "dng,nef")
+** @param logger - For warnings on unknown entries
+** @return map[string]bool - Allowed candidate extensions, keyed as ".ext"
+**************************************************************************************************/
+func parseOrphanExtensions(raw string, logger *logrus.Logger) map[string]bool {
+	if raw == "" {
+		return maps.Clone(rawExtensions)
+	}
+	allowed := make(map[string]bool)
+	for _, entry := range splitCommaList(raw) {
+		ext := "." + strings.TrimPrefix(strings.ToLower(entry), ".")
+		if !rawExtensions[ext] {
+			logger.Warnf("⚠️  RAW_ORPHAN_EXTENSIONS: %q is not a known RAW extension, ignoring", entry)
+			continue
+		}
+		allowed[ext] = true
+	}
+	return allowed
 }
 
 /**************************************************************************************************
@@ -53,6 +85,8 @@ func isRAWFile(fileName string) bool {
 ** @param criteria - Stacking criteria JSON (empty = defaults), same as pass 1
 ** @param parentFilenamePromote - Parent promotion list (shared with the stacker command)
 ** @param parentExtPromote - Extension promotion list (shared with the stacker command)
+** @param orphanExtensions - RAW_ORPHAN_EXTENSIONS value restricting the candidates
+**                           (empty = all; all-invalid entries disable the pass)
 ** @param logger - For debug traces
 ** @return map[string]utils.TAsset - Orphaned RAWs to trash, by ID
 ** @return int - Number of RAWs kept because their Immich stack has a developed asset
@@ -63,8 +97,14 @@ func findOrphanedRAWs(
 	criteria string,
 	parentFilenamePromote string,
 	parentExtPromote string,
+	orphanExtensions string,
 	logger *logrus.Logger,
 ) (map[string]utils.TAsset, int, error) {
+	candidateExtensions := parseOrphanExtensions(orphanExtensions, logger)
+	if len(candidateExtensions) == 0 {
+		return nil, 0, nil
+	}
+
 	quietLogger := logrus.New()
 	quietLogger.SetOutput(io.Discard)
 	stacks, err := stacker.StackBy(activeAssets, criteria, parentFilenamePromote, parentExtPromote, quietLogger)
@@ -99,11 +139,13 @@ func findOrphanedRAWs(
 			continue
 		}
 		for _, asset := range stack {
-			candidates[asset.ID] = asset
+			if hasExtension(candidateExtensions, asset.OriginalFileName) {
+				candidates[asset.ID] = asset
+			}
 		}
 	}
 	for _, asset := range activeAssets {
-		if !grouped[asset.ID] && isRAWFile(asset.OriginalFileName) {
+		if !grouped[asset.ID] && hasExtension(candidateExtensions, asset.OriginalFileName) {
 			candidates[asset.ID] = asset
 		}
 	}

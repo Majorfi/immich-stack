@@ -38,6 +38,7 @@ func resetGlobalConfig() {
 	logLevel = ""
 	removeSingleAssetStacks = false
 	trashOrphanedRAWs = false
+	rawOrphanExtensions = ""
 	includeVideos = false
 	includeVideosFlagSet = false
 	preventSelfRekt = false
@@ -105,6 +106,14 @@ func TestRealCommandStructure(t *testing.T) {
 	}
 	if trashOrphanedRAWsFlag.DefValue != "false" {
 		t.Errorf("Expected --trash-orphaned-raws to default to false, got %s", trashOrphanedRAWsFlag.DefValue)
+	}
+
+	rawOrphanExtensionsFlag := cmd.PersistentFlags().Lookup("raw-orphan-extensions")
+	if rawOrphanExtensionsFlag == nil {
+		t.Fatal("Expected --raw-orphan-extensions flag to be present")
+	}
+	if rawOrphanExtensionsFlag.DefValue != "" {
+		t.Errorf("Expected --raw-orphan-extensions to default to empty, got %s", rawOrphanExtensionsFlag.DefValue)
 	}
 
 	// Verify subcommands are present

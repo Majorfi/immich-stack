@@ -15,8 +15,9 @@ The command runs two passes:
 
     With `--trash-orphaned-raws` enabled, every RAW file without a developed companion is
     treated as orphaned, regardless of your trash contents. If you shoot RAW-only (no
-    JPG/HEIC sidecars), this pass will flag those files for trash. Always run with
-    `--dry-run` first and review the summary.
+    JPG/HEIC sidecars), this pass will flag those files for trash — restrict it with
+    `--raw-orphan-extensions` (e.g. `dng`) if only part of your library pairs RAW with
+    developed files. Always run with `--dry-run` first and review the summary.
 
 ## How It Works
 
@@ -33,6 +34,7 @@ This pass only runs with `--trash-orphaned-raws` (or `TRASH_ORPHANED_RAWS=true`)
 
 1. Groups your active assets with the same stacking criteria as pass 1, so filename matching follows your `--criteria` configuration. Cameras that pair a RAW and a JPG under different names (for example Leica's `L1001336.dng` + `DO01001336.jpg`) need a regex criterion that maps both to the same key, such as `{"key":"originalFileName","regex":{"key":"^(?:L|DO0)(\\d+)","index":1}}`.
 1. A RAW file whose group contains no developed file — or that groups with nothing at all — is marked for trash, unless it already sits in an Immich stack that contains a developed file.
+1. `--raw-orphan-extensions` (or `RAW_ORPHAN_EXTENSIONS`) restricts which RAW extensions may be flagged, e.g. `dng` to clean up orphaned DNGs while never touching NEF/ARW/... files from a RAW-only workflow. It only restricts the candidates: another RAW file never counts as a developed companion, whatever the restriction. Unknown extensions are ignored with a warning.
 
 ### Safety
 
@@ -105,6 +107,7 @@ The command uses all global flags, particularly:
 - `--criteria` - Custom stacking criteria (uses same format as main command)
 - `--parent-filename-promote` - Filename patterns for stacking
 - `--trash-orphaned-raws` - Enable the orphaned RAW cleanup pass (off by default)
+- `--raw-orphan-extensions` - Restrict the RAW pass to specific extensions, e.g. `dng,nef` (default: all RAW formats)
 - `--with-archived` - Also look for archived assets in the trash scan
 - `--log-level` - Set to `debug` for detailed matching information
 

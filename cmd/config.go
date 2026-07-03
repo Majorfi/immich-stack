@@ -36,6 +36,7 @@ var logLevel string
 var logFormat string
 var removeSingleAssetStacks bool
 var trashOrphanedRAWs bool
+var rawOrphanExtensions string
 var includeVideos bool
 var includeVideosFlagSet bool
 var preventSelfRekt bool
@@ -171,6 +172,9 @@ func logStartupSummary(logger *logrus.Logger) {
 		if len(filterAlbumIDs) > 0 {
 			fields["filterAlbumIDs"] = filterAlbumIDs
 		}
+		if rawOrphanExtensions != "" {
+			fields["rawOrphanExtensions"] = rawOrphanExtensions
+		}
 		if filterTakenAfter != "" {
 			fields["filterTakenAfter"] = filterTakenAfter
 		}
@@ -210,6 +214,9 @@ func logStartupSummary(logger *logrus.Logger) {
 		}
 		if trashOrphanedRAWs {
 			summary = append(summary, "trash-orphaned-raws=true")
+		}
+		if rawOrphanExtensions != "" {
+			summary = append(summary, fmt.Sprintf("raw-orphan-extensions=%s", rawOrphanExtensions))
 		}
 		if includeVideos {
 			summary = append(summary, "include-videos=true")
@@ -314,6 +321,9 @@ func LoadEnvForTesting() LoadEnvConfig {
 	}
 	if !trashOrphanedRAWs {
 		trashOrphanedRAWs = os.Getenv("TRASH_ORPHANED_RAWS") == "true"
+	}
+	if rawOrphanExtensions == "" {
+		rawOrphanExtensions = os.Getenv("RAW_ORPHAN_EXTENSIONS")
 	}
 	if !includeVideosFlagSet {
 		if envInclude := os.Getenv("INCLUDE_VIDEOS"); envInclude != "" {

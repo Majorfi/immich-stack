@@ -44,11 +44,12 @@ func TestFindOrphanedRAWs(t *testing.T) {
 	leicaCriteria := `{"mode":"advanced","groups":[{"operator":"AND","criteria":[{"key":"originalFileName","regex":{"key":"^(?:L|DO0)(\\d+)","index":1}},{"key":"localDateTime","delta":{"milliseconds":1000}}]}]}`
 
 	tests := []struct {
-		name        string
-		active      []utils.TAsset
-		criteria    string
-		wantOrphans []string
-		wantKept    int
+		name             string
+		active           []utils.TAsset
+		criteria         string
+		orphanExtensions string
+		wantOrphans      []string
+		wantKept         int
 	}{
 		{
 			name:        "lone DNG is orphaned",
@@ -125,11 +126,52 @@ func TestFindOrphanedRAWs(t *testing.T) {
 			criteria:    leicaCriteria,
 			wantOrphans: []string{},
 		},
+		{
+			name:             "extension restriction: lone NEF is not a candidate",
+			active:           []utils.TAsset{asset("n1", "DSC_0118.nef")},
+			orphanExtensions: "dng",
+			wantOrphans:      []string{},
+		},
+		{
+			name:             "extension restriction: lone uppercase DNG still flagged",
+			active:           []utils.TAsset{asset("d1", "L1001336.DNG")},
+			orphanExtensions: "dng",
+			wantOrphans:      []string{"d1"},
+		},
+		{
+			// The NEF shares the group but is not a developed companion: the DNG stays
+			// orphaned, and the NEF itself is protected by the restriction.
+			name: "extension restriction: all-RAW group flags only allowed extensions",
+			active: []utils.TAsset{
+				asset("d1", "IMG_1234.dng"),
+				asset("n1", "IMG_1234.nef"),
+			},
+			orphanExtensions: "dng",
+			wantOrphans:      []string{"d1"},
+		},
+		{
+			name:             "extension restriction: accepts dots and mixed case",
+			active:           []utils.TAsset{asset("d1", "L1001336.dng"), asset("n1", "DSC_0001.nef")},
+			orphanExtensions: ".DNG, NEF",
+			wantOrphans:      []string{"d1", "n1"},
+		},
+		{
+			name:             "extension restriction: unknown entries are ignored",
+			active:           []utils.TAsset{asset("d1", "L1001336.dng"), asset("j1", "OTHER.jpg")},
+			orphanExtensions: "jpg,bogus,dng",
+			wantOrphans:      []string{"d1"},
+		},
+		{
+			name:             "extension restriction: all entries invalid disables the pass",
+			active:           []utils.TAsset{asset("d1", "L1001336.dng")},
+			orphanExtensions: "jpg,bogus",
+			wantOrphans:      []string{},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			orphans, kept, err := findOrphanedRAWs(tt.active, tt.criteria, "", "", quietFixTrashLogger())
+			orphans, kept, err := findOrphanedRAWs(tt.active, tt.criteria, "", "", tt.orphanExtensions, quietFixTrashLogger())
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -151,7 +193,7 @@ func TestFindOrphanedRAWs(t *testing.T) {
 func TestFindOrphanedRAWsInvalidCriteria(t *testing.T) {
 	_, _, err := findOrphanedRAWs(
 		[]utils.TAsset{{ID: "d1", OriginalFileName: "a.dng"}},
-		`{"mode":"advanced"}`, "", "", quietFixTrashLogger())
+		`{"mode":"advanced"}`, "", "", "", quietFixTrashLogger())
 	if err == nil {
 		t.Fatal("expected an error for advanced criteria without groups or expression")
 	}

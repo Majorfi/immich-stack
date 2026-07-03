@@ -26,10 +26,13 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 	logger := loadEnv()
 
 	/**********************************************************************************************
-	** Warn if filter flags are set (they have no effect on this command).
+	** Warn about settings that have no effect on this run.
 	**********************************************************************************************/
 	if len(filterAlbumIDs) > 0 || filterTakenAfter != "" || filterTakenBefore != "" {
 		logger.Warnf("Filter flags (--filter-album-ids, --filter-taken-after, --filter-taken-before) have no effect on the fix-trash command")
+	}
+	if !trashOrphanedRAWs && rawOrphanExtensions != "" {
+		logger.Warnf("--raw-orphan-extensions (RAW_ORPHAN_EXTENSIONS) has no effect without --trash-orphaned-raws")
 	}
 
 	/**********************************************************************************************
@@ -112,7 +115,7 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 
 		if trashOrphanedRAWs {
 			logger.Info("🔍 Looking for orphaned RAW files...")
-			orphanedRAWs, keptStackedRAWCount, err := findOrphanedRAWs(activeAssets, criteria, parentFilenamePromote, parentExtPromote, logger)
+			orphanedRAWs, keptStackedRAWCount, err := findOrphanedRAWs(activeAssets, criteria, parentFilenamePromote, parentExtPromote, rawOrphanExtensions, logger)
 			if err != nil {
 				logger.Errorf("Error detecting orphaned RAW files (continuing with pass 1 results): %v", err)
 			}
