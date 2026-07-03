@@ -607,7 +607,7 @@ func (c *Client) FetchTrashedAssets(size int) ([]utils.TAsset, error) {
 				"type":         assetType,
 				"isVisible":    true,
 				"withStacked":  true,
-				"withArchived": false,
+				"withArchived": c.withArchived,
 				"withDeleted":  true,
 			}, &response); err != nil {
 				c.logger.Errorf("Error fetching trashed assets: %v", err)
@@ -640,8 +640,15 @@ func (c *Client) FetchTrashedAssets(size int) ([]utils.TAsset, error) {
 }
 
 /**************************************************************************************************
-** TrashAssets moves the specified assets to trash using the DELETE API with force=false.
-** In dry run mode, it only logs the action without making changes.
+** trashBatchSize caps how many asset IDs are sent per DELETE /assets request to keep request
+** bodies bounded on large cleanups.
+**************************************************************************************************/
+const trashBatchSize = 1000
+
+/**************************************************************************************************
+** TrashAssets moves the specified assets to trash using the DELETE API with force=false,
+** batched by trashBatchSize IDs per request. In dry run mode, it only logs the action
+** without making changes.
 **
 ** @param assetIDs - Array of asset IDs to move to trash
 ** @return error - Any error that occurred during the operation
@@ -659,12 +666,18 @@ func (c *Client) TrashAssets(assetIDs []string) error {
 		return nil
 	}
 
-	if err := c.doRequest(http.MethodDelete, "/assets", map[string]interface{}{
-		"force": false,
-		"ids":   assetIDs,
-	}, nil); err != nil {
-		c.logger.Errorf("Error moving assets to trash: %v", err)
-		return fmt.Errorf("error moving assets to trash: %w", err)
+	for start := 0; start < len(assetIDs); start += trashBatchSize {
+		end := min(start+trashBatchSize, len(assetIDs))
+		if err := c.doRequest(http.MethodDelete, "/assets", map[string]interface{}{
+			"force": false,
+			"ids":   assetIDs[start:end],
+		}, nil); err != nil {
+			c.logger.Errorf("Error moving assets to trash: %v", err)
+			return fmt.Errorf("error moving assets to trash (%d/%d done): %w", start, len(assetIDs), err)
+		}
+		if len(assetIDs) > trashBatchSize {
+			c.logger.Debugf("🗑️  Trash batch %d-%d of %d done", start+1, end, len(assetIDs))
+		}
 	}
 
 	c.logger.Infof("🗑️  Moving %d assets to trash... done", len(assetIDs))
