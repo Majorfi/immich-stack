@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 )
 
-// Duration accepts Immich's asset duration as a string (<= v2) or a number of ms (v3, issue #69).
-type Duration string
+// TDuration accepts Immich's asset duration as a string (<= v2) or a number of ms (v3, issue #69).
+type TDuration string
 
-func (d *Duration) UnmarshalJSON(data []byte) error {
+func (d *TDuration) UnmarshalJSON(data []byte) error {
 	data = bytes.TrimSpace(data)
 	if len(data) == 0 || string(data) == "null" {
 		*d = ""
@@ -19,14 +19,14 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &s); err != nil {
 			return err
 		}
-		*d = Duration(s)
+		*d = TDuration(s)
 		return nil
 	}
 	var n json.Number
 	if err := json.Unmarshal(data, &n); err != nil {
 		return err
 	}
-	*d = Duration(n.String())
+	*d = TDuration(n.String())
 	return nil
 }
 
@@ -113,7 +113,7 @@ type TAsset struct {
 	Type             string     `json:"type"`               // Asset type
 	UpdatedAt        string     `json:"updatedAt"`          // Last update time
 	Checksum         string     `json:"checksum"`           // File checksum
-	Duration         Duration   `json:"duration"`           // Duration; string on Immich <= v2, ms number on v3
+	Duration         TDuration  `json:"duration"`           // Duration; string on Immich <= v2, ms number on v3
 	Stack            *TStack    `json:"stack,omitempty"`    // Associated stack if any
 	ExifInfo         *TExifInfo `json:"exifInfo,omitempty"` // Optional EXIF metadata (size, etc.)
 }

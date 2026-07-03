@@ -9,7 +9,7 @@ func TestDurationUnmarshalJSON(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		want    Duration
+		want    TDuration
 		wantErr bool
 	}{
 		{name: "v2 string zero", input: `"0:00:00.000000"`, want: "0:00:00.000000"},
@@ -27,7 +27,7 @@ func TestDurationUnmarshalJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var d Duration
+			var d TDuration
 			err := json.Unmarshal([]byte(tt.input), &d)
 			if tt.wantErr {
 				if err == nil {
@@ -49,7 +49,7 @@ func TestTAssetDurationV2AndV3(t *testing.T) {
 	tests := []struct {
 		name         string
 		body         string
-		wantDuration Duration
+		wantDuration TDuration
 	}{
 		{name: "v2 image string duration", body: `{"id":"a1","type":"IMAGE","duration":"0:00:00.000000"}`, wantDuration: "0:00:00.000000"},
 		{name: "v3 image null duration", body: `{"id":"a2","type":"IMAGE","duration":null}`, wantDuration: ""},
@@ -85,7 +85,7 @@ func TestSearchResponseDecodeMixedDurations(t *testing.T) {
 	if got := len(resp.Assets.Items); got != 4 {
 		t.Fatalf("decoded %d items, want 4", got)
 	}
-	want := []Duration{"", "0:00:00.000000", "1250", "32420"}
+	want := []TDuration{"", "0:00:00.000000", "1250", "32420"}
 	for i, w := range want {
 		if resp.Assets.Items[i].Duration != w {
 			t.Fatalf("item %d Duration = %q, want %q", i, resp.Assets.Items[i].Duration, w)
