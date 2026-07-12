@@ -154,6 +154,14 @@ func runStacker(cmd *cobra.Command, args []string) {
 	logger := loadEnv()
 
 	/**********************************************************************************************
+	** The chained fix-trash run never goes through runFixTrash, so its inert-setting
+	** diagnostic must also live here.
+	**********************************************************************************************/
+	if fixTrashAfterStacking && !trashOrphanedRAWs && rawOrphanExtensions != "" {
+		logger.Warnf("--raw-orphan-extensions (RAW_ORPHAN_EXTENSIONS) has no effect without --trash-orphaned-raws")
+	}
+
+	/**********************************************************************************************
 	** Support multiple API keys (comma-separated).
 	**********************************************************************************************/
 	apiKeys := splitCommaList(apiKey)
@@ -184,6 +192,10 @@ func runStacker(cmd *cobra.Command, args []string) {
 			logger.Infof("=====================================================================================")
 			logger.Info("Running in once mode")
 			runStackerOnce(client, logger, user.ID)
+			if fixTrashAfterStacking {
+				logger.Infof("\n")
+				fixTrashForAPIKey(key, logger)
+			}
 		}
 	}
 }
@@ -381,6 +393,10 @@ func runCronLoopForAllUsers(apiKeys []string, apiURL string, logger *logrus.Logg
 			logger.Infof("Running for user: %s (%s)", user.Name, user.Email)
 			logger.Infof("=====================================================================================")
 			runStackerOnce(client, logger, user.ID)
+			if fixTrashAfterStacking {
+				logger.Infof("\n")
+				fixTrashForAPIKey(key, logger)
+			}
 		}
 		logger.Infof("Sleeping for %d seconds until next run", cronInterval)
 		time.Sleep(time.Duration(cronInterval) * time.Second)

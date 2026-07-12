@@ -64,6 +64,17 @@ See what would be deleted without making changes:
 immich-stack fix-trash --api-key your_key --dry-run
 ```
 
+### Run After Each Stacking Run
+
+Instead of scheduling fix-trash separately, the main stacking command can chain it after every run — including in cron mode:
+
+```bash
+immich-stack --api-key your_key --fix-trash-after-stacking
+# or in your .env: FIX_TRASH_AFTER_STACKING=true
+```
+
+The chained run behaves exactly like the standalone command: it ignores the stacker's album/date filters and reset/replace options, and honors `--trash-orphaned-raws` and `--raw-orphan-extensions`.
+
 ### With Custom Criteria
 
 Use specific stacking criteria for matching:
@@ -145,7 +156,13 @@ immich-stack fix-trash --api-key your_key
 
 ### 4. Scheduled Maintenance
 
-Add to a cron job for automatic cleanup:
+Either chain it to the stacker's cron mode:
+
+```bash
+RUN_MODE=cron CRON_INTERVAL=3600 FIX_TRASH_AFTER_STACKING=true immich-stack --api-key your_key
+```
+
+Or schedule the standalone command:
 
 ```bash
 # Run weekly to maintain consistency

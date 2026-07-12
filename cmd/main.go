@@ -34,6 +34,7 @@ func bindFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().BoolVar(&removeSingleAssetStacks, "remove-single-asset-stacks", false, "Remove stacks with only one asset (or set REMOVE_SINGLE_ASSET_STACKS=true)")
 	rootCmd.PersistentFlags().BoolVar(&trashOrphanedRAWs, "trash-orphaned-raws", false, "fix-trash: also trash RAW files without a developed companion (or set TRASH_ORPHANED_RAWS=true)")
 	rootCmd.PersistentFlags().StringVar(&rawOrphanExtensions, "raw-orphan-extensions", "", "fix-trash: comma-separated RAW extensions the orphaned-RAW pass may trash, e.g. \"dng,nef\" (default: all known RAW formats; or set RAW_ORPHAN_EXTENSIONS)")
+	rootCmd.PersistentFlags().BoolVar(&fixTrashAfterStacking, "fix-trash-after-stacking", false, "Run the fix-trash flow after each stacking run, in once and cron modes (or set FIX_TRASH_AFTER_STACKING=true)")
 	rootCmd.PersistentFlags().BoolVar(&includeVideos, "include-videos", false, "Include VIDEO assets alongside IMAGE in stacking (or set INCLUDE_VIDEOS=true)")
 	rootCmd.PersistentFlags().BoolVar(&preventSelfRekt, "prevent-self-rekt", false, "Insert a 50ms delay before each stack write to prevent overwhelming Immich on huge libraries (or set PREVENT_SELF_REKT=true)")
 	rootCmd.PersistentFlags().IntVar(&stackConcurrency, "stack-concurrency", 0, "Parallel stack writes (default 1 = sequential; values like 10-20 speed up large libraries; or set STACK_CONCURRENCY)")

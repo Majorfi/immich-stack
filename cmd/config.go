@@ -37,6 +37,7 @@ var logFormat string
 var removeSingleAssetStacks bool
 var trashOrphanedRAWs bool
 var rawOrphanExtensions string
+var fixTrashAfterStacking bool
 var includeVideos bool
 var includeVideosFlagSet bool
 var preventSelfRekt bool
@@ -162,6 +163,7 @@ func logStartupSummary(logger *logrus.Logger) {
 			"withDeleted":             withDeleted,
 			"removeSingleAssetStacks": removeSingleAssetStacks,
 			"trashOrphanedRAWs":       trashOrphanedRAWs,
+			"fixTrashAfterStacking":   fixTrashAfterStacking,
 			"includeVideos":           includeVideos,
 			"preventSelfRekt":         preventSelfRekt,
 			"stackConcurrency":        stackConcurrency,
@@ -217,6 +219,9 @@ func logStartupSummary(logger *logrus.Logger) {
 		}
 		if rawOrphanExtensions != "" {
 			summary = append(summary, fmt.Sprintf("raw-orphan-extensions=%s", rawOrphanExtensions))
+		}
+		if fixTrashAfterStacking {
+			summary = append(summary, "fix-trash-after-stacking=true")
 		}
 		if includeVideos {
 			summary = append(summary, "include-videos=true")
@@ -324,6 +329,9 @@ func LoadEnvForTesting() LoadEnvConfig {
 	}
 	if rawOrphanExtensions == "" {
 		rawOrphanExtensions = os.Getenv("RAW_ORPHAN_EXTENSIONS")
+	}
+	if !fixTrashAfterStacking {
+		fixTrashAfterStacking = os.Getenv("FIX_TRASH_AFTER_STACKING") == "true"
 	}
 	if !includeVideosFlagSet {
 		if envInclude := os.Getenv("INCLUDE_VIDEOS"); envInclude != "" {

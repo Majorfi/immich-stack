@@ -39,6 +39,7 @@ func resetGlobalConfig() {
 	removeSingleAssetStacks = false
 	trashOrphanedRAWs = false
 	rawOrphanExtensions = ""
+	fixTrashAfterStacking = false
 	includeVideos = false
 	includeVideosFlagSet = false
 	preventSelfRekt = false
@@ -114,6 +115,14 @@ func TestRealCommandStructure(t *testing.T) {
 	}
 	if rawOrphanExtensionsFlag.DefValue != "" {
 		t.Errorf("Expected --raw-orphan-extensions to default to empty, got %s", rawOrphanExtensionsFlag.DefValue)
+	}
+
+	fixTrashAfterStackingFlag := cmd.PersistentFlags().Lookup("fix-trash-after-stacking")
+	if fixTrashAfterStackingFlag == nil {
+		t.Fatal("Expected --fix-trash-after-stacking flag to be present")
+	}
+	if fixTrashAfterStackingFlag.DefValue != "false" {
+		t.Errorf("Expected --fix-trash-after-stacking to default to false, got %s", fixTrashAfterStackingFlag.DefValue)
 	}
 
 	// Verify subcommands are present
