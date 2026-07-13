@@ -78,8 +78,10 @@ func parseOrphanExtensions(raw string, logger *logrus.Logger) map[string]bool {
 /**************************************************************************************************
 ** findOrphanedRAWs finds active RAW assets that have no developed companion: neither in
 ** their stacking group (computed with the user's criteria), nor in their existing Immich
-** stack. RAW assets that end up in no group at all have no companion by definition, since
-** the stacker drops single-asset groups.
+** stack. RAW assets that the criteria match but that end up in no group are companionless
+** singletons (the stacker drops single-asset groups); RAW assets the criteria cannot
+** evaluate are never flagged, and neither are archived RAWs — archived assets protect
+** their group but are never trashed.
 **
 ** @param activeAssets - Assets not in the trash
 ** @param criteria - Stacking criteria JSON (empty = defaults), same as pass 1
@@ -123,7 +125,10 @@ func findOrphanedRAWs(
 	}
 
 	/**********************************************************************************************
-	** Candidates: every RAW in an all-RAW group, plus every RAW in no group at all.
+	** Candidates: every allowed RAW in an all-RAW group, plus every allowed RAW that the
+	** criteria matched but that grouped with nothing (the stacker drops singletons). A RAW
+	** the criteria cannot evaluate is left alone: its absence from the groups says nothing
+	** about its companions.
 	**********************************************************************************************/
 	candidates := make(map[string]utils.TAsset)
 	grouped := make(map[string]bool)
@@ -139,14 +144,29 @@ func findOrphanedRAWs(
 			continue
 		}
 		for _, asset := range stack {
-			if hasExtension(candidateExtensions, asset.OriginalFileName) {
+			if !asset.IsArchived && hasExtension(candidateExtensions, asset.OriginalFileName) {
 				candidates[asset.ID] = asset
 			}
 		}
 	}
+
+	ungroupedRAWs := make([]utils.TAsset, 0)
 	for _, asset := range activeAssets {
-		if !grouped[asset.ID] && hasExtension(candidateExtensions, asset.OriginalFileName) {
-			candidates[asset.ID] = asset
+		if !grouped[asset.ID] && !asset.IsArchived && hasExtension(candidateExtensions, asset.OriginalFileName) {
+			ungroupedRAWs = append(ungroupedRAWs, asset)
+		}
+	}
+	if len(ungroupedRAWs) > 0 {
+		matchedIDs, err := stacker.MatchedAssetIDs(ungroupedRAWs, criteria)
+		if err != nil {
+			return nil, 0, err
+		}
+		for _, asset := range ungroupedRAWs {
+			if matchedIDs[asset.ID] {
+				candidates[asset.ID] = asset
+			} else {
+				logger.Debugf("  ⏭️  Skipping RAW %s - the criteria cannot evaluate it", asset.OriginalFileName)
+			}
 		}
 	}
 
