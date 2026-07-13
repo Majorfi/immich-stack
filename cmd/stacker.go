@@ -155,10 +155,13 @@ func runStacker(cmd *cobra.Command, args []string) {
 
 	/**********************************************************************************************
 	** The chained fix-trash run never goes through runFixTrash, so its inert-setting
-	** diagnostic must also live here.
+	** diagnostics must also live here.
 	**********************************************************************************************/
 	if fixTrashAfterStacking && !trashOrphanedRAWs && rawOrphanExtensions != "" {
 		logger.Warnf("--raw-orphan-extensions (RAW_ORPHAN_EXTENSIONS) has no effect without --trash-orphaned-raws")
+	}
+	if fixTrashAfterStacking && (len(filterAlbumIDs) > 0 || filterTakenAfter != "" || filterTakenBefore != "") {
+		logger.Warnf("Filter flags (--filter-album-ids, --filter-taken-after, --filter-taken-before) apply to stacking only; the chained fix-trash run processes the whole library")
 	}
 
 	/**********************************************************************************************
