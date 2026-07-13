@@ -36,8 +36,10 @@ var logLevel string
 var logFormat string
 var removeSingleAssetStacks bool
 var trashOrphanedRAWs bool
+var trashOrphanedRAWsFlagSet bool
 var rawOrphanExtensions string
 var fixTrashAfterStacking bool
+var fixTrashAfterStackingFlagSet bool
 var includeVideos bool
 var includeVideosFlagSet bool
 var preventSelfRekt bool
@@ -324,14 +326,18 @@ func LoadEnvForTesting() LoadEnvConfig {
 	if !removeSingleAssetStacks {
 		removeSingleAssetStacks = os.Getenv("REMOVE_SINGLE_ASSET_STACKS") == "true"
 	}
-	if !trashOrphanedRAWs {
-		trashOrphanedRAWs = os.Getenv("TRASH_ORPHANED_RAWS") == "true"
+	if !trashOrphanedRAWsFlagSet {
+		if envVal := os.Getenv("TRASH_ORPHANED_RAWS"); envVal != "" {
+			trashOrphanedRAWs = envVal == "true"
+		}
 	}
 	if rawOrphanExtensions == "" {
 		rawOrphanExtensions = os.Getenv("RAW_ORPHAN_EXTENSIONS")
 	}
-	if !fixTrashAfterStacking {
-		fixTrashAfterStacking = os.Getenv("FIX_TRASH_AFTER_STACKING") == "true"
+	if !fixTrashAfterStackingFlagSet {
+		if envVal := os.Getenv("FIX_TRASH_AFTER_STACKING"); envVal != "" {
+			fixTrashAfterStacking = envVal == "true"
+		}
 	}
 	if !includeVideosFlagSet {
 		if envInclude := os.Getenv("INCLUDE_VIDEOS"); envInclude != "" {

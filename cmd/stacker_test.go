@@ -38,8 +38,10 @@ func resetGlobalConfig() {
 	logLevel = ""
 	removeSingleAssetStacks = false
 	trashOrphanedRAWs = false
+	trashOrphanedRAWsFlagSet = false
 	rawOrphanExtensions = ""
 	fixTrashAfterStacking = false
+	fixTrashAfterStackingFlagSet = false
 	includeVideos = false
 	includeVideosFlagSet = false
 	preventSelfRekt = false

@@ -97,6 +97,12 @@ func CreateRootCommand() *cobra.Command {
 			if cmd.Flags().Lookup("stack-concurrency") != nil && cmd.Flags().Lookup("stack-concurrency").Changed {
 				stackConcurrencyFlagSet = true
 			}
+			if cmd.Flags().Lookup("trash-orphaned-raws") != nil && cmd.Flags().Lookup("trash-orphaned-raws").Changed {
+				trashOrphanedRAWsFlagSet = true
+			}
+			if cmd.Flags().Lookup("fix-trash-after-stacking") != nil && cmd.Flags().Lookup("fix-trash-after-stacking").Changed {
+				fixTrashAfterStackingFlagSet = true
+			}
 		},
 	}
 
