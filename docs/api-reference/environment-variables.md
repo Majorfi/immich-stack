@@ -27,6 +27,7 @@ This document provides a complete reference of all environment variables support
 | `REMOVE_SINGLE_ASSET_STACKS` | Remove stacks containing only one asset                                | false   | `true`               |
 | `TRASH_ORPHANED_RAWS`        | fix-trash only: trash RAW files without a developed companion          | false   | `true`               |
 | `RAW_ORPHAN_EXTENSIONS`      | fix-trash only: RAW extensions the orphaned-RAW pass may trash         | all RAW | `dng,nef`            |
+| `FIX_TRASH_AFTER_STACKING`   | Run the fix-trash flow after each stacking run (once and cron modes)   | false   | `true`               |
 
 Note:
 

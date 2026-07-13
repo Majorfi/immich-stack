@@ -14,58 +14,17 @@ func quietFixTrashLogger() *logrus.Logger {
 	return logger
 }
 
-func TestTimestampAfter(t *testing.T) {
-	tests := []struct {
-		name string
-		a    string
-		b    string
-		want bool
-	}{
-		{name: "plainly newer", a: "2024-01-01T10:00:00Z", b: "2024-01-01T09:00:00Z", want: true},
-		{name: "plainly older", a: "2024-01-01T08:00:00Z", b: "2024-01-01T09:00:00Z", want: false},
-		{name: "equal", a: "2024-01-01T10:00:00Z", b: "2024-01-01T10:00:00Z", want: false},
-		{name: "fractional seconds", a: "2024-01-01T10:00:00.500Z", b: "2024-01-01T10:00:00.400Z", want: true},
-		{
-			// Lexicographic comparison would wrongly say true here: "10:..." > "09:...",
-			// but +02:00 puts a at 08:00 UTC, before b.
-			name: "offset earlier despite larger string",
-			a:    "2024-01-01T10:00:00+02:00",
-			b:    "2024-01-01T09:00:00Z",
-			want: false,
-		},
-		{name: "unparseable falls back to lexicographic", a: "b", b: "a", want: true},
-		{name: "both empty", a: "", b: "", want: false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := timestampAfter(tt.a, tt.b); got != tt.want {
-				t.Fatalf("timestampAfter(%q, %q) = %v, want %v", tt.a, tt.b, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestIsReplacedByNewerCopy(t *testing.T) {
-	t0 := "2024-01-01T10:00:00Z"
-	older := "2023-12-01T10:00:00Z"
-	newer := "2024-01-02T10:00:00Z"
+func TestHasActiveCopy(t *testing.T) {
+	t0 := "2024-01-01T10:00:00.000000000Z"
+	otherDay := "2025-05-05T10:00:00.000000000Z"
 	trashed := utils.TAsset{
 		ID:               "trashed",
 		OriginalFileName: "IMG_1234.jpg",
-		FileCreatedAt:    t0,
-		FileModifiedAt:   t0,
-		UpdatedAt:        t0,
+		LocalDateTime:    t0,
 		IsTrashed:        true,
 	}
-	activeAsset := func(fileName, created, modified, updated string) utils.TAsset {
-		return utils.TAsset{
-			ID:               "active",
-			OriginalFileName: fileName,
-			FileCreatedAt:    created,
-			FileModifiedAt:   modified,
-			UpdatedAt:        updated,
-		}
+	activeAsset := func(fileName, localDateTime string) utils.TAsset {
+		return utils.TAsset{ID: "active", OriginalFileName: fileName, LocalDateTime: localDateTime}
 	}
 
 	tests := []struct {
@@ -73,12 +32,11 @@ func TestIsReplacedByNewerCopy(t *testing.T) {
 		active utils.TAsset
 		want   bool
 	}{
-		{name: "newer FileCreatedAt", active: activeAsset("IMG_1234.jpg", newer, t0, t0), want: true},
-		{name: "newer FileModifiedAt only", active: activeAsset("IMG_1234.jpg", t0, newer, t0), want: true},
-		{name: "newer UpdatedAt only", active: activeAsset("IMG_1234.jpg", t0, t0, newer), want: true},
-		{name: "identical timestamps", active: activeAsset("IMG_1234.jpg", t0, t0, t0), want: false},
-		{name: "all timestamps older", active: activeAsset("IMG_1234.jpg", older, older, older), want: false},
-		{name: "newer but different filename", active: activeAsset("IMG_9999.jpg", newer, t0, t0), want: false},
+		{name: "same name and capture time is a copy", active: activeAsset("IMG_1234.jpg", t0), want: true},
+		{name: "sub-second capture drift is still a copy", active: activeAsset("IMG_1234.jpg", "2024-01-01T10:00:00.123000000Z"), want: true},
+		{name: "two seconds apart is not a copy", active: activeAsset("IMG_1234.jpg", "2024-01-01T10:00:02.000000000Z"), want: false},
+		{name: "recycled name from another photo is not a copy", active: activeAsset("IMG_1234.jpg", otherDay), want: false},
+		{name: "different filename is not a copy", active: activeAsset("IMG_9999.jpg", t0), want: false},
 	}
 
 	for _, tt := range tests {
@@ -86,15 +44,15 @@ func TestIsReplacedByNewerCopy(t *testing.T) {
 			byFilename := map[string][]utils.TAsset{
 				tt.active.OriginalFileName: {tt.active},
 			}
-			if got := isReplacedByNewerCopy(trashed, byFilename); got != tt.want {
-				t.Fatalf("isReplacedByNewerCopy() = %v, want %v", got, tt.want)
+			if got := hasActiveCopy(trashed, byFilename); got != tt.want {
+				t.Fatalf("hasActiveCopy() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 
 	t.Run("no active asset with that filename", func(t *testing.T) {
-		if isReplacedByNewerCopy(trashed, map[string][]utils.TAsset{}) {
-			t.Fatal("isReplacedByNewerCopy() = true with empty active map, want false")
+		if hasActiveCopy(trashed, map[string][]utils.TAsset{}) {
+			t.Fatal("hasActiveCopy() = true with empty active map, want false")
 		}
 	})
 }
@@ -111,10 +69,6 @@ func TestFindStackRelatedAssets(t *testing.T) {
 			UpdatedAt:        "2024-01-01T10:00:00Z",
 			IsTrashed:        trashed,
 		}
-	}
-	newerCopy := func(a utils.TAsset) utils.TAsset {
-		a.FileCreatedAt = "2024-01-02T10:00:00Z"
-		return a
 	}
 	t0 := "2024-01-01T10:00:00.000000000Z"
 
@@ -134,16 +88,60 @@ func TestFindStackRelatedAssets(t *testing.T) {
 			wantTriggerOf: map[string]string{"a1": "IMG_1234.jpg"},
 		},
 		{
-			name: "replaced trashed asset does not cascade",
+			// The HIGH regression from the holistic review: trashing one duplicate must
+			// not cascade the surviving copy or its RAW companion.
+			name: "trashed duplicate keeps the surviving copy and its companions",
 			trashed: []utils.TAsset{
 				asset("t1", "IMG_1234.jpg", t0, true),
 			},
 			active: []utils.TAsset{
-				newerCopy(asset("a1", "IMG_1234.jpg", t0, false)),
+				asset("a1", "IMG_1234.jpg", t0, false),
 				asset("a2", "IMG_1234.dng", t0, false),
 			},
 			wantToTrash:  []string{},
 			wantReplaced: 1,
+		},
+		{
+			// A recycled filename from an unrelated photo must not suppress the cascade.
+			name: "recycled filename does not suppress the cascade",
+			trashed: []utils.TAsset{
+				asset("t1", "DSC_0001.jpg", t0, true),
+			},
+			active: []utils.TAsset{
+				asset("a1", "DSC_0001.dng", t0, false),
+				asset("b1", "DSC_0001.jpg", "2025-05-05T10:00:00.000000000Z", false),
+			},
+			wantToTrash:   []string{"a1"},
+			wantTriggerOf: map[string]string{"a1": "DSC_0001.jpg"},
+		},
+		{
+			// Sub-second capture drift between two uploads of the same photo: the copy
+			// detection must still fire, otherwise the survivor gets cascaded.
+			name: "trashed duplicate with sub-second drift keeps the survivor",
+			trashed: []utils.TAsset{
+				asset("t1", "IMG_1234.jpg", "2024-01-01T10:00:00.123000000Z", true),
+			},
+			active: []utils.TAsset{
+				asset("a1", "IMG_1234.jpg", t0, false),
+				asset("a2", "IMG_1234.dng", t0, false),
+			},
+			wantToTrash:  []string{},
+			wantReplaced: 1,
+		},
+		{
+			name: "archived group members are never cascaded",
+			trashed: []utils.TAsset{
+				asset("t1", "IMG_1234.jpg", t0, true),
+			},
+			active: []utils.TAsset{
+				asset("a1", "IMG_1234.dng", t0, false),
+				func() utils.TAsset {
+					a := asset("a2", "IMG_1234.heic", t0, false)
+					a.IsArchived = true
+					return a
+				}(),
+			},
+			wantToTrash: []string{"a1"},
 		},
 		{
 			name:        "trashed asset without companions",

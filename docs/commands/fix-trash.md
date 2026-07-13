@@ -24,7 +24,7 @@ The command runs two passes:
 ### Pass 1: stack cascade
 
 1. Fetches your trashed assets and your active assets. Partner-owned assets are dropped from both lists.
-1. Skips trashed assets that appear to have been re-uploaded: if an active asset with the same filename has a newer created/modified/updated timestamp, cascading from the old copy would drag the new copy's companions into the trash.
+1. Skips trashed assets that still have an active copy (same filename and same capture time): when you trash one duplicate of a photo, the surviving copy and its companions must not be cascaded into the trash.
 1. Runs the stacking algorithm once over the remaining trashed assets plus all active assets, using the same criteria as the main command (`--criteria`, `--parent-filename-promote`, `--parent-ext-promote`).
 1. Every active asset that lands in a group containing a trashed asset is marked for trash.
 
@@ -33,12 +33,13 @@ The command runs two passes:
 This pass only runs with `--trash-orphaned-raws` (or `TRASH_ORPHANED_RAWS=true`).
 
 1. Groups your active assets with the same stacking criteria as pass 1, so filename matching follows your `--criteria` configuration. Cameras that pair a RAW and a JPG under different names (for example Leica's `L1001336.dng` + `DO01001336.jpg`) need a regex criterion that maps both to the same key, such as `{"key":"originalFileName","regex":{"key":"^(?:L|DO0)(\\d+)","index":1}}`.
-1. A RAW file whose group contains no developed file — or that groups with nothing at all — is marked for trash, unless it already sits in an Immich stack that contains a developed file.
+1. A RAW file whose group contains no developed file — or that the criteria matched but that groups with nothing at all — is marked for trash, unless it already sits in an Immich stack that contains a developed file. A RAW the criteria cannot fully evaluate (no filename match, missing capture time) is never flagged, and neither is an archived RAW.
 1. `--raw-orphan-extensions` (or `RAW_ORPHAN_EXTENSIONS`) restricts which RAW extensions may be flagged, e.g. `dng` to clean up orphaned DNGs while never touching NEF/ARW/... files from a RAW-only workflow. It only restricts the candidates: another RAW file never counts as a developed companion, whatever the restriction. Unknown extensions are ignored with a warning.
 
 ### Safety
 
 - Assets are moved to trash (`force=false`), not deleted permanently. They can be restored from Immich's trash until Immich empties it. This tool has no undo command.
+- Archived assets are always fetched so they can protect their group (an archived JPG keeps its RAW safe), but fix-trash never moves an archived asset to trash. Note: some Immich versions ignore the archived option on `/search/metadata`; on those servers archived companions stay invisible and cannot protect their RAW.
 - If more than 10% of your active assets are about to be trashed, a warning is logged before the summary. The command does not stop — it is designed to run unattended.
 - Deletion requests are sent in batches of 1000 assets.
 
@@ -64,6 +65,17 @@ See what would be deleted without making changes:
 immich-stack fix-trash --api-key your_key --dry-run
 ```
 
+### Run After Each Stacking Run
+
+Instead of scheduling fix-trash separately, the main stacking command can chain it after every run — including in cron mode:
+
+```bash
+immich-stack --api-key your_key --fix-trash-after-stacking
+# or in your .env: FIX_TRASH_AFTER_STACKING=true
+```
+
+The chained run behaves exactly like the standalone command: it ignores the stacker's album/date filters and reset/replace options, and honors `--trash-orphaned-raws` and `--raw-orphan-extensions`.
+
 ### With Custom Criteria
 
 Use specific stacking criteria for matching:
@@ -85,7 +97,7 @@ immich-stack fix-trash --api-key your_key --log-level debug
 ```
 🗑️  Found 5 trashed assets
 🔍 Analyzing 5 trashed assets against 1000 active assets...
-🔄 Skipped 2 trashed assets that appear to have been replaced
+🔄 Skipped 2 trashed assets that still have an active copy
 🔍 Looking for orphaned RAW files...
 📸 Found 2 orphaned RAW files without a developed companion
 ✅ Kept 1 RAW files already stacked with a developed file
@@ -108,7 +120,6 @@ The command uses all global flags, particularly:
 - `--parent-filename-promote` - Filename patterns for stacking
 - `--trash-orphaned-raws` - Enable the orphaned RAW cleanup pass (off by default)
 - `--raw-orphan-extensions` - Restrict the RAW pass to specific extensions, e.g. `dng,nef` (default: all RAW formats)
-- `--with-archived` - Also look for archived assets in the trash scan
 - `--log-level` - Set to `debug` for detailed matching information
 
 ## Use Cases
@@ -145,12 +156,20 @@ immich-stack fix-trash --api-key your_key
 
 ### 4. Scheduled Maintenance
 
-Add to a cron job for automatic cleanup:
+Either chain it to the stacker's cron mode:
+
+```bash
+RUN_MODE=cron CRON_INTERVAL=3600 FIX_TRASH_AFTER_STACKING=true immich-stack --api-key your_key
+```
+
+Or schedule the standalone command:
 
 ```bash
 # Run weekly to maintain consistency
-0 2 * * 0 immich-stack fix-trash --api-key your_key --log-level warn
+0 2 * * 0 immich-stack fix-trash --api-key your_key
 ```
+
+Keep the log level at `info` (the default) for scheduled runs: the summary of what was moved to trash is logged at that level, and it is your only record of what an unattended run did.
 
 ## Important Notes
 

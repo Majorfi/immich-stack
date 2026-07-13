@@ -41,6 +41,11 @@ func TestFindOrphanedRAWs(t *testing.T) {
 		a.Stack = &utils.TStack{ID: stackID}
 		return a
 	}
+	archivedAsset := func(id, fileName string) utils.TAsset {
+		a := asset(id, fileName)
+		a.IsArchived = true
+		return a
+	}
 	leicaCriteria := `{"mode":"advanced","groups":[{"operator":"AND","criteria":[{"key":"originalFileName","regex":{"key":"^(?:L|DO0)(\\d+)","index":1}},{"key":"localDateTime","delta":{"milliseconds":1000}}]}]}`
 
 	tests := []struct {
@@ -166,6 +171,61 @@ func TestFindOrphanedRAWs(t *testing.T) {
 			active:           []utils.TAsset{asset("d1", "L1001336.dng")},
 			orphanExtensions: "jpg,bogus",
 			wantOrphans:      []string{},
+		},
+		{
+			// Narrow criteria must not turn unevaluated RAWs into orphans: this pair does
+			// not match the BURST regex, so nothing can be concluded about companions.
+			name: "criteria that cannot evaluate a RAW never flag it",
+			active: []utils.TAsset{
+				asset("d1", "IMG_1234.dng"),
+				asset("j1", "IMG_1234.jpg"),
+			},
+			criteria:    `[{"key":"originalFileName","regex":{"key":"BURST(\\d+)","index":1}}]`,
+			wantOrphans: []string{},
+		},
+		{
+			name: "criteria-matched lone RAW is still flagged under narrow criteria",
+			active: []utils.TAsset{
+				asset("d1", "BURST001.dng"),
+				asset("j1", "IMG_1234.jpg"),
+			},
+			criteria:    `[{"key":"originalFileName","regex":{"key":"BURST(\\d+)","index":1}}]`,
+			wantOrphans: []string{"d1"},
+		},
+		{
+			// An empty LocalDateTime makes the AND expression unevaluable for the pair:
+			// the DNG must be protected, not flagged.
+			name: "empty capture time under time criteria never flags the RAW",
+			active: []utils.TAsset{
+				{ID: "d1", OriginalFileName: "L1001336.dng"},
+				{ID: "j1", OriginalFileName: "DO01001336.jpg"},
+			},
+			criteria:    leicaCriteria,
+			wantOrphans: []string{},
+		},
+		{
+			// mergeTimeBasedGroups drops timeless assets from merged buckets, so this DNG
+			// lands in no group despite its companion — the time-evaluability gate in
+			// MatchedAssetIDs must keep it out of the candidates.
+			name: "empty capture time under default criteria never flags the RAW",
+			active: []utils.TAsset{
+				{ID: "d1", OriginalFileName: "IMG_1234.dng"},
+				asset("j1", "IMG_1234.jpg"),
+			},
+			wantOrphans: []string{},
+		},
+		{
+			name: "archived developed companion protects the RAW",
+			active: []utils.TAsset{
+				asset("d1", "IMG_1234.dng"),
+				archivedAsset("j1", "IMG_1234.jpg"),
+			},
+			wantOrphans: []string{},
+		},
+		{
+			name:        "archived RAW is never flagged",
+			active:      []utils.TAsset{archivedAsset("d1", "L1001336.dng")},
+			wantOrphans: []string{},
 		},
 	}
 

@@ -57,7 +57,7 @@ Scans your library and reports duplicate assets based on filename and timestamp.
 immich-stack fix-trash
 ```
 
-Identifies trashed assets and moves their related stack members to trash for consistency. With `--trash-orphaned-raws`, it also removes RAW files left without a developed companion (JPG, HEIC, ...).
+Identifies trashed assets and moves their related stack members to trash for consistency. With `--trash-orphaned-raws`, it also removes RAW files left without a developed companion (JPG, HEIC, ...). Pass `--fix-trash-after-stacking` (or set `FIX_TRASH_AFTER_STACKING=true`) to chain it after every stacking run, including in cron mode.
 
 ## Features
 

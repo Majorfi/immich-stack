@@ -16,8 +16,8 @@ import (
 )
 
 /**************************************************************************************************
-** Main execution logic for fixing incomplete trash operations. Identifies trashed assets
-** and moves their stack-related assets to trash to maintain consistency.
+** Entry point for the fix-trash command: warns about settings that have no effect here,
+** splits the comma-separated API keys, and runs fixTrashForAPIKey for each of them.
 **
 ** @param cmd - Cobra command instance
 ** @param args - Command line arguments
@@ -47,115 +47,131 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 		if i > 0 {
 			logger.Infof("\n")
 		}
-		client := immich.NewClient(apiURL, key, false, false, dryRun, withArchived, withDeleted, false, includeVideos, stackConcurrency, nil, "", "", logger)
-		if client == nil {
-			logger.Errorf("Invalid client for API key: %s", key)
-			continue
+		fixTrashForAPIKey(key, logger)
+	}
+}
+
+/**************************************************************************************************
+** fixTrashForAPIKey runs the full fix-trash flow for one API key: stack cascade from the
+** trashed assets, then the opt-in orphaned-RAW pass. Called per key by the fix-trash
+** command, and by the stacker after each run when --fix-trash-after-stacking is set.
+** A fresh client is created here on purpose: fix-trash must not inherit the stacker's
+** reset/replace/filter options. Archived assets are always fetched (withArchived=true):
+** an archived companion must be able to protect its group, but archived assets are never
+** trashed by either pass.
+**
+** @param key - API key of the user to process
+** @param logger - Logger instance
+**************************************************************************************************/
+func fixTrashForAPIKey(key string, logger *logrus.Logger) {
+	client := immich.NewClient(apiURL, key, false, false, dryRun, true, withDeleted, false, includeVideos, stackConcurrency, nil, "", "", logger)
+	if client == nil {
+		logger.Errorf("Invalid client for API key: %s", key)
+		return
+	}
+	user, err := client.GetCurrentUser()
+	if err != nil {
+		logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
+		return
+	}
+	logger.Infof("=====================================================================================")
+	logger.Infof("Fixing trash for user: %s (%s)", user.Name, user.Email)
+	logger.Infof("=====================================================================================")
+
+	/**********************************************************************************************
+	** Fetch trashed assets and all assets.
+	**********************************************************************************************/
+	trashedAssets, err := client.FetchTrashedAssets(1000)
+	if err != nil {
+		logger.Errorf("Error fetching trashed assets: %v", err)
+		return
+	}
+	trashedAssets = filterOutPartnerAssets(trashedAssets, user.ID, logger)
+
+	if len(trashedAssets) == 0 {
+		logger.Info("No trashed assets found. Nothing to fix.")
+		return
+	}
+
+	logger.Infof("🗑️  Found %d trashed assets", len(trashedAssets))
+
+	existingStacks, err := client.FetchAllStacks()
+	if err != nil {
+		logger.Errorf("Error fetching stacks: %v", err)
+		return
+	}
+
+	allAssets, err := client.FetchAssets(1000, existingStacks)
+	if err != nil {
+		logger.Errorf("Error fetching all assets: %v", err)
+		return
+	}
+	allAssets = filterOutPartnerAssets(allAssets, user.ID, logger)
+
+	activeAssets := make([]utils.TAsset, 0, len(allAssets))
+	for _, asset := range allAssets {
+		if !asset.IsTrashed {
+			activeAssets = append(activeAssets, asset)
 		}
-		user, err := client.GetCurrentUser()
+	}
+
+	/**********************************************************************************************
+	** Find the active assets that would stack with the trashed ones (replaced files are
+	** skipped), then the orphaned RAWs.
+	**********************************************************************************************/
+	logger.Infof("🔍 Analyzing %d trashed assets against %d active assets...", len(trashedAssets), len(activeAssets))
+	assetsToTrash, triggeredBy, replacedCount, err := findStackRelatedAssets(
+		trashedAssets, activeAssets, criteria, parentFilenamePromote, parentExtPromote, logger)
+	if err != nil {
+		logger.Errorf("Error using stacker criteria: %v", err)
+		return
+	}
+	if replacedCount > 0 {
+		logger.Infof("🔄 Skipped %d trashed assets that still have an active copy", replacedCount)
+	}
+
+	if trashOrphanedRAWs {
+		logger.Info("🔍 Looking for orphaned RAW files...")
+		orphanedRAWs, keptStackedRAWCount, err := findOrphanedRAWs(activeAssets, criteria, parentFilenamePromote, parentExtPromote, rawOrphanExtensions, logger)
 		if err != nil {
-			logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
-			continue
+			logger.Errorf("Error detecting orphaned RAW files (continuing with pass 1 results): %v", err)
 		}
-		logger.Infof("=====================================================================================")
-		logger.Infof("Fixing trash for user: %s (%s)", user.Name, user.Email)
-		logger.Infof("=====================================================================================")
+		for id, asset := range orphanedRAWs {
+			assetsToTrash[id] = asset
+			triggeredBy[id] = orphanedRAWTrigger
+		}
+		if len(orphanedRAWs) > 0 {
+			logger.Infof("📸 Found %d orphaned RAW files without a developed companion", len(orphanedRAWs))
+		}
+		if keptStackedRAWCount > 0 {
+			logger.Infof("✅ Kept %d RAW files already stacked with a developed file", keptStackedRAWCount)
+		}
+	} else {
+		logger.Info("⏭️  Orphaned RAW cleanup disabled (enable with --trash-orphaned-raws)")
+	}
 
-		/**********************************************************************************************
-		** Fetch trashed assets and all assets.
-		**********************************************************************************************/
-		trashedAssets, err := client.FetchTrashedAssets(1000)
-		if err != nil {
-			logger.Errorf("Error fetching trashed assets: %v", err)
-			continue
-		}
-		trashedAssets = filterOutPartnerAssets(trashedAssets, user.ID, logger)
+	/**********************************************************************************************
+	** Move the identified assets to trash. The volume warning is non-blocking on purpose:
+	** fix-trash is documented for cron usage, so a confirmation gate would break
+	** unattended runs.
+	**********************************************************************************************/
+	if len(assetsToTrash) == 0 {
+		logger.Info("✅ No related assets need to be trashed.")
+		return
+	}
 
-		if len(trashedAssets) == 0 {
-			logger.Info("No trashed assets found. Nothing to fix.")
-			continue
-		}
+	if len(activeAssets) > 0 && len(assetsToTrash)*10 > len(activeAssets) {
+		logger.Warnf("⚠️  About to trash %d assets — more than 10%% of your %d active assets. Review the summary below carefully (use DRY_RUN=true first if unsure).", len(assetsToTrash), len(activeAssets))
+	}
 
-		logger.Infof("🗑️  Found %d trashed assets", len(trashedAssets))
+	logTrashSummary(logger, assetsToTrash, triggeredBy)
 
-		existingStacks, err := client.FetchAllStacks()
-		if err != nil {
-			logger.Errorf("Error fetching stacks: %v", err)
-			continue
-		}
-
-		allAssets, err := client.FetchAssets(1000, existingStacks)
-		if err != nil {
-			logger.Errorf("Error fetching all assets: %v", err)
-			continue
-		}
-		allAssets = filterOutPartnerAssets(allAssets, user.ID, logger)
-
-		activeAssets := make([]utils.TAsset, 0, len(allAssets))
-		for _, asset := range allAssets {
-			if !asset.IsTrashed {
-				activeAssets = append(activeAssets, asset)
-			}
-		}
-
-		/**********************************************************************************************
-		** Find the active assets that would stack with the trashed ones (replaced files are
-		** skipped), then the orphaned RAWs.
-		**********************************************************************************************/
-		logger.Infof("🔍 Analyzing %d trashed assets against %d active assets...", len(trashedAssets), len(activeAssets))
-		assetsToTrash, triggeredBy, replacedCount, err := findStackRelatedAssets(
-			trashedAssets, activeAssets, criteria, parentFilenamePromote, parentExtPromote, logger)
-		if err != nil {
-			logger.Errorf("Error using stacker criteria: %v", err)
-			continue
-		}
-		if replacedCount > 0 {
-			logger.Infof("🔄 Skipped %d trashed assets that appear to have been replaced", replacedCount)
-		}
-
-		if trashOrphanedRAWs {
-			logger.Info("🔍 Looking for orphaned RAW files...")
-			orphanedRAWs, keptStackedRAWCount, err := findOrphanedRAWs(activeAssets, criteria, parentFilenamePromote, parentExtPromote, rawOrphanExtensions, logger)
-			if err != nil {
-				logger.Errorf("Error detecting orphaned RAW files (continuing with pass 1 results): %v", err)
-			}
-			for id, asset := range orphanedRAWs {
-				assetsToTrash[id] = asset
-				triggeredBy[id] = orphanedRAWTrigger
-			}
-			if len(orphanedRAWs) > 0 {
-				logger.Infof("📸 Found %d orphaned RAW files without a developed companion", len(orphanedRAWs))
-			}
-			if keptStackedRAWCount > 0 {
-				logger.Infof("✅ Kept %d RAW files already stacked with a developed file", keptStackedRAWCount)
-			}
-		} else {
-			logger.Info("⏭️  Orphaned RAW cleanup disabled (enable with --trash-orphaned-raws)")
-		}
-
-		/**********************************************************************************************
-		** Move the identified assets to trash. The volume warning is non-blocking on purpose:
-		** fix-trash is documented for cron usage, so a confirmation gate would break
-		** unattended runs.
-		**********************************************************************************************/
-		if len(assetsToTrash) == 0 {
-			logger.Info("✅ No related assets need to be trashed.")
-			continue
-		}
-
-		if len(activeAssets) > 0 && len(assetsToTrash)*10 > len(activeAssets) {
-			logger.Warnf("⚠️  About to trash %d assets — more than 10%% of your %d active assets. Review the summary below carefully (use DRY_RUN=true first if unsure).", len(assetsToTrash), len(activeAssets))
-		}
-
-		logTrashSummary(logger, assetsToTrash, triggeredBy)
-
-		assetIDs := make([]string, 0, len(assetsToTrash))
-		for id := range assetsToTrash {
-			assetIDs = append(assetIDs, id)
-		}
-		if err := client.TrashAssets(assetIDs); err != nil {
-			logger.Errorf("Error moving assets to trash: %v", err)
-		}
+	assetIDs := make([]string, 0, len(assetsToTrash))
+	for id := range assetsToTrash {
+		assetIDs = append(assetIDs, id)
+	}
+	if err := client.TrashAssets(assetIDs); err != nil {
+		logger.Errorf("Error moving assets to trash: %v", err)
 	}
 }
 
