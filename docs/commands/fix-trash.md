@@ -24,7 +24,7 @@ The command runs two passes:
 ### Pass 1: stack cascade
 
 1. Fetches your trashed assets and your active assets. Partner-owned assets are dropped from both lists.
-1. Skips trashed assets that appear to have been re-uploaded: if an active asset with the same filename has a newer created/modified/updated timestamp, cascading from the old copy would drag the new copy's companions into the trash.
+1. Skips trashed assets that still have an active copy (same filename and same capture time): when you trash one duplicate of a photo, the surviving copy and its companions must not be cascaded into the trash.
 1. Runs the stacking algorithm once over the remaining trashed assets plus all active assets, using the same criteria as the main command (`--criteria`, `--parent-filename-promote`, `--parent-ext-promote`).
 1. Every active asset that lands in a group containing a trashed asset is marked for trash.
 
@@ -39,6 +39,7 @@ This pass only runs with `--trash-orphaned-raws` (or `TRASH_ORPHANED_RAWS=true`)
 ### Safety
 
 - Assets are moved to trash (`force=false`), not deleted permanently. They can be restored from Immich's trash until Immich empties it. This tool has no undo command.
+- Archived assets are always fetched so they can protect their group (an archived JPG keeps its RAW safe), but fix-trash never moves an archived asset to trash.
 - If more than 10% of your active assets are about to be trashed, a warning is logged before the summary. The command does not stop — it is designed to run unattended.
 - Deletion requests are sent in batches of 1000 assets.
 
@@ -119,7 +120,6 @@ The command uses all global flags, particularly:
 - `--parent-filename-promote` - Filename patterns for stacking
 - `--trash-orphaned-raws` - Enable the orphaned RAW cleanup pass (off by default)
 - `--raw-orphan-extensions` - Restrict the RAW pass to specific extensions, e.g. `dng,nef` (default: all RAW formats)
-- `--with-archived` - Also look for archived assets in the trash scan
 - `--log-level` - Set to `debug` for detailed matching information
 
 ## Use Cases
@@ -166,8 +166,10 @@ Or schedule the standalone command:
 
 ```bash
 # Run weekly to maintain consistency
-0 2 * * 0 immich-stack fix-trash --api-key your_key --log-level warn
+0 2 * * 0 immich-stack fix-trash --api-key your_key
 ```
+
+Keep the log level at `info` (the default) for scheduled runs: the summary of what was moved to trash is logged at that level, and it is your only record of what an unattended run did.
 
 ## Important Notes
 
