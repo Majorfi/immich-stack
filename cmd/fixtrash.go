@@ -56,13 +56,15 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 ** trashed assets, then the opt-in orphaned-RAW pass. Called per key by the fix-trash
 ** command, and by the stacker after each run when --fix-trash-after-stacking is set.
 ** A fresh client is created here on purpose: fix-trash must not inherit the stacker's
-** reset/replace/filter options.
+** reset/replace/filter options. Archived assets are always fetched (withArchived=true):
+** an archived companion must be able to protect its group, but archived assets are never
+** trashed by either pass.
 **
 ** @param key - API key of the user to process
 ** @param logger - Logger instance
 **************************************************************************************************/
 func fixTrashForAPIKey(key string, logger *logrus.Logger) {
-	client := immich.NewClient(apiURL, key, false, false, dryRun, withArchived, withDeleted, false, includeVideos, stackConcurrency, nil, "", "", logger)
+	client := immich.NewClient(apiURL, key, false, false, dryRun, true, withDeleted, false, includeVideos, stackConcurrency, nil, "", "", logger)
 	if client == nil {
 		logger.Errorf("Invalid client for API key: %s", key)
 		return
@@ -125,7 +127,7 @@ func fixTrashForAPIKey(key string, logger *logrus.Logger) {
 		return
 	}
 	if replacedCount > 0 {
-		logger.Infof("🔄 Skipped %d trashed assets that appear to have been replaced", replacedCount)
+		logger.Infof("🔄 Skipped %d trashed assets that still have an active copy", replacedCount)
 	}
 
 	if trashOrphanedRAWs {

@@ -8,7 +8,6 @@ package main
 
 import (
 	"io"
-	"time"
 
 	"github.com/majorfi/immich-stack/pkg/stacker"
 	"github.com/majorfi/immich-stack/pkg/utils"
@@ -16,39 +15,19 @@ import (
 )
 
 /**************************************************************************************************
-** timestampAfter reports whether timestamp a is strictly after timestamp b.
-** Immich returns RFC3339 timestamps; parsing them makes the comparison correct even when
-** timezone offsets differ. If either side fails to parse, it falls back to a lexicographic
-** comparison, which matches the previous behavior for uniform-format values.
-**
-** @param a - First RFC3339 timestamp
-** @param b - Second RFC3339 timestamp
-** @return bool - True if a is after b
-**************************************************************************************************/
-func timestampAfter(a, b string) bool {
-	timeA, errA := time.Parse(time.RFC3339Nano, a)
-	timeB, errB := time.Parse(time.RFC3339Nano, b)
-	if errA != nil || errB != nil {
-		return a > b
-	}
-	return timeA.After(timeB)
-}
-
-/**************************************************************************************************
-** isReplacedByNewerCopy reports whether a trashed asset appears to have been re-uploaded:
-** an active asset with the same filename exists and any of its timestamps is newer. Such
-** trashed assets must not trigger a cascade, otherwise the fresh copy's companions would be
-** dragged into the trash.
+** hasActiveCopy reports whether a trashed asset still has an active copy of the same file:
+** same OriginalFileName and same capture time. Trashing one duplicate must not cascade to
+** the surviving copy or its companions, so such trashed assets never become triggers.
+** File-system timestamps are deliberately not compared: recycled filenames from unrelated
+** photos would look like replacements, and equal-timestamp duplicates would not.
 **
 ** @param trashed - The trashed asset to check
 ** @param activeByFilename - Active assets indexed by OriginalFileName
-** @return bool - True if a newer active copy exists
+** @return bool - True if an active copy of the same photo exists
 **************************************************************************************************/
-func isReplacedByNewerCopy(trashed utils.TAsset, activeByFilename map[string][]utils.TAsset) bool {
+func hasActiveCopy(trashed utils.TAsset, activeByFilename map[string][]utils.TAsset) bool {
 	for _, active := range activeByFilename[trashed.OriginalFileName] {
-		if timestampAfter(active.FileCreatedAt, trashed.FileCreatedAt) ||
-			timestampAfter(active.FileModifiedAt, trashed.FileModifiedAt) ||
-			timestampAfter(active.UpdatedAt, trashed.UpdatedAt) {
+		if active.LocalDateTime == trashed.LocalDateTime {
 			return true
 		}
 	}
@@ -57,9 +36,9 @@ func isReplacedByNewerCopy(trashed utils.TAsset, activeByFilename map[string][]u
 
 /**************************************************************************************************
 ** findStackRelatedAssets finds the active assets that would stack with a trashed asset and
-** should therefore follow it into the trash. Replaced trashed assets (newer active copy with
-** the same filename) are excluded first, then a single StackBy run over the remaining trashed
-** assets plus all active assets yields the groups to cascade.
+** should therefore follow it into the trash. Trashed assets that still have an active copy
+** (same filename and capture time) are excluded first, then a single StackBy run over the
+** remaining trashed assets plus all active assets yields the groups to cascade.
 **
 ** @param trashedAssets - Assets currently in the trash
 ** @param activeAssets - Assets not in the trash
@@ -91,8 +70,8 @@ func findStackRelatedAssets(
 	replacedCount := 0
 	triggers := make([]utils.TAsset, 0, len(trashedAssets))
 	for _, trashed := range trashedAssets {
-		if isReplacedByNewerCopy(trashed, activeByFilename) {
-			logger.Debugf("  🔄 Skipping %s - appears to be replaced (newer version exists)", trashed.OriginalFileName)
+		if hasActiveCopy(trashed, activeByFilename) {
+			logger.Debugf("  🔄 Skipping %s - an active copy with the same capture time exists", trashed.OriginalFileName)
 			replacedCount++
 			continue
 		}
@@ -136,6 +115,10 @@ func findStackRelatedAssets(
 		}
 		for _, asset := range stack {
 			if asset.IsTrashed {
+				continue
+			}
+			if asset.IsArchived {
+				logger.Debugf("  ⏭️  Keeping archived asset %s (archived assets are never trashed)", asset.OriginalFileName)
 				continue
 			}
 			assetsToTrash[asset.ID] = asset
