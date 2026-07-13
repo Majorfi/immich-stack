@@ -33,13 +33,13 @@ The command runs two passes:
 This pass only runs with `--trash-orphaned-raws` (or `TRASH_ORPHANED_RAWS=true`).
 
 1. Groups your active assets with the same stacking criteria as pass 1, so filename matching follows your `--criteria` configuration. Cameras that pair a RAW and a JPG under different names (for example Leica's `L1001336.dng` + `DO01001336.jpg`) need a regex criterion that maps both to the same key, such as `{"key":"originalFileName","regex":{"key":"^(?:L|DO0)(\\d+)","index":1}}`.
-1. A RAW file whose group contains no developed file — or that groups with nothing at all — is marked for trash, unless it already sits in an Immich stack that contains a developed file.
+1. A RAW file whose group contains no developed file — or that the criteria matched but that groups with nothing at all — is marked for trash, unless it already sits in an Immich stack that contains a developed file. A RAW the criteria cannot fully evaluate (no filename match, missing capture time) is never flagged, and neither is an archived RAW.
 1. `--raw-orphan-extensions` (or `RAW_ORPHAN_EXTENSIONS`) restricts which RAW extensions may be flagged, e.g. `dng` to clean up orphaned DNGs while never touching NEF/ARW/... files from a RAW-only workflow. It only restricts the candidates: another RAW file never counts as a developed companion, whatever the restriction. Unknown extensions are ignored with a warning.
 
 ### Safety
 
 - Assets are moved to trash (`force=false`), not deleted permanently. They can be restored from Immich's trash until Immich empties it. This tool has no undo command.
-- Archived assets are always fetched so they can protect their group (an archived JPG keeps its RAW safe), but fix-trash never moves an archived asset to trash.
+- Archived assets are always fetched so they can protect their group (an archived JPG keeps its RAW safe), but fix-trash never moves an archived asset to trash. Note: some Immich versions ignore the archived option on `/search/metadata`; on those servers archived companions stay invisible and cannot protect their RAW.
 - If more than 10% of your active assets are about to be trashed, a warning is logged before the summary. The command does not stop — it is designed to run unattended.
 - Deletion requests are sent in batches of 1000 assets.
 
@@ -97,7 +97,7 @@ immich-stack fix-trash --api-key your_key --log-level debug
 ```
 🗑️  Found 5 trashed assets
 🔍 Analyzing 5 trashed assets against 1000 active assets...
-🔄 Skipped 2 trashed assets that appear to have been replaced
+🔄 Skipped 2 trashed assets that still have an active copy
 🔍 Looking for orphaned RAW files...
 📸 Found 2 orphaned RAW files without a developed companion
 ✅ Kept 1 RAW files already stacked with a developed file

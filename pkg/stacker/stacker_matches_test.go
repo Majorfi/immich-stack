@@ -28,6 +28,17 @@ func TestMatchedAssetIDs(t *testing.T) {
 			wantMatched: []string{"a1", "a2"},
 		},
 		{
+			// mergeTimeBasedGroups can drop keyed assets whose time field does not parse,
+			// so they must not count as matched even though they get a filename-only key.
+			name: "empty time under a time criterion is not matched",
+			assets: []utils.TAsset{
+				asset("a1", "IMG_1234.jpg", ""),
+				asset("a2", "IMG_5678.dng", t0),
+			},
+			criteria:    "",
+			wantMatched: []string{"a2"},
+		},
+		{
 			name: "legacy regex criteria only match the pattern",
 			assets: []utils.TAsset{
 				asset("a1", "BURST001.jpg", t0),

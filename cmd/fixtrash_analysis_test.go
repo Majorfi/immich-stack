@@ -33,6 +33,8 @@ func TestHasActiveCopy(t *testing.T) {
 		want   bool
 	}{
 		{name: "same name and capture time is a copy", active: activeAsset("IMG_1234.jpg", t0), want: true},
+		{name: "sub-second capture drift is still a copy", active: activeAsset("IMG_1234.jpg", "2024-01-01T10:00:00.123000000Z"), want: true},
+		{name: "two seconds apart is not a copy", active: activeAsset("IMG_1234.jpg", "2024-01-01T10:00:02.000000000Z"), want: false},
 		{name: "recycled name from another photo is not a copy", active: activeAsset("IMG_1234.jpg", otherDay), want: false},
 		{name: "different filename is not a copy", active: activeAsset("IMG_9999.jpg", t0), want: false},
 	}
@@ -111,6 +113,20 @@ func TestFindStackRelatedAssets(t *testing.T) {
 			},
 			wantToTrash:   []string{"a1"},
 			wantTriggerOf: map[string]string{"a1": "DSC_0001.jpg"},
+		},
+		{
+			// Sub-second capture drift between two uploads of the same photo: the copy
+			// detection must still fire, otherwise the survivor gets cascaded.
+			name: "trashed duplicate with sub-second drift keeps the survivor",
+			trashed: []utils.TAsset{
+				asset("t1", "IMG_1234.jpg", "2024-01-01T10:00:00.123000000Z", true),
+			},
+			active: []utils.TAsset{
+				asset("a1", "IMG_1234.jpg", t0, false),
+				asset("a2", "IMG_1234.dng", t0, false),
+			},
+			wantToTrash:  []string{},
+			wantReplaced: 1,
 		},
 		{
 			name: "archived group members are never cascaded",

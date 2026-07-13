@@ -204,6 +204,17 @@ func TestFindOrphanedRAWs(t *testing.T) {
 			wantOrphans: []string{},
 		},
 		{
+			// mergeTimeBasedGroups drops timeless assets from merged buckets, so this DNG
+			// lands in no group despite its companion — the time-evaluability gate in
+			// MatchedAssetIDs must keep it out of the candidates.
+			name: "empty capture time under default criteria never flags the RAW",
+			active: []utils.TAsset{
+				{ID: "d1", OriginalFileName: "IMG_1234.dng"},
+				asset("j1", "IMG_1234.jpg"),
+			},
+			wantOrphans: []string{},
+		},
+		{
 			name: "archived developed companion protects the RAW",
 			active: []utils.TAsset{
 				asset("d1", "IMG_1234.dng"),

@@ -8,6 +8,7 @@ package main
 
 import (
 	"io"
+	"time"
 
 	"github.com/majorfi/immich-stack/pkg/stacker"
 	"github.com/majorfi/immich-stack/pkg/utils"
@@ -27,11 +28,37 @@ import (
 **************************************************************************************************/
 func hasActiveCopy(trashed utils.TAsset, activeByFilename map[string][]utils.TAsset) bool {
 	for _, active := range activeByFilename[trashed.OriginalFileName] {
-		if active.LocalDateTime == trashed.LocalDateTime {
+		if sameCaptureTime(active.LocalDateTime, trashed.LocalDateTime) {
 			return true
 		}
 	}
 	return false
+}
+
+/**************************************************************************************************
+** sameCaptureTime compares two capture times with a one-second tolerance: two uploads of
+** the same photo can drift in sub-second precision (a stripped SubSecTimeOriginal), and
+** such near-equal copies share a grouping bucket, so missing them would cascade the
+** surviving copy. Unparseable values only match on exact string equality.
+**
+** @param a - First LocalDateTime value
+** @param b - Second LocalDateTime value
+** @return bool - True if both refer to the same capture time
+**************************************************************************************************/
+func sameCaptureTime(a, b string) bool {
+	if a == b {
+		return true
+	}
+	timeA, errA := time.Parse(time.RFC3339Nano, a)
+	timeB, errB := time.Parse(time.RFC3339Nano, b)
+	if errA != nil || errB != nil {
+		return false
+	}
+	diff := timeA.Sub(timeB)
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff <= time.Second
 }
 
 /**************************************************************************************************

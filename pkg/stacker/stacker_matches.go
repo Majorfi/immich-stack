@@ -52,6 +52,30 @@ func MatchedAssetIDs(assets []utils.TAsset, criteria string) (map[string]bool, e
 	return nil, fmt.Errorf("advanced mode specified but no expression or groups provided")
 }
 
+/**************************************************************************************************
+** timeEvaluable reports whether every time-based criterion of the configuration extracts a
+** non-empty, parseable value from the asset. mergeTimeBasedGroups drops assets whose time
+** field does not parse while rebuilding merged buckets, so a keyed asset without an
+** evaluable time can still end up in no group despite having companions — such assets must
+** not count as matched.
+**************************************************************************************************/
+func timeEvaluable(asset utils.TAsset, criteria []utils.TCriteria) bool {
+	for _, c := range criteria {
+		if !isTimeCriteria(c.Key) || c.Delta == nil || c.Delta.Milliseconds <= 0 {
+			continue
+		}
+		extractor, ok := extractors[c.Key]
+		if !ok {
+			continue
+		}
+		value, err := extractor(asset, c)
+		if err != nil || value == "" {
+			return false
+		}
+	}
+	return true
+}
+
 func matchedByLegacyCriteria(assets []utils.TAsset, criteria []utils.TCriteria) (map[string]bool, error) {
 	if err := PrecompileRegexes(criteria); err != nil {
 		return nil, fmt.Errorf("failed to precompile legacy criteria regexes: %w", err)
@@ -63,7 +87,7 @@ func matchedByLegacyCriteria(assets []utils.TAsset, criteria []utils.TCriteria) 
 		if err != nil {
 			return nil, fmt.Errorf("failed to apply criteria to asset %s: %w", asset.OriginalFileName, err)
 		}
-		if buildGroupKey(values, &keyBuilder) != "" {
+		if buildGroupKey(values, &keyBuilder) != "" && timeEvaluable(asset, criteria) {
 			matched[asset.ID] = true
 		}
 	}
@@ -88,7 +112,7 @@ func matchedByExpression(assets []utils.TAsset, expression *utils.TCriteriaExpre
 		if err != nil {
 			return nil, fmt.Errorf("failed to build grouping key for asset %s: %w", asset.OriginalFileName, err)
 		}
-		if key != "" {
+		if key != "" && timeEvaluable(asset, exprCriteria) {
 			matched[asset.ID] = true
 		}
 	}
@@ -99,13 +123,14 @@ func matchedByGroups(assets []utils.TAsset, groups []utils.TCriteriaGroup) (map[
 	if err := PrecompileRegexes(groups); err != nil {
 		return nil, fmt.Errorf("failed to precompile group regexes: %w", err)
 	}
+	groupCriteria := flattenCriteriaFromGroups(groups)
 	matched := make(map[string]bool, len(assets))
 	for _, asset := range assets {
 		groupKeys, err := applyAdvancedCriteria(asset, groups)
 		if err != nil {
 			return nil, fmt.Errorf("failed to apply advanced criteria to asset %s: %w", asset.OriginalFileName, err)
 		}
-		if len(groupKeys) > 0 {
+		if len(groupKeys) > 0 && timeEvaluable(asset, groupCriteria) {
 			matched[asset.ID] = true
 		}
 	}
