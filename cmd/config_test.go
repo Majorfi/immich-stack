@@ -373,7 +373,7 @@ func TestLogLevelConfiguration(t *testing.T) {
 // Helper function to reset test environment
 func resetTestEnv() {
 	envVars := []string{
-		"API_KEY", "API_URL", "RUN_MODE", "CRON_INTERVAL",
+		"API_KEY", "API_KEY_FILE", "API_URL", "RUN_MODE", "CRON_INTERVAL",
 		"LOG_LEVEL", "LOG_FORMAT", "LOG_FILE",
 		"DRY_RUN", "RESET_STACKS", "CONFIRM_RESET_STACK",
 		"REPLACE_STACKS", "WITH_ARCHIVED", "WITH_DELETED",
@@ -615,5 +615,50 @@ func TestExplicitFalseFlagsBeatEnv(t *testing.T) {
 	}
 	if fixTrashAfterStacking {
 		t.Error("explicit --fix-trash-after-stacking=false must not be overridden by FIX_TRASH_AFTER_STACKING=true")
+	}
+}
+
+func TestAPIKeyFile(t *testing.T) {
+	tests := []struct {
+		name          string
+		fileContent   string
+		createFile    bool
+		alsoSetAPIKey bool
+		wantKey       string
+		wantError     string
+	}{
+		{name: "reads the key from the file", createFile: true, fileContent: "secret-key", wantKey: "secret-key"},
+		{name: "trims the trailing newline", createFile: true, fileContent: "secret-key\n", wantKey: "secret-key"},
+		{name: "supports comma-separated keys", createFile: true, fileContent: "key1,key2\n", wantKey: "key1,key2"},
+		{name: "missing file is an error", createFile: false, wantError: "failed to read API_KEY_FILE"},
+		{name: "mutually exclusive with API_KEY", createFile: true, fileContent: "secret-key", alsoSetAPIKey: true, wantError: "mutually exclusive"},
+		{name: "empty file leaves the key unset", createFile: true, fileContent: "\n", wantError: "API_KEY is not set"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetTestEnv()
+			defer resetTestEnv()
+
+			path := t.TempDir() + "/api_key"
+			if tt.createFile {
+				if err := os.WriteFile(path, []byte(tt.fileContent), 0o600); err != nil {
+					t.Fatalf("writing secret file: %v", err)
+				}
+			}
+			os.Setenv("API_KEY_FILE", path)
+			if tt.alsoSetAPIKey {
+				os.Setenv("API_KEY", "env-key")
+			}
+
+			config := LoadEnvForTesting()
+
+			if tt.wantError != "" {
+				assert.ErrorContains(t, config.Error, tt.wantError)
+				return
+			}
+			assert.NoError(t, config.Error)
+			assert.Equal(t, tt.wantKey, apiKey)
+		})
 	}
 }
