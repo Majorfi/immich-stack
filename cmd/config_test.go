@@ -628,8 +628,7 @@ func TestAPIKeyFile(t *testing.T) {
 		wantError     string
 	}{
 		{name: "reads the key from the file", createFile: true, fileContent: "secret-key", wantKey: "secret-key"},
-		{name: "trims the trailing newline", createFile: true, fileContent: "secret-key\n", wantKey: "secret-key"},
-		{name: "supports comma-separated keys", createFile: true, fileContent: "key1,key2\n", wantKey: "key1,key2"},
+		{name: "trims the newline and keeps comma-separated keys", createFile: true, fileContent: "key1,key2\n", wantKey: "key1,key2"},
 		{name: "missing file is an error", createFile: false, wantError: "failed to read API_KEY_FILE"},
 		{name: "mutually exclusive with API_KEY", createFile: true, fileContent: "secret-key", alsoSetAPIKey: true, wantError: "mutually exclusive"},
 		{name: "empty file leaves the key unset", createFile: true, fileContent: "\n", wantError: "API_KEY is not set"},

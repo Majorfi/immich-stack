@@ -17,7 +17,7 @@ import (
 ** duplication between CreateRootCommand and CreateTestableRootCommand.
 **************************************************************************************************/
 func bindFlags(rootCmd *cobra.Command) {
-	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key (or set API_KEY env var)")
+	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key (or set API_KEY, or API_KEY_FILE for Docker secrets)")
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "API URL (or set API_URL env var)")
 	rootCmd.PersistentFlags().BoolVar(&resetStacks, "reset-stacks", false, "Delete all existing stacks (or set RESET_STACKS=true)")
 	rootCmd.PersistentFlags().BoolVar(&replaceStacks, "replace-stacks", false, "Replace stacks for new groups (or set REPLACE_STACKS=true)")

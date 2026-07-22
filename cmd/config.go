@@ -279,7 +279,7 @@ func LoadEnvForTesting() LoadEnvConfig {
 		}
 		content, err := os.ReadFile(apiKeyFile)
 		if err != nil {
-			return LoadEnvConfig{Logger: logger, Error: fmt.Errorf("failed to read API_KEY_FILE %s: %w", apiKeyFile, err)}
+			return LoadEnvConfig{Logger: logger, Error: fmt.Errorf("failed to read API_KEY_FILE: %w", err)}
 		}
 		apiKey = strings.TrimSpace(string(content))
 	}

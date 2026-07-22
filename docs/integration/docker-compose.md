@@ -94,7 +94,7 @@ To integrate with an existing Immich installation:
 
 ## Docker Secrets
 
-To keep the API key out of environment variables and `.env` files, use `API_KEY_FILE` with a Docker secret. `API_KEY` and `API_KEY_FILE` are mutually exclusive; the secret file supports the same comma-separated multi-key format.
+To keep the API key out of environment variables and `.env` files, point `API_KEY_FILE` at a Docker secret (see the [environment variables reference](../api-reference/environment-variables.md) for its exact semantics):
 
 ```yaml
 services:
