@@ -181,6 +181,8 @@ docker run -d \
 
 1. **Security:**
 
-   - Use Docker secrets for sensitive data
+   - Use Docker secrets for sensitive data: point `API_KEY_FILE` at the mounted secret
+     (e.g. `API_KEY_FILE=/run/secrets/immich_api_key`) instead of putting the key in
+     `API_KEY`
    - Restrict container capabilities
    - Use non-root user
