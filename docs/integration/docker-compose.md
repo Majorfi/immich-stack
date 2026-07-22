@@ -92,26 +92,6 @@ To integrate with an existing Immich installation:
    docker compose up -d
    ```
 
-## Docker Secrets
-
-To keep the API key out of environment variables and `.env` files, use `API_KEY_FILE` with a Docker secret. `API_KEY` and `API_KEY_FILE` are mutually exclusive; the secret file supports the same comma-separated multi-key format.
-
-```yaml
-services:
-  immich-stack:
-    container_name: immich_stack
-    image: ghcr.io/majorfi/immich-stack:latest
-    environment:
-      - API_KEY_FILE=/run/secrets/immich_api_key
-      - API_URL=http://immich-server:2283/api
-    secrets:
-      - immich_api_key
-
-secrets:
-  immich_api_key:
-    file: ./secrets/immich_api_key.txt
-```
-
 ## Logging Configuration
 
 ### Viewing Logs

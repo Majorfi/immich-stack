@@ -267,22 +267,6 @@ func LoadEnvForTesting() LoadEnvConfig {
 	if apiKey == "" {
 		apiKey = os.Getenv("API_KEY")
 	}
-	/**********************************************************************************************
-	** Docker secrets support (issue #73): API_KEY_FILE points to a file whose content is the
-	** API key(s), e.g. /run/secrets/immich_api_key. Mutually exclusive with API_KEY so there
-	** is never an ambiguity about which key is in use. Secret files commonly end with a
-	** newline, hence the TrimSpace.
-	**********************************************************************************************/
-	if apiKeyFile := os.Getenv("API_KEY_FILE"); apiKeyFile != "" {
-		if apiKey != "" {
-			return LoadEnvConfig{Logger: logger, Error: fmt.Errorf("API_KEY (or --api-key) and API_KEY_FILE are mutually exclusive; set only one")}
-		}
-		content, err := os.ReadFile(apiKeyFile)
-		if err != nil {
-			return LoadEnvConfig{Logger: logger, Error: fmt.Errorf("failed to read API_KEY_FILE %s: %w", apiKeyFile, err)}
-		}
-		apiKey = strings.TrimSpace(string(content))
-	}
 	if apiKey == "" {
 		return LoadEnvConfig{Logger: logger, Error: fmt.Errorf("API_KEY is not set")}
 	}

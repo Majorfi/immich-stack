@@ -4,13 +4,10 @@ This document provides a complete reference of all environment variables support
 
 ## Required Variables
 
-| Variable       | Description                                              | Example                                |
-| -------------- | -------------------------------------------------------- | -------------------------------------- |
-| `API_KEY`      | Immich API key(s)                                        | `API_KEY=key1,key2`                    |
-| `API_KEY_FILE` | Read the API key(s) from a file (Docker secrets support) | `API_KEY_FILE=/run/secrets/immich_key` |
-| `API_URL`      | Immich API base URL                                      | `API_URL=http://immich:2283/api`       |
-
-`API_KEY` and `API_KEY_FILE` are mutually exclusive — set only one. The file content is trimmed (secret files usually end with a newline) and supports the same comma-separated multi-key format as `API_KEY`.
+| Variable  | Description         | Example                          |
+| --------- | ------------------- | -------------------------------- |
+| `API_KEY` | Immich API key(s)   | `API_KEY=key1,key2`              |
+| `API_URL` | Immich API base URL | `API_URL=http://immich:2283/api` |
 
 ## Run Mode Configuration
 
