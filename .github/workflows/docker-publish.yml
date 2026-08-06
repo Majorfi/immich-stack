@@ -2,10 +2,16 @@ name: Docker Build and Publish
 
 on:
   push:
-    branches: ["main"]
     tags: ["v*.*.*"]
   pull_request:
     branches: ["main"]
+  workflow_call:
+    inputs:
+      version:
+        description: "Semver tag to publish, e.g. v1.2.3. Empty falls back to the git ref."
+        type: string
+        required: false
+        default: ""
   workflow_dispatch:
 
 env:
@@ -55,8 +61,8 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch
             type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
             type=sha,format=short
 
       - name: Build and push Docker image

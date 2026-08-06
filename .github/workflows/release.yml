@@ -16,6 +16,8 @@ permissions:
 jobs:
   create-tag:
     runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.create_tag.outputs.new_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,6 +49,13 @@ jobs:
           git config --local user.name "GitHub Action"
           git tag ${{ steps.create_tag.outputs.new_tag }}
           git push origin ${{ steps.create_tag.outputs.new_tag }}
+
+  docker:
+    needs: create-tag
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      version: ${{ needs.create-tag.outputs.new_tag }}
+    secrets: inherit
 
   goreleaser:
     needs: create-tag
