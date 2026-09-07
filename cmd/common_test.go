@@ -106,3 +106,22 @@ func TestSplitCommaList(t *testing.T) {
 		})
 	}
 }
+
+/**************************************************************************************************
+** maskAPIKey keeps secrets out of the log file written by LOG_FILE.
+**************************************************************************************************/
+func TestMaskAPIKey(t *testing.T) {
+	cases := map[string]string{
+		"":                 "****",
+		"abc":              "****",
+		"abcd":             "****",
+		"abcde":            "****bcde",
+		"super-secret-key": "****-key",
+		"clé-très-secrète": "****rète",
+	}
+	for input, expected := range cases {
+		if got := maskAPIKey(input); got != expected {
+			t.Errorf("maskAPIKey(%q) = %q, want %q", input, got, expected)
+		}
+	}
+}

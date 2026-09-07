@@ -128,16 +128,23 @@ func needsStackUpdate(originalStack, expectedStack []string) bool {
 ** Identifies any child assets that are already part of existing stacks. This is used to
 ** prevent conflicts when creating new stacks and to handle stack replacement scenarios.
 **
+** Immich indexes every member asset of a stack to that same stack, so several children can carry
+** the same stack ID. The IDs are deduplicated here: one DELETE per distinct stack, since every
+** repeat would be answered with 400 "Not found or no stack.delete access" (issue #80).
+**
 ** @param stack - Array of assets to check
-** @return []string - Array of stack IDs where conflicts were found
+** @return []string - Array of distinct stack IDs where conflicts were found
 ** @return bool - True if any conflicts were found
 **************************************************************************************************/
 func getChildrenWithStack(stack []utils.TAsset) ([]string, bool) {
 	childrenWithStack := make([]string, 0)
+	seenStackIDs := make(map[string]bool)
 	for _, asset := range stack[1:] {
-		if asset.Stack != nil {
-			childrenWithStack = append(childrenWithStack, asset.Stack.ID)
+		if asset.Stack == nil || seenStackIDs[asset.Stack.ID] {
+			continue
 		}
+		seenStackIDs[asset.Stack.ID] = true
+		childrenWithStack = append(childrenWithStack, asset.Stack.ID)
 	}
 	return childrenWithStack, len(childrenWithStack) > 0
 }
@@ -182,12 +189,12 @@ func runStacker(cmd *cobra.Command, args []string) {
 			}
 			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, includeVideos, stackConcurrency, filterAlbumIDs, filterTakenAfter, filterTakenBefore, logger)
 			if client == nil {
-				logger.Errorf("Invalid client for API key: %s", key)
+				logger.Errorf("Invalid client for API key: %s", maskAPIKey(key))
 				continue
 			}
 			user, err := client.GetCurrentUser()
 			if err != nil {
-				logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
+				logger.Errorf("Failed to fetch user for API key: %s: %v", maskAPIKey(key), err)
 				continue
 			}
 			logger.Infof("=====================================================================================")
@@ -293,7 +300,7 @@ func processStack(client *immich.Client, logger *logrus.Logger, i int, total int
 	if replaceStacks {
 		for _, childID := range childrenWithStack {
 			msg, err := client.DeleteStackCollect(childID, utils.REASON_REPLACE_CHILD_STACK_WITH_NEW_ONE)
-			if err != nil {
+			if err != nil || msg == "" {
 				continue
 			}
 			deleteMsgs = append(deleteMsgs, msg)
@@ -301,12 +308,14 @@ func processStack(client *immich.Client, logger *logrus.Logger, i int, total int
 	}
 
 	/**********************************************************************************************
-	** Determine action type for logging.
+	** Determine action type for logging. The replace wording is driven by deleteMsgs, not by
+	** childrenWithStack: a child stack that was already gone, or whose delete failed, produces no
+	** message, and the report must not claim a deletion that never happened.
 	**********************************************************************************************/
 	var actionMsg string
 	if len(originalStackIDs) == 0 {
 		actionMsg = "\t🆕 Creating new stack"
-	} else if replaceStacks && len(childrenWithStack) > 0 {
+	} else if len(deleteMsgs) > 0 {
 		actionMsg = "\t🔄 Replacing existing stack (deleted child stacks)"
 	} else {
 		actionMsg = "\t✏️  Updating stack configuration"
@@ -384,12 +393,12 @@ func runCronLoopForAllUsers(apiKeys []string, apiURL string, logger *logrus.Logg
 			}
 			client := immich.NewClient(apiURL, key, resetStacks, replaceStacks, dryRun, withArchived, withDeleted, removeSingleAssetStacks, includeVideos, stackConcurrency, filterAlbumIDs, filterTakenAfter, filterTakenBefore, logger)
 			if client == nil {
-				logger.Errorf("Invalid client for API key: %s", key)
+				logger.Errorf("Invalid client for API key: %s", maskAPIKey(key))
 				continue
 			}
 			user, err := client.GetCurrentUser()
 			if err != nil {
-				logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
+				logger.Errorf("Failed to fetch user for API key: %s: %v", maskAPIKey(key), err)
 				continue
 			}
 			logger.Infof("=====================================================================================")

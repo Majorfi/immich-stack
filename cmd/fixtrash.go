@@ -66,12 +66,12 @@ func runFixTrash(cmd *cobra.Command, args []string) {
 func fixTrashForAPIKey(key string, logger *logrus.Logger) {
 	client := immich.NewClient(apiURL, key, false, false, dryRun, true, withDeleted, false, includeVideos, stackConcurrency, nil, "", "", logger)
 	if client == nil {
-		logger.Errorf("Invalid client for API key: %s", key)
+		logger.Errorf("Invalid client for API key: %s", maskAPIKey(key))
 		return
 	}
 	user, err := client.GetCurrentUser()
 	if err != nil {
-		logger.Errorf("Failed to fetch user for API key: %s: %v", key, err)
+		logger.Errorf("Failed to fetch user for API key: %s: %v", maskAPIKey(key), err)
 		return
 	}
 	logger.Infof("=====================================================================================")

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -266,7 +267,9 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 	// refactor moves the reset earlier. Capturing is defensive and makes intent explicit.
 	shouldReset := c.resetStacks
 	shouldRemoveSingle := c.removeSingleAssetStacks
+	deletedStackIDs := make(map[string]bool)
 	{
+		var deletedMu sync.Mutex
 		concurrency := max(c.stackConcurrency, 1)
 		sem := make(chan struct{}, concurrency)
 		var wg sync.WaitGroup
@@ -288,9 +291,20 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 				if reason == utils.REASON_RESET_STACK {
 					c.logger.Debugf("🔄 Resetting stack %s", stack.PrimaryAssetID)
 				}
-				if err := c.DeleteStack(stack.ID, reason); err != nil {
-					c.logger.Errorf("Error deleting stack: %v", err)
+				/**********************************************************************************
+				** Only a delete this call actually performed may be recorded. A stack that
+				** errored, or that the server refused with the ambiguous "not found or no
+				** access" 400, may still be on the server; dropping it from stacksMap below
+				** would make its assets look unstacked and stack them on a false premise.
+				** DeleteStack already logged whatever happened.
+				**********************************************************************************/
+				deleted, _ := c.DeleteStack(stack.ID, reason)
+				if !deleted {
+					return
 				}
+				deletedMu.Lock()
+				deletedStackIDs[stack.ID] = true
+				deletedMu.Unlock()
 			}(stack, reason)
 		}
 		wg.Wait()
@@ -317,8 +331,17 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 		}
 	}
 
+	/**********************************************************************************************
+	** Stacks deleted just above must not stay indexed: their assets would carry a pointer to a
+	** stack that no longer exists and the replace path would try to delete it a second time
+	** (issue #80). Deleted stacks are skipped in dry run too, so the run reports what a real
+	** run would produce.
+	**********************************************************************************************/
 	stacksMap := make(map[string]utils.TStack)
 	for _, stack := range stacks {
+		if deletedStackIDs[stack.ID] {
+			continue
+		}
 		for _, asset := range stack.Assets {
 			stacksMap[asset.ID] = stack
 		}
@@ -466,21 +489,30 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 ** DeleteStack removes a stack from Immich.
 ** In dry run mode, it only logs the action without making changes.
 **
+** The deleted flag reports whether this call is what removed the stack. A stack the server
+** refused to delete — already gone, or not ours — yields (false, nil): harmless, but the caller
+** must not treat it as a deletion it performed. Dry run reports true, since it models the run
+** that would have happened.
+**
 ** @param stackID - ID of the stack to delete
 ** @param reason - Reason for deletion (for logging)
+** @return bool - True when this call removed the stack
 ** @return error - Any error that occurred during deletion
 **************************************************************************************************/
-func (c *Client) DeleteStack(stackID string, reason string) error {
+func (c *Client) DeleteStack(stackID string, reason string) (bool, error) {
 	msg, err := c.DeleteStackCollect(stackID, reason)
 	if err != nil {
-		return err
+		return false, err
+	}
+	if msg == "" {
+		return false, nil
 	}
 	if c.dryRun {
 		c.logger.Warn(msg)
 	} else {
 		c.logger.Info(msg)
 	}
-	return nil
+	return true, nil
 }
 
 /**************************************************************************************************
@@ -489,6 +521,9 @@ func (c *Client) DeleteStack(stackID string, reason string) error {
 ** can be folded into a single contiguous per-stack log block instead of interleaving with the
 ** output of other in-flight stacks. Errors are still returned (and logged here) since they are
 ** exceptional and should surface immediately.
+**
+** An empty message with a nil error means the stack was already gone, so there is nothing to
+** report. Callers must skip empty messages instead of logging them.
 **************************************************************************************************/
 func (c *Client) DeleteStackCollect(stackID string, reason string) (string, error) {
 	reasonMsg := ""
@@ -501,6 +536,10 @@ func (c *Client) DeleteStackCollect(stackID string, reason string) (string, erro
 	}
 
 	if err := c.doRequest(http.MethodDelete, fmt.Sprintf("/stacks/%s", stackID), nil, nil); err != nil {
+		if isStackAlreadyGone(err) {
+			c.logger.Debugf("Stack %s already gone (or not owned), nothing to delete - %s", stackID, reason)
+			return "", nil
+		}
 		c.logger.Errorf("Error deleting stack: %v", err)
 		return "", fmt.Errorf("error deleting stack: %w", err)
 	}
@@ -893,6 +932,36 @@ func (c *Client) UpdateAlbum(albumID string, updates map[string]interface{}) err
 	}
 
 	return nil
+}
+
+/**************************************************************************************************
+** isStackAlreadyGone returns true when a failed DELETE /stacks/{id} may be ignored because the
+** stack is no longer there. The same stack ID legitimately reaches this call twice: Immich merges
+** (and drops) stacks server-side on POST /stacks, and the stack snapshot taken at the start of a
+** run is never refreshed.
+**
+** The 400 branch is deliberately ambiguous. Immich's access guard answers BOTH "this stack does
+** not exist" and "this stack is not yours" with 400 "Not found or no stack.delete access", so
+** matching that body cannot tell the two apart: an ownership denial is treated as already gone.
+** That is acceptable because the stack IDs acted on come from the caller's own GET /stacks, and
+** because the server refused the delete either way — callers must therefore treat a swallowed
+** error as "nothing happened", never as "deleted". A key that lacks the stack.delete scope is
+** NOT affected: Immich rejects it in the auth guard with 403 (ForbiddenException, "Missing
+** required permission", server/src/services/auth.service.ts) before the access check that
+** produces this 400, and 403 is not matched here. The bundled OpenAPI spec documents only the
+** 204, so both status codes come from the Immich server source rather than from the spec.
+**
+** Any other 400 body still surfaces as an error. 404 is covered for future API versions.
+**************************************************************************************************/
+func isStackAlreadyGone(err error) bool {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	if apiErr.StatusCode == http.StatusNotFound {
+		return true
+	}
+	return apiErr.StatusCode == http.StatusBadRequest && strings.Contains(apiErr.Body, "Not found or no stack.delete access")
 }
 
 /**************************************************************************************************

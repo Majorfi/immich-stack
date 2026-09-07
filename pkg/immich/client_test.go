@@ -1,6 +1,8 @@
 package immich
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -980,17 +982,19 @@ func TestGetCurrentUser(t *testing.T) {
 }
 
 /************************************************************************************************
-** Tests for DeleteStack
+** Tests for DeleteStackCollect
 ************************************************************************************************/
 
-func TestDeleteStack(t *testing.T) {
+func TestDeleteStackCollect(t *testing.T) {
 	tests := []struct {
-		name       string
-		stackID    string
-		reason     string
-		dryRun     bool
-		statusCode int
-		wantErr    bool
+		name         string
+		stackID      string
+		reason       string
+		dryRun       bool
+		statusCode   int
+		responseBody string
+		wantErr      bool
+		wantEmptyMsg bool
 	}{
 		{
 			name:       "successful delete",
@@ -1009,12 +1013,32 @@ func TestDeleteStack(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:       "stack not found",
-			stackID:    "nonexistent-stack",
-			reason:     "should fail",
-			dryRun:     false,
-			statusCode: http.StatusNotFound,
-			wantErr:    true,
+			name:         "stack not found is benign",
+			stackID:      "nonexistent-stack",
+			reason:       "already gone",
+			dryRun:       false,
+			statusCode:   http.StatusNotFound,
+			wantErr:      false,
+			wantEmptyMsg: true,
+		},
+		{
+			name:         "immich access-guard 400 for a deleted stack is benign",
+			stackID:      "already-deleted-stack",
+			reason:       "already gone",
+			dryRun:       false,
+			statusCode:   http.StatusBadRequest,
+			responseBody: `{"message":"Not found or no stack.delete access"}`,
+			wantErr:      false,
+			wantEmptyMsg: true,
+		},
+		{
+			name:         "other 400 still fails",
+			stackID:      "stack-400",
+			reason:       "should fail",
+			dryRun:       false,
+			statusCode:   http.StatusBadRequest,
+			responseBody: `{"message":"Invalid UUID"}`,
+			wantErr:      true,
 		},
 		{
 			name:       "server error",
@@ -1039,6 +1063,10 @@ func TestDeleteStack(t *testing.T) {
 			logger := logrus.New()
 			logger.SetOutput(io.Discard)
 
+			responseBody := tt.responseBody
+			if responseBody == "" {
+				responseBody = `{}`
+			}
 			client := &Client{
 				apiKey: "test",
 				apiURL: "http://test/api",
@@ -1048,18 +1076,37 @@ func TestDeleteStack(t *testing.T) {
 					Transport: &mockTransport{
 						response: &http.Response{
 							StatusCode: tt.statusCode,
-							Body:       io.NopCloser(strings.NewReader(`{}`)),
+							Body:       io.NopCloser(strings.NewReader(responseBody)),
 						},
 					},
 				},
 			}
 
-			err := client.DeleteStack(tt.stackID, tt.reason)
+			msg, err := client.DeleteStackCollect(tt.stackID, tt.reason)
 
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+			}
+			if tt.wantEmptyMsg {
+				assert.Empty(t, msg, "an already-gone stack has nothing to report")
+				return
+			}
+			if tt.wantErr {
+				return
+			}
+
+			/**************************************************************************************
+			** A delete that happened must report it: the message is what the caller logs, and
+			** what tells FetchAllStacks the stack really went away.
+			**************************************************************************************/
+			assert.Contains(t, msg, tt.stackID)
+			assert.Contains(t, msg, tt.reason)
+			if tt.dryRun {
+				assert.Contains(t, msg, "(dry run)")
+			} else {
+				assert.NotContains(t, msg, "(dry run)")
 			}
 		})
 	}
@@ -1441,7 +1488,7 @@ func TestFetchAllStacksResetStacks(t *testing.T) {
 			expectNilMap:    false,
 		},
 		{
-			name:                    "remove single asset stacks - map still includes all fetched stacks",
+			name:                    "remove single asset stacks - deleted stacks are dropped from the map",
 			resetStacks:             false,
 			removeSingleAssetStacks: true,
 			dryRun:                  false,
@@ -1449,7 +1496,7 @@ func TestFetchAllStacksResetStacks(t *testing.T) {
 				{"id": "stack-single", "primaryAssetId": "asset-1", "assets": [{"id": "asset-1"}]},
 				{"id": "stack-multi", "primaryAssetId": "asset-2", "assets": [{"id": "asset-2"}, {"id": "asset-3"}]}
 			]`,
-			expectedMapSize: 3,
+			expectedMapSize: 2,
 			expectNilMap:    false,
 		},
 		{
@@ -2249,4 +2296,179 @@ func TestUpdateAlbum(t *testing.T) {
 			}
 		})
 	}
+}
+
+/**************************************************************************************************
+** singleAndPairStacksBody is the GET /stacks payload shared by the deletion tests below: one
+** single-asset stack, which REMOVE_SINGLE_ASSET_STACKS deletes, and one two-asset stack, which
+** it keeps.
+**************************************************************************************************/
+const singleAndPairStacksBody = `[
+	{"id":"stack-single","primaryAssetId":"asset-a","assets":[{"id":"asset-a"}]},
+	{"id":"stack-pair","primaryAssetId":"asset-b","assets":[{"id":"asset-b"},{"id":"asset-c"}]}
+]`
+
+/**************************************************************************************************
+** stackDeleteHandler answers DELETE with deleteStatus and every other request with the stacks
+** payload, for use as a pathRouterMockTransport handler. The recorded call list then pins both
+** the single GET /stacks and the stack IDs that were deleted.
+**************************************************************************************************/
+func stackDeleteHandler(deleteStatus int) func(req *http.Request) (int, string) {
+	return stackDeleteHandlerWithBody(deleteStatus, "")
+}
+
+func stackDeleteHandlerWithBody(deleteStatus int, deleteBody string) func(req *http.Request) (int, string) {
+	return func(req *http.Request) (int, string) {
+		if req.Method == http.MethodDelete {
+			return deleteStatus, deleteBody
+		}
+		return http.StatusOK, singleAndPairStacksBody
+	}
+}
+
+/**************************************************************************************************
+** A stack deleted during FetchAllStacks must not stay in stacksMap: its assets would carry a
+** pointer to a stack that no longer exists, and the replace path would then try to delete it
+** again and get 400 "Not found or no stack.delete access". See issue #80.
+**************************************************************************************************/
+func TestFetchAllStacksExcludesDeletedSingleAssetStacks(t *testing.T) {
+	transport := &pathRouterMockTransport{handler: stackDeleteHandler(http.StatusNoContent)}
+	client := &Client{
+		apiKey:                  "test",
+		apiURL:                  "http://test/api",
+		logger:                  newSilentLogger(),
+		removeSingleAssetStacks: true,
+		stackConcurrency:        1,
+		client:                  &http.Client{Transport: transport},
+	}
+
+	stacksMap, err := client.FetchAllStacks()
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"/api/stacks", "/api/stacks/stack-single"}, transport.callsSnapshot())
+	assert.NotContains(t, stacksMap, "asset-a", "assets of a deleted stack must not stay indexed")
+	assert.Contains(t, stacksMap, "asset-b")
+	assert.Contains(t, stacksMap, "asset-c")
+}
+
+/**************************************************************************************************
+** DeleteStack is the logging wrapper around DeleteStackCollect. An already-gone stack yields an
+** empty message, which must return nil without logging a blank line — the branch the collect
+** tests never reach.
+**************************************************************************************************/
+func TestDeleteStackAlreadyGoneLogsNothing(t *testing.T) {
+	var buf bytes.Buffer
+	logger := logrus.New()
+	logger.SetOutput(&buf)
+	logger.SetLevel(logrus.InfoLevel)
+
+	client := &Client{
+		apiKey: "test",
+		apiURL: "http://test/api",
+		logger: logger,
+		client: &http.Client{
+			Transport: &mockTransport{
+				response: &http.Response{
+					StatusCode: http.StatusBadRequest,
+					Body:       io.NopCloser(strings.NewReader(`{"message":"Not found or no stack.delete access"}`)),
+				},
+			},
+		},
+	}
+
+	deleted, err := client.DeleteStack("gone-stack", "already gone")
+	assert.NoError(t, err)
+	assert.False(t, deleted, "a stack the server refused was not deleted by this call")
+	assert.Empty(t, buf.String(), "an already-gone stack must not log at info level")
+}
+
+/**************************************************************************************************
+** isStackAlreadyGone only ever swallows an *APIError. A transport failure carries no status code
+** and must keep surfacing as an error.
+**************************************************************************************************/
+func TestIsStackAlreadyGoneIgnoresNonAPIErrors(t *testing.T) {
+	assert.False(t, isStackAlreadyGone(io.ErrUnexpectedEOF))
+	assert.False(t, isStackAlreadyGone(fmt.Errorf("wrapped: %w", io.ErrUnexpectedEOF)))
+	assert.True(t, isStackAlreadyGone(&APIError{StatusCode: http.StatusNotFound}))
+	assert.True(t, isStackAlreadyGone(fmt.Errorf("wrapped: %w", &APIError{
+		StatusCode: http.StatusBadRequest,
+		Body:       `{"message":"Not found or no stack.delete access"}`,
+	})))
+	assert.False(t, isStackAlreadyGone(&APIError{StatusCode: http.StatusForbidden,
+		Body: `{"message":"Missing required permission: stack.delete"}`}))
+	assert.False(t, isStackAlreadyGone(&APIError{StatusCode: http.StatusBadRequest,
+		Body: `{"message":"Invalid UUID"}`}))
+}
+
+/**************************************************************************************************
+** A stack whose delete FAILED is still on the server, so it must stay indexed in stacksMap.
+** Recording the deletion before the call would drop it and make its assets look unstacked for
+** the rest of the run.
+**************************************************************************************************/
+func TestFetchAllStacksKeepsStacksWhoseDeleteFailed(t *testing.T) {
+	transport := &pathRouterMockTransport{handler: stackDeleteHandler(http.StatusInternalServerError)}
+	client := &Client{
+		apiKey:                  "test",
+		apiURL:                  "http://test/api",
+		logger:                  newSilentLogger(),
+		removeSingleAssetStacks: true,
+		stackConcurrency:        1,
+		client:                  &http.Client{Transport: transport},
+	}
+
+	stacksMap, err := client.FetchAllStacks()
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"/api/stacks", "/api/stacks/stack-single"}, transport.callsSnapshot())
+	assert.Contains(t, stacksMap, "asset-a", "a stack that failed to delete still exists server-side")
+}
+
+/**************************************************************************************************
+** A stack the server REFUSED to delete must stay indexed. The refusal arrives as the ambiguous
+** 400 "Not found or no stack.delete access", which the client treats as benign — but benign is
+** not the same as deleted: the stack may still be there, and dropping it would make its assets
+** look unstacked and get them stacked on a false premise.
+**************************************************************************************************/
+func TestFetchAllStacksKeepsStackRefusedByServer(t *testing.T) {
+	transport := &pathRouterMockTransport{
+		handler: stackDeleteHandlerWithBody(http.StatusBadRequest, `{"message":"Not found or no stack.delete access"}`),
+	}
+	client := &Client{
+		apiKey:                  "test",
+		apiURL:                  "http://test/api",
+		logger:                  newSilentLogger(),
+		removeSingleAssetStacks: true,
+		stackConcurrency:        1,
+		client:                  &http.Client{Transport: transport},
+	}
+
+	stacksMap, err := client.FetchAllStacks()
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"/api/stacks", "/api/stacks/stack-single"}, transport.callsSnapshot())
+	assert.Contains(t, stacksMap, "asset-a", "a refused delete is not a deletion")
+}
+
+/**************************************************************************************************
+** Dry run must model what a real run produces: the single-asset stack is reported as removed and
+** leaves stacksMap, while no DELETE is ever issued.
+**************************************************************************************************/
+func TestFetchAllStacksDryRunExcludesSingleAssetStacks(t *testing.T) {
+	transport := &pathRouterMockTransport{handler: stackDeleteHandler(http.StatusNoContent)}
+	client := &Client{
+		apiKey:                  "test",
+		apiURL:                  "http://test/api",
+		logger:                  newSilentLogger(),
+		removeSingleAssetStacks: true,
+		dryRun:                  true,
+		stackConcurrency:        1,
+		client:                  &http.Client{Transport: transport},
+	}
+
+	stacksMap, err := client.FetchAllStacks()
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"/api/stacks"}, transport.callsSnapshot(), "dry run must not issue a DELETE")
+	assert.NotContains(t, stacksMap, "asset-a", "dry run models the map a real run would produce")
+	assert.Contains(t, stacksMap, "asset-b")
 }
