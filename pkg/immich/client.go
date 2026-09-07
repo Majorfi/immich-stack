@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -42,6 +41,11 @@ func (e *APIError) Error() string {
 type PartialResultError struct {
 	Phase1Failed int
 	Phase2Failed int
+}
+
+type stackDeleteCall struct {
+	done chan struct{}
+	err  error
 }
 
 func (e *PartialResultError) Error() string {
@@ -79,6 +83,8 @@ type Client struct {
 	filterTakenAfter        string
 	filterTakenBefore       string
 	logger                  *logrus.Logger
+	stackDeleteMu           sync.Mutex
+	stackDeleteCalls        map[string]*stackDeleteCall
 }
 
 /**************************************************************************************************
@@ -148,6 +154,7 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 		filterTakenAfter:        filterTakenAfter,
 		filterTakenBefore:       filterTakenBefore,
 		logger:                  logger,
+		stackDeleteCalls:        make(map[string]*stackDeleteCall),
 	}
 }
 
@@ -535,16 +542,47 @@ func (c *Client) DeleteStackCollect(stackID string, reason string) (string, erro
 		return fmt.Sprintf("%sDeleted Stack %s (dry run) - %s", reasonMsg, stackID, reason), nil
 	}
 
-	if err := c.doRequest(http.MethodDelete, fmt.Sprintf("/stacks/%s", stackID), nil, nil); err != nil {
+	deleted, err := c.deleteStackOnce(stackID)
+	if err != nil {
 		if isStackAlreadyGone(err) {
-			c.logger.Debugf("Stack %s already gone (or not owned), nothing to delete - %s", stackID, reason)
+			c.logger.Debugf("Stack %s already gone, nothing to delete - %s", stackID, reason)
 			return "", nil
 		}
 		c.logger.Errorf("Error deleting stack: %v", err)
 		return "", fmt.Errorf("error deleting stack: %w", err)
 	}
+	if !deleted {
+		return "", nil
+	}
 
 	return fmt.Sprintf("%sDeleted Stack %s - %s", reasonMsg, stackID, reason), nil
+}
+
+func (c *Client) deleteStackOnce(stackID string) (bool, error) {
+	c.stackDeleteMu.Lock()
+	if c.stackDeleteCalls == nil {
+		c.stackDeleteCalls = make(map[string]*stackDeleteCall)
+	}
+	if call, exists := c.stackDeleteCalls[stackID]; exists {
+		c.stackDeleteMu.Unlock()
+		<-call.done
+		return false, call.err
+	}
+
+	call := &stackDeleteCall{done: make(chan struct{})}
+	c.stackDeleteCalls[stackID] = call
+	c.stackDeleteMu.Unlock()
+
+	call.err = c.doRequest(http.MethodDelete, fmt.Sprintf("/stacks/%s", stackID), nil, nil)
+	close(call.done)
+	if call.err != nil && !isStackAlreadyGone(call.err) {
+		c.stackDeleteMu.Lock()
+		if c.stackDeleteCalls[stackID] == call {
+			delete(c.stackDeleteCalls, stackID)
+		}
+		c.stackDeleteMu.Unlock()
+	}
+	return call.err == nil, call.err
 }
 
 /**************************************************************************************************
@@ -935,33 +973,15 @@ func (c *Client) UpdateAlbum(albumID string, updates map[string]interface{}) err
 }
 
 /**************************************************************************************************
-** isStackAlreadyGone returns true when a failed DELETE /stacks/{id} may be ignored because the
-** stack is no longer there. The same stack ID legitimately reaches this call twice: Immich merges
-** (and drops) stacks server-side on POST /stacks, and the stack snapshot taken at the start of a
-** run is never refreshed.
-**
-** The 400 branch is deliberately ambiguous. Immich's access guard answers BOTH "this stack does
-** not exist" and "this stack is not yours" with 400 "Not found or no stack.delete access", so
-** matching that body cannot tell the two apart: an ownership denial is treated as already gone.
-** That is acceptable because the stack IDs acted on come from the caller's own GET /stacks, and
-** because the server refused the delete either way — callers must therefore treat a swallowed
-** error as "nothing happened", never as "deleted". A key that lacks the stack.delete scope is
-** NOT affected: Immich rejects it in the auth guard with 403 (ForbiddenException, "Missing
-** required permission", server/src/services/auth.service.ts) before the access check that
-** produces this 400, and 403 is not matched here. The bundled OpenAPI spec documents only the
-** 204, so both status codes come from the Immich server source rather than from the spec.
-**
-** Any other 400 body still surfaces as an error. 404 is covered for future API versions.
+** isStackAlreadyGone only accepts an unambiguous 404. Immich's 400 response can mean either that
+** the stack is absent or that the caller lacks access, so it must remain visible to the user.
 **************************************************************************************************/
 func isStackAlreadyGone(err error) bool {
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
 		return false
 	}
-	if apiErr.StatusCode == http.StatusNotFound {
-		return true
-	}
-	return apiErr.StatusCode == http.StatusBadRequest && strings.Contains(apiErr.Body, "Not found or no stack.delete access")
+	return apiErr.StatusCode == http.StatusNotFound
 }
 
 /**************************************************************************************************

@@ -1022,14 +1022,13 @@ func TestDeleteStackCollect(t *testing.T) {
 			wantEmptyMsg: true,
 		},
 		{
-			name:         "immich access-guard 400 for a deleted stack is benign",
+			name:         "immich access-guard 400 remains visible",
 			stackID:      "already-deleted-stack",
-			reason:       "already gone",
+			reason:       "access refused",
 			dryRun:       false,
 			statusCode:   http.StatusBadRequest,
 			responseBody: `{"message":"Not found or no stack.delete access"}`,
-			wantErr:      false,
-			wantEmptyMsg: true,
+			wantErr:      true,
 		},
 		{
 			name:         "other 400 still fails",
@@ -2369,8 +2368,8 @@ func TestDeleteStackAlreadyGoneLogsNothing(t *testing.T) {
 		client: &http.Client{
 			Transport: &mockTransport{
 				response: &http.Response{
-					StatusCode: http.StatusBadRequest,
-					Body:       io.NopCloser(strings.NewReader(`{"message":"Not found or no stack.delete access"}`)),
+					StatusCode: http.StatusNotFound,
+					Body:       io.NopCloser(strings.NewReader(`{"message":"Not found"}`)),
 				},
 			},
 		},
@@ -2382,6 +2381,29 @@ func TestDeleteStackAlreadyGoneLogsNothing(t *testing.T) {
 	assert.Empty(t, buf.String(), "an already-gone stack must not log at info level")
 }
 
+func TestDeleteStackCollectDeletesEachStackOnce(t *testing.T) {
+	transport := &pathRouterMockTransport{
+		handler: func(req *http.Request) (int, string) {
+			return http.StatusNoContent, ""
+		},
+	}
+	client := &Client{
+		apiKey: "test",
+		apiURL: "http://test/api",
+		logger: newSilentLogger(),
+		client: &http.Client{Transport: transport},
+	}
+
+	firstMsg, firstErr := client.DeleteStackCollect("stack-a", "first group")
+	secondMsg, secondErr := client.DeleteStackCollect("stack-a", "second group")
+
+	require.NoError(t, firstErr)
+	require.NoError(t, secondErr)
+	assert.NotEmpty(t, firstMsg)
+	assert.Empty(t, secondMsg)
+	assert.Equal(t, []string{"/api/stacks/stack-a"}, transport.callsSnapshot())
+}
+
 /**************************************************************************************************
 ** isStackAlreadyGone only ever swallows an *APIError. A transport failure carries no status code
 ** and must keep surfacing as an error.
@@ -2390,7 +2412,7 @@ func TestIsStackAlreadyGoneIgnoresNonAPIErrors(t *testing.T) {
 	assert.False(t, isStackAlreadyGone(io.ErrUnexpectedEOF))
 	assert.False(t, isStackAlreadyGone(fmt.Errorf("wrapped: %w", io.ErrUnexpectedEOF)))
 	assert.True(t, isStackAlreadyGone(&APIError{StatusCode: http.StatusNotFound}))
-	assert.True(t, isStackAlreadyGone(fmt.Errorf("wrapped: %w", &APIError{
+	assert.False(t, isStackAlreadyGone(fmt.Errorf("wrapped: %w", &APIError{
 		StatusCode: http.StatusBadRequest,
 		Body:       `{"message":"Not found or no stack.delete access"}`,
 	})))
