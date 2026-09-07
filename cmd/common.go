@@ -27,6 +27,23 @@ func splitCommaList(raw string) []string {
 }
 
 /**************************************************************************************************
+** maskAPIKey renders an API key safe to log. Only the last four characters are kept, which is
+** enough to tell several configured keys apart while keeping the secret out of the log file
+** that LOG_FILE writes to disk.
+**
+** @param key - Raw API key
+** @return string - Redacted form, e.g. "****cdef"
+**************************************************************************************************/
+func maskAPIKey(key string) string {
+	const visible = 4
+	runes := []rune(key)
+	if len(runes) <= visible {
+		return "****"
+	}
+	return "****" + string(runes[len(runes)-visible:])
+}
+
+/**************************************************************************************************
 ** filterOutPartnerAssets removes assets not owned by the current user from a fetched list
 ** and logs how many were dropped. Partner-shared assets surfaced by /search/metadata cannot
 ** be modified via the Immich stack API (permission denied), so trying to stack them only

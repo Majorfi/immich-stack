@@ -7,14 +7,19 @@ package main
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/majorfi/immich-stack/pkg/immich"
 	"github.com/majorfi/immich-stack/pkg/stacker"
 	"github.com/majorfi/immich-stack/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
 )
 
 /**************************************************************************************************
@@ -896,5 +901,224 @@ func TestBooleanEnvironmentOverrides(t *testing.T) {
 				t.Errorf("Expected %s to be %v, got %v", tt.envVar, tt.expected, *tt.globalVar)
 			}
 		})
+	}
+}
+
+/**************************************************************************************************
+** Test getChildrenWithStack deduplication. Immich indexes every member asset of a stack to that
+** same stack, so several children of one candidate group can carry the same stack ID. Issuing one
+** DELETE per child made every repeat fail with 400 "Not found or no stack.delete access". See
+** issue #80.
+**************************************************************************************************/
+func TestGetChildrenWithStack(t *testing.T) {
+	stackA := &utils.TStack{ID: "stack-a", PrimaryAssetID: "asset1"}
+	stackB := &utils.TStack{ID: "stack-b", PrimaryAssetID: "asset4"}
+
+	tests := []struct {
+		name        string
+		stack       []utils.TAsset
+		expectedIDs []string
+		expectedHas bool
+	}{
+		{
+			name: "Children sharing one stack yield a single ID",
+			stack: []utils.TAsset{
+				{ID: "parent", Stack: nil},
+				{ID: "child1", Stack: stackA},
+				{ID: "child2", Stack: stackA},
+				{ID: "child3", Stack: stackA},
+			},
+			expectedIDs: []string{"stack-a"},
+			expectedHas: true,
+		},
+		{
+			name: "Distinct stacks are all kept, in order",
+			stack: []utils.TAsset{
+				{ID: "parent", Stack: nil},
+				{ID: "child1", Stack: stackB},
+				{ID: "child2", Stack: stackA},
+				{ID: "child3", Stack: stackB},
+			},
+			expectedIDs: []string{"stack-b", "stack-a"},
+			expectedHas: true,
+		},
+		{
+			name: "Children without a stack are ignored",
+			stack: []utils.TAsset{
+				{ID: "parent", Stack: stackA},
+				{ID: "child1", Stack: nil},
+			},
+			expectedIDs: []string{},
+			expectedHas: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			childrenWithStack, hasChildrenWithStack := getChildrenWithStack(tt.stack)
+
+			if hasChildrenWithStack != tt.expectedHas {
+				t.Errorf("Expected hasChildrenWithStack %v, got %v", tt.expectedHas, hasChildrenWithStack)
+			}
+			if len(childrenWithStack) != len(tt.expectedIDs) {
+				t.Fatalf("Expected %d stack IDs %v, got %d %v", len(tt.expectedIDs), tt.expectedIDs, len(childrenWithStack), childrenWithStack)
+			}
+			for i, expected := range tt.expectedIDs {
+				if childrenWithStack[i] != expected {
+					t.Errorf("Expected childrenWithStack[%d] to be '%s', got '%s'", i, expected, childrenWithStack[i])
+				}
+			}
+		})
+	}
+}
+
+/**************************************************************************************************
+** immichStub records the write calls processStack makes and answers DELETE /stacks/{id} with a
+** configurable status, so a test can drive the real client through a real HTTP round trip.
+**************************************************************************************************/
+type immichStub struct {
+	deleteStatus int
+	mu           sync.Mutex
+	calls        []string
+}
+
+func (s *immichStub) record(call string) {
+	s.mu.Lock()
+	s.calls = append(s.calls, call)
+	s.mu.Unlock()
+}
+
+func (s *immichStub) callsSnapshot() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.calls...)
+}
+
+func (s *immichStub) server() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete && strings.Contains(r.URL.Path, "/stacks/") {
+			s.record("DELETE " + r.URL.Path)
+			w.WriteHeader(s.deleteStatus)
+			w.Write([]byte(`{"message":"Not found or no stack.delete access"}`))
+			return
+		}
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/stacks") {
+			s.record("POST /stacks")
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"id":"new-stack"}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{}`))
+	}))
+}
+
+/**************************************************************************************************
+** newTestClient builds a client aimed at the stub. The replaceStacks argument is deliberately
+** false: processStack reads the package-level flag, and the client never reads its own copy.
+**************************************************************************************************/
+func newTestClient(t *testing.T, url string, logger *logrus.Logger) *immich.Client {
+	t.Helper()
+	client := immich.NewClient(url, "test-key", false, false, false, false, false, false, false, 1, nil, "", "", logger)
+	if client == nil {
+		t.Fatal("NewClient returned nil")
+	}
+	return client
+}
+
+/**************************************************************************************************
+** With REPLACE_STACKS=false, a group whose assets all carry a nil Stack is stacked: the early
+** return only exists to protect assets that really are still in a stack.
+**************************************************************************************************/
+func TestProcessStackStacksGroupWithNoStack(t *testing.T) {
+	defer teardownTest()
+	setupTest()
+
+	logger := logrus.New()
+	logger.SetOutput(&bytes.Buffer{})
+
+	stub := &immichStub{}
+	server := stub.server()
+	defer server.Close()
+
+	replaceStacks = false
+	client := newTestClient(t, server.URL, logger)
+
+	processStack(client, logger, 0, 1, []utils.TAsset{
+		{ID: "asset-b", OriginalFileName: "IMG_1.JPG", Stack: nil},
+		{ID: "asset-a", OriginalFileName: "IMG_1.DNG", Stack: nil},
+	})
+
+	assert.Equal(t, []string{"POST /stacks"}, stub.callsSnapshot())
+}
+
+/**************************************************************************************************
+** The mirror case: with REPLACE_STACKS=false, a group whose child still carries a stack is left
+** alone.
+**************************************************************************************************/
+func TestProcessStackSkipsGroupWhoseChildIsStacked(t *testing.T) {
+	defer teardownTest()
+	setupTest()
+
+	logger := logrus.New()
+	logger.SetOutput(&bytes.Buffer{})
+
+	stub := &immichStub{}
+	server := stub.server()
+	defer server.Close()
+
+	replaceStacks = false
+	client := newTestClient(t, server.URL, logger)
+
+	processStack(client, logger, 0, 1, []utils.TAsset{
+		{ID: "asset-b", OriginalFileName: "IMG_1.JPG"},
+		{ID: "asset-a", OriginalFileName: "IMG_1.DNG", Stack: &utils.TStack{
+			ID:             "stack-1",
+			PrimaryAssetID: "asset-a",
+			Assets:         []utils.TAsset{{ID: "asset-a"}},
+		}},
+	})
+
+	assert.Empty(t, stub.callsSnapshot(), "an asset still in a stack must not be touched")
+}
+
+/**************************************************************************************************
+** When every child stack is already gone, no deletion happened, so the report must not claim
+** "deleted child stacks".
+**************************************************************************************************/
+func TestProcessStackReportDoesNotClaimUnperformedDeletes(t *testing.T) {
+	defer teardownTest()
+	setupTest()
+
+	var logs bytes.Buffer
+	logger := logrus.New()
+	logger.SetOutput(&logs)
+	logger.SetLevel(logrus.InfoLevel)
+
+	stub := &immichStub{deleteStatus: http.StatusBadRequest}
+	server := stub.server()
+	defer server.Close()
+
+	replaceStacks = true
+	client := newTestClient(t, server.URL, logger)
+
+	processStack(client, logger, 0, 1, []utils.TAsset{
+		{ID: "asset-b", OriginalFileName: "IMG_1.JPG"},
+		{ID: "asset-a", OriginalFileName: "IMG_1.DNG", Stack: &utils.TStack{
+			ID:             "gone-stack",
+			PrimaryAssetID: "asset-a",
+			Assets:         []utils.TAsset{{ID: "asset-a"}, {ID: "asset-x"}},
+		}},
+	})
+
+	output := logs.String()
+	if strings.Contains(output, "Replacing existing stack") {
+		t.Errorf("report claims deleted child stacks when none were deleted:\n%s", output)
+	}
+	if !strings.Contains(output, "Updating stack configuration") {
+		t.Errorf("expected the update wording, got:\n%s", output)
+	}
+	if strings.Contains(output, "Deleted Stack") {
+		t.Errorf("report claims a deletion that never happened:\n%s", output)
 	}
 }

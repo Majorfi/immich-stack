@@ -43,6 +43,11 @@ type PartialResultError struct {
 	Phase2Failed int
 }
 
+type stackDeleteCall struct {
+	done chan struct{}
+	err  error
+}
+
 func (e *PartialResultError) Error() string {
 	return fmt.Sprintf("partial result: %d phase-1 failures, %d phase-2 failures", e.Phase1Failed, e.Phase2Failed)
 }
@@ -78,6 +83,8 @@ type Client struct {
 	filterTakenAfter        string
 	filterTakenBefore       string
 	logger                  *logrus.Logger
+	stackDeleteMu           sync.Mutex
+	stackDeleteCalls        map[string]*stackDeleteCall
 }
 
 /**************************************************************************************************
@@ -147,6 +154,7 @@ func NewClient(apiURL, apiKey string, resetStacks bool, replaceStacks bool, dryR
 		filterTakenAfter:        filterTakenAfter,
 		filterTakenBefore:       filterTakenBefore,
 		logger:                  logger,
+		stackDeleteCalls:        make(map[string]*stackDeleteCall),
 	}
 }
 
@@ -266,7 +274,9 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 	// refactor moves the reset earlier. Capturing is defensive and makes intent explicit.
 	shouldReset := c.resetStacks
 	shouldRemoveSingle := c.removeSingleAssetStacks
+	deletedStackIDs := make(map[string]bool)
 	{
+		var deletedMu sync.Mutex
 		concurrency := max(c.stackConcurrency, 1)
 		sem := make(chan struct{}, concurrency)
 		var wg sync.WaitGroup
@@ -288,9 +298,20 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 				if reason == utils.REASON_RESET_STACK {
 					c.logger.Debugf("🔄 Resetting stack %s", stack.PrimaryAssetID)
 				}
-				if err := c.DeleteStack(stack.ID, reason); err != nil {
-					c.logger.Errorf("Error deleting stack: %v", err)
+				/**********************************************************************************
+				** Only a delete this call actually performed may be recorded. A stack that
+				** errored, or that the server refused with the ambiguous "not found or no
+				** access" 400, may still be on the server; dropping it from stacksMap below
+				** would make its assets look unstacked and stack them on a false premise.
+				** DeleteStack already logged whatever happened.
+				**********************************************************************************/
+				deleted, _ := c.DeleteStack(stack.ID, reason)
+				if !deleted {
+					return
 				}
+				deletedMu.Lock()
+				deletedStackIDs[stack.ID] = true
+				deletedMu.Unlock()
 			}(stack, reason)
 		}
 		wg.Wait()
@@ -317,8 +338,17 @@ func (c *Client) FetchAllStacks() (map[string]utils.TStack, error) {
 		}
 	}
 
+	/**********************************************************************************************
+	** Stacks deleted just above must not stay indexed: their assets would carry a pointer to a
+	** stack that no longer exists and the replace path would try to delete it a second time
+	** (issue #80). Deleted stacks are skipped in dry run too, so the run reports what a real
+	** run would produce.
+	**********************************************************************************************/
 	stacksMap := make(map[string]utils.TStack)
 	for _, stack := range stacks {
+		if deletedStackIDs[stack.ID] {
+			continue
+		}
 		for _, asset := range stack.Assets {
 			stacksMap[asset.ID] = stack
 		}
@@ -466,21 +496,30 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 ** DeleteStack removes a stack from Immich.
 ** In dry run mode, it only logs the action without making changes.
 **
+** The deleted flag reports whether this call is what removed the stack. A stack the server
+** refused to delete — already gone, or not ours — yields (false, nil): harmless, but the caller
+** must not treat it as a deletion it performed. Dry run reports true, since it models the run
+** that would have happened.
+**
 ** @param stackID - ID of the stack to delete
 ** @param reason - Reason for deletion (for logging)
+** @return bool - True when this call removed the stack
 ** @return error - Any error that occurred during deletion
 **************************************************************************************************/
-func (c *Client) DeleteStack(stackID string, reason string) error {
+func (c *Client) DeleteStack(stackID string, reason string) (bool, error) {
 	msg, err := c.DeleteStackCollect(stackID, reason)
 	if err != nil {
-		return err
+		return false, err
+	}
+	if msg == "" {
+		return false, nil
 	}
 	if c.dryRun {
 		c.logger.Warn(msg)
 	} else {
 		c.logger.Info(msg)
 	}
-	return nil
+	return true, nil
 }
 
 /**************************************************************************************************
@@ -489,6 +528,9 @@ func (c *Client) DeleteStack(stackID string, reason string) error {
 ** can be folded into a single contiguous per-stack log block instead of interleaving with the
 ** output of other in-flight stacks. Errors are still returned (and logged here) since they are
 ** exceptional and should surface immediately.
+**
+** An empty message with a nil error means the stack was already gone, so there is nothing to
+** report. Callers must skip empty messages instead of logging them.
 **************************************************************************************************/
 func (c *Client) DeleteStackCollect(stackID string, reason string) (string, error) {
 	reasonMsg := ""
@@ -500,12 +542,47 @@ func (c *Client) DeleteStackCollect(stackID string, reason string) (string, erro
 		return fmt.Sprintf("%sDeleted Stack %s (dry run) - %s", reasonMsg, stackID, reason), nil
 	}
 
-	if err := c.doRequest(http.MethodDelete, fmt.Sprintf("/stacks/%s", stackID), nil, nil); err != nil {
+	deleted, err := c.deleteStackOnce(stackID)
+	if err != nil {
+		if isStackAlreadyGone(err) {
+			c.logger.Debugf("Stack %s already gone, nothing to delete - %s", stackID, reason)
+			return "", nil
+		}
 		c.logger.Errorf("Error deleting stack: %v", err)
 		return "", fmt.Errorf("error deleting stack: %w", err)
 	}
+	if !deleted {
+		return "", nil
+	}
 
 	return fmt.Sprintf("%sDeleted Stack %s - %s", reasonMsg, stackID, reason), nil
+}
+
+func (c *Client) deleteStackOnce(stackID string) (bool, error) {
+	c.stackDeleteMu.Lock()
+	if c.stackDeleteCalls == nil {
+		c.stackDeleteCalls = make(map[string]*stackDeleteCall)
+	}
+	if call, exists := c.stackDeleteCalls[stackID]; exists {
+		c.stackDeleteMu.Unlock()
+		<-call.done
+		return false, call.err
+	}
+
+	call := &stackDeleteCall{done: make(chan struct{})}
+	c.stackDeleteCalls[stackID] = call
+	c.stackDeleteMu.Unlock()
+
+	call.err = c.doRequest(http.MethodDelete, fmt.Sprintf("/stacks/%s", stackID), nil, nil)
+	close(call.done)
+	if call.err != nil && !isStackAlreadyGone(call.err) {
+		c.stackDeleteMu.Lock()
+		if c.stackDeleteCalls[stackID] == call {
+			delete(c.stackDeleteCalls, stackID)
+		}
+		c.stackDeleteMu.Unlock()
+	}
+	return call.err == nil, call.err
 }
 
 /**************************************************************************************************
@@ -893,6 +970,18 @@ func (c *Client) UpdateAlbum(albumID string, updates map[string]interface{}) err
 	}
 
 	return nil
+}
+
+/**************************************************************************************************
+** isStackAlreadyGone only accepts an unambiguous 404. Immich's 400 response can mean either that
+** the stack is absent or that the caller lacks access, so it must remain visible to the user.
+**************************************************************************************************/
+func isStackAlreadyGone(err error) bool {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return apiErr.StatusCode == http.StatusNotFound
 }
 
 /**************************************************************************************************
