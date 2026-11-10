@@ -446,6 +446,7 @@ func (c *Client) FetchAssets(size int, stacksMap map[string]utils.TStack) ([]uti
 					"withStacked":  true,
 					"withArchived": c.withArchived,
 					"withDeleted":  c.withDeleted,
+					"withExif":     true,
 				}
 				if len(albumFilter) > 0 {
 					payload["albumIds"] = albumFilter
